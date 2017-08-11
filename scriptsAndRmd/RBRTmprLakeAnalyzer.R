@@ -14,9 +14,9 @@ library(rLakeAnalyzer)
 #### weird way Ruskin exports files, and the fact that the time series are too long for 
 #### Excel. 
 
-txtFiles59 <- list.files("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/rbr59", 
+txtFiles59 <- list.files("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/rbr_10cm", 
                        pattern="*.txt$", recursive = TRUE) # $ matches end of string, excludes '...txt.zip' file
-txtFiles61 <- list.files("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/rbr61", 
+txtFiles61 <- list.files("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/rbr_25cm", 
                          pattern="*.txt$", recursive = TRUE) # $ matches end of string, excludes '...txt.zip' file
 txtFiles62 <- list.files("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/rbr62", 
                          pattern="*.txt$", recursive = TRUE) # $ matches end of string, excludes '...txt.zip' file
@@ -33,7 +33,7 @@ txtFiles66 <- list.files("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCo
 # Strip these files out.
 #txtFiles <- txtFiles[!grepl(pattern = "_events|_metadata", x = txtFiles)] # exclude files with _events or_metadata
 
-txtFiles66 #these are the files I want
+txtFiles59 #these are the files I want
 
 
 
@@ -41,7 +41,7 @@ txtFiles66 #these are the files I want
 filepath <- "L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/"
 rbrList<-list()
   for(i in 1:length(txtFiles59)){
-    rbr.i<-read.table(paste(filepath,"rbr59/",txtFiles59[i], sep=""),
+    rbr.i<-read.table(paste(filepath,"rbr_10cm/",txtFiles59[i], sep=""),
                       colClasses=c("POSIXct","numeric"),
                       sep = ",",
                       header=TRUE)  
@@ -51,7 +51,7 @@ RBR59<-do.call(rbind, rbrList)
 
 rbrList<-list()
 for(i in 1:length(txtFiles61)){
-  rbr.i<-read.table(paste(filepath,"rbr61/",txtFiles61[i], sep=""),
+  rbr.i<-read.table(paste(filepath,"rbr_25cm/",txtFiles61[i], sep=""),
                     colClasses=c("POSIXct","numeric"),
                     sep = ",",
                     header=TRUE)  
@@ -253,11 +253,12 @@ head(c.RBR)
 
 
 #Step 4: Plot default figures
-tiff("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/tempProfile20170510_20170626.tif", res=1200, compression="lzw", 
+tiff("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/tempProfile20170510_20170809.tif", res=1200, compression="lzw", 
      width=14, height=6, units='in')
 wtr.heat.map(c.RBR, 
              key.title = title(main = "Celsius", cex.main = 1, line=1),
              plot.title = title(ylab = "Depth (m)"))
+#how do I get this plot to have more x-axis ticks? 
 dev.off()
 #received this error: 
 ##Error in plot.window(xlim, ylim, "", xaxs = xaxs, yaxs = yaxs, asp = asp) : 
@@ -270,21 +271,29 @@ dev.off()
 
 m.RBR$depth.f<-as.factor(m.RBR$depth)
 
+#time series plot
 ggplot(m.RBR, aes(datetime, value))+
   geom_point(aes(color=depth))+
   scale_color_gradient(low="#33FF99", high="#000033", guide = "legend")+
   ylab("Temperature (deg C)")
+  
+ggplot(m.RBR, aes(datetime, value))+
+    geom_point(aes(color=depth))+
+    scale_color_gradientn(colors=c("#33FF99", "#00CC66", "#009966", "#336666",
+                                   "#003333", "#000066", "#000033"),
+                          values=c(0.1, 0.25, 0.5, 0.75, 1.0, 1.25, 1.6))+
+    ylab("Temperature (deg C)")  
 
 #colors: http://www.cookbook-r.com/Graphs/Colors_(ggplot2)/
 
-ggsave(filename="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/tempTrace20170510_20170626.tiff",
+ggsave(filename="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/tempTrace20170510_20170809.tiff",
        width=8,height=5.5, units="in",
        dpi=800,compression="lzw")
 
 ########resolved by changing "RDateTime" to "datetime". Gah. 
 
 write.table(c.RBR, 
-            file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/L1_30minRBR/RBR20170510_20170626.csv",
+            file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/L1_30minRBR/RBR20170510_20170809.csv",
             sep=",",
             row.names=FALSE)
 
