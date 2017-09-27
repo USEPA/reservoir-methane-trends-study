@@ -9,6 +9,10 @@ library(rLakeAnalyzer)
 ###  3. Melt and cast the 30 min average columns into a dataframe with 7 columns: 
 ###  4. Use the rLakeAnalyzer package functions to make the spatial/temporal temperature as a f(depth, time) heat map
 
+######Update on 9/27/2017: The files are too large to keep loading in ALL the 1 Hz raw files and re-processing. 
+######New workflow: take 30-minute average of each RBR file individually, save that file, and then load and 
+######concatenate those files, melt and cast those into a dataframe to use with rLakeAnalyzer.
+
 #### Step 1: 
 #### load in each file. The files, sigh, are saved in separate folders due to the ------
 #### weird way Ruskin exports files, and the fact that the time series are too long for 
@@ -33,14 +37,16 @@ txtFiles66 <- list.files("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCo
 # Strip these files out.
 #txtFiles <- txtFiles[!grepl(pattern = "_events|_metadata", x = txtFiles)] # exclude files with _events or_metadata
 
+#figure out the 
 txtFiles59 #these are the files I want
-
+txtFiles61
+txtFiles62
 
 
 #####brute force method to load all of the data frames:
 filepath <- "L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/"
-rbrList<-list()
-  for(i in 1:length(txtFiles59)){
+rbrList<-list()  ###list to hold raw 1Hz data
+  for(i in 5){    #length(txtFiles59)){
     rbr.i<-read.table(paste(filepath,"rbr_10cm/",txtFiles59[i], sep=""),
                       colClasses=c("POSIXct","numeric"),
                       sep = ",",
@@ -49,8 +55,8 @@ rbrList<-list()
   }
 RBR59<-do.call(rbind, rbrList)
 
-rbrList<-list()
-for(i in 1:length(txtFiles61)){
+rbrList<-list()  ###list to hold raw 1Hz data
+for(i in 2){    #length(txtFiles61)){
   rbr.i<-read.table(paste(filepath,"rbr_25cm/",txtFiles61[i], sep=""),
                     colClasses=c("POSIXct","numeric"),
                     sep = ",",
@@ -59,8 +65,8 @@ for(i in 1:length(txtFiles61)){
 }
 RBR61<-do.call(rbind, rbrList)
 
-rbrList<-list()
-for(i in 1:length(txtFiles62)){
+rbrList<-list()  ###list to hold raw 1Hz data
+for(i in 6){    #1:length(txtFiles62)){
   rbr.i<-read.table(paste(filepath,"rbr62/",txtFiles62[i], sep=""),
                     colClasses=c("POSIXct","numeric"),
                     sep = ",",
@@ -69,8 +75,8 @@ for(i in 1:length(txtFiles62)){
 }
 RBR62<-do.call(rbind, rbrList)
 
-rbrList<-list()
-for(i in 1:length(txtFiles63)){
+rbrList<-list()  ###list to hold raw 1Hz data
+for(i in 6){    #1:length(txtFiles63)){
   rbr.i<-read.table(paste(filepath,"rbr63/",txtFiles63[i], sep=""),
                     colClasses=c("POSIXct","numeric"),
                     sep = ",",
@@ -79,8 +85,8 @@ for(i in 1:length(txtFiles63)){
 }
 RBR63<-do.call(rbind, rbrList)
 
-rbrList<-list()
-for(i in 1:length(txtFiles64)){
+rbrList<-list()  ###list to hold raw 1Hz data
+for(i in 6){    #1:length(txtFiles64)){
   rbr.i<-read.table(paste(filepath,"rbr64/",txtFiles64[i], sep=""),
                     colClasses=c("POSIXct","numeric"),
                     sep = ",",
@@ -89,8 +95,8 @@ for(i in 1:length(txtFiles64)){
 }
 RBR64<-do.call(rbind, rbrList)
 
-rbrList<-list()
-for(i in 1:length(txtFiles65)){
+rbrList<-list()  ###list to hold raw 1Hz data
+for(i in 6){    #1:length(txtFiles65)){
   rbr.i<-read.table(paste(filepath,"rbr65/",txtFiles65[i], sep=""),
                     colClasses=c("POSIXct","numeric"),
                     sep = ",",
@@ -99,8 +105,8 @@ for(i in 1:length(txtFiles65)){
 }
 RBR65<-do.call(rbind, rbrList)
 
-rbrList<-list()
-for(i in 1:length(txtFiles66)){
+rbrList<-list()  ###list to hold raw 1Hz data
+for(i in 6){    #in 1:length(txtFiles66)){
   rbr.i<-read.table(paste(filepath,"rbr66/",txtFiles66[i], sep=""),
                     colClasses=c("POSIXct","numeric"),
                     sep = ",",
@@ -109,34 +115,20 @@ for(i in 1:length(txtFiles66)){
 }
 RBR66<-do.call(rbind, rbrList)
 
-#   read.table(paste(filepath,txtFiles59, sep=""),
-#                   colClasses=c("POSIXct","numeric"),
-#                   sep = ",",
-#                   header=TRUE)
-# RBR61<-read.table(paste(filepath,txtFiles[2], sep=""),
-#                   colClasses=c("POSIXct","numeric"),
-#                   sep = ",",
-#                   header=TRUE)
-# RBR62<-read.table(paste(filepath,txtFiles[3], sep=""),
-#                   colClasses=c("POSIXct","numeric"),
-#                   sep = ",",
-#                   header=TRUE)
-# RBR63<-read.table(paste(filepath,txtFiles[4], sep=""),
-#                   colClasses=c("POSIXct","numeric"),
-#                   sep = ",",
-#                   header=TRUE)
-# RBR64<-read.table(paste(filepath,txtFiles[5], sep=""),
-#                   colClasses=c("POSIXct","numeric"),
-#                   sep = ",",
-#                   header=TRUE)
-# RBR65<-read.table(paste(filepath,txtFiles[6], sep=""),
-#                   colClasses=c("POSIXct","numeric"),
-#                   sep = ",",
-#                   header=TRUE)
-# RBR66<-read.table(paste(filepath,txtFiles[7], sep=""),
-#                   colClasses=c("POSIXct","numeric"),
-#                   sep = ",",
-#                   header=TRUE)
+#see where each file starts, in order to filter them to start at the same half hour
+head(RBR59)
+head(RBR61)
+head(RBR62)
+head(RBR63)
+head(RBR64)
+head(RBR65)
+head(RBR66)
+
+tail(RBR59)
+tail(RBR61)
+tail(RBR62)
+tail(RBR63)
+
 
 ####end-----
 
@@ -147,13 +139,13 @@ RBR66<-do.call(rbind, rbrList)
 ## truncate the beinning in order to have unitofrm time series going
 ## forward
 
-RBR59filt<-filter(RBR59, RBR59$Time>"2017-05-26 10:30:00")
-RBR61filt<-filter(RBR61, RBR61$Time>"2017-05-10 13:00:00") #the RBRs started logging at 10:30, but didn't get deployed until 1:48 EDT, which is 12:48 EST
-RBR62filt<-filter(RBR62, RBR62$Time>"2017-05-10 13:00:00")
-RBR63filt<-filter(RBR63, RBR63$Time>"2017-05-10 13:00:00")
-RBR64filt<-filter(RBR64, RBR64$Time>"2017-05-10 13:00:00")
-RBR65filt<-filter(RBR65, RBR65$Time>"2017-05-10 13:00:00")
-RBR66filt<-filter(RBR66, RBR66$Time>"2017-05-10 13:00:00")
+RBR59filt<-filter(RBR59, RBR59$Time>"2017-08-09 12:00:00")
+RBR61filt<-filter(RBR61, RBR61$Time>"2017-08-09 12:00:00") #the RBRs started logging at 10:30, but didn't get deployed until 1:48 EDT, which is 12:48 EST
+RBR62filt<-filter(RBR62, RBR62$Time>"2017-08-09 12:00:00")
+RBR63filt<-filter(RBR63, RBR63$Time>"2017-08-09 12:00:00")
+RBR64filt<-filter(RBR64, RBR64$Time>"2017-08-09 12:00:00")
+RBR65filt<-filter(RBR65, RBR65$Time>"2017-08-09 12:30:00")
+RBR66filt<-filter(RBR66, RBR66$Time>"2017-08-09 12:30:00")
 
 reducedRbr59<- RBR59filt %>%
   group_by(Time = cut(Time, breaks = "30 min")) %>%
@@ -211,11 +203,44 @@ reducedRbr66$RDateTime<-as.POSIXct(reducedRbr66$Time,
                                    format = "%Y-%m-%d %H:%M:%S",
                                    tz="UTC")
 
+head(reducedRbr66)
+tail(reducedRbr66)
+
+write.table(reducedRbr59, 
+            file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/L1_30minRBR/RBR59/RBR59_20170809_20170921.csv",
+            sep=",",
+            row.names=FALSE)
+write.table(reducedRbr61, 
+            file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/L1_30minRBR/RBR61/RBR61_20170809_20170921.csv",
+            sep=",",
+            row.names=FALSE)
+write.table(reducedRbr62, 
+            file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/L1_30minRBR/RBR62/RBR62_20170809_20170921.csv",
+            sep=",",
+            row.names=FALSE)
+write.table(reducedRbr63, 
+            file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/L1_30minRBR/RBR63/RBR63_20170809_20170921.csv",
+            sep=",",
+            row.names=FALSE)
+write.table(reducedRbr64, 
+            file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/L1_30minRBR/RBR64/RBR64_20170809_20170921.csv",
+            sep=",",
+            row.names=FALSE)
+write.table(reducedRbr65, 
+            file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/L1_30minRBR/RBR65/RBR65_20170809_20170921.csv",
+            sep=",",
+            row.names=FALSE)
+write.table(reducedRbr66, 
+            file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/L1_30minRBR/RBR66/RBR66_20170809_20170921.csv",
+            sep=",",
+            row.names=FALSE)
+
+
 #remove the large objects to clear up space:
 rm(rbr.i)
 rm(RBR59, RBR61, RBR62, RBR63, RBR64, RBR65, RBR66)
 rm(RBR59filt, RBR61filt, RBR62filt, RBR63filt, RBR64filt, RBR65filt, RBR66filt)
-
+rm(RBR61)
 
 ######end-----
 
@@ -225,14 +250,100 @@ rm(RBR59filt, RBR61filt, RBR62filt, RBR63filt, RBR64filt, RBR65filt, RBR66filt)
 ggplot(reducedRbr66, aes(RDateTime, meanT))+
   geom_point()
 
+########Step 2.5: Load and concatenate all of the 30-minute files---------
+txtFiles30min59 <- list.files("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/L1_30minRBR/RBR59", 
+                         pattern="*.csv$", recursive = TRUE) 
+txtFiles30min61 <- list.files("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/L1_30minRBR/RBR61", 
+                         pattern="*.csv$", recursive = TRUE) 
+txtFiles30min62 <- list.files("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/L1_30minRBR/RBR62", 
+                         pattern="*.csv$", recursive = TRUE) 
+txtFiles30min63 <- list.files("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/L1_30minRBR/RBR63", 
+                         pattern="*.csv$", recursive = TRUE) 
+txtFiles30min64 <- list.files("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/L1_30minRBR/RBR64", 
+                         pattern="*.csv$", recursive = TRUE) 
+txtFiles30min65 <- list.files("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/L1_30minRBR/RBR65", 
+                         pattern="*.csv$", recursive = TRUE) 
+txtFiles30min66 <- list.files("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/L1_30minRBR/RBR66", 
+                         pattern="*.csv$", recursive = TRUE) 
+
+filepath <- "L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/"
+rbrList<-list()
+for(i in 1:length(txtFiles30min59)){
+  rbr.i<-read.table(paste(filepath,"L1_30minRBR/RBR59/",txtFiles30min59[i], sep=""),
+                    colClasses=c("POSIXct","numeric", "numeric", "POSIXct"),
+                    sep = ",",
+                    header=TRUE)  
+  rbrList[[i]]<-rbr.i
+}
+RBR59hh<-do.call(rbind, rbrList)
+
+rbrList<-list()
+for(i in 1:length(txtFiles30min61)){
+  rbr.i<-read.table(paste(filepath,"L1_30minRBR/RBR61/",txtFiles30min61[i], sep=""),
+                    colClasses=c("POSIXct","numeric", "numeric", "POSIXct"),
+                    sep = ",",
+                    header=TRUE)  
+  rbrList[[i]]<-rbr.i
+}
+RBR61hh<-do.call(rbind, rbrList)
+
+rbrList<-list()
+for(i in 1:length(txtFiles30min62)){
+  rbr.i<-read.table(paste(filepath,"L1_30minRBR/RBR62/",txtFiles30min62[i], sep=""),
+                    colClasses=c("POSIXct","numeric", "numeric", "POSIXct"),
+                    sep = ",",
+                    header=TRUE)  
+  rbrList[[i]]<-rbr.i
+}
+RBR62hh<-do.call(rbind, rbrList)
+
+rbrList<-list()
+for(i in 1:length(txtFiles30min63)){
+  rbr.i<-read.table(paste(filepath,"L1_30minRBR/RBR63/",txtFiles30min63[i], sep=""),
+                    colClasses=c("POSIXct","numeric", "numeric", "POSIXct"),
+                    sep = ",",
+                    header=TRUE)  
+  rbrList[[i]]<-rbr.i
+}
+RBR63hh<-do.call(rbind, rbrList)
+
+rbrList<-list()
+for(i in 1:length(txtFiles30min64)){
+  rbr.i<-read.table(paste(filepath,"L1_30minRBR/RBR64/",txtFiles30min64[i], sep=""),
+                    colClasses=c("POSIXct","numeric", "numeric", "POSIXct"),
+                    sep = ",",
+                    header=TRUE)  
+  rbrList[[i]]<-rbr.i
+}
+RBR64hh<-do.call(rbind, rbrList)
+
+rbrList<-list()
+for(i in 1:length(txtFiles30min65)){
+  rbr.i<-read.table(paste(filepath,"L1_30minRBR/RBR65/",txtFiles30min65[i], sep=""),
+                    colClasses=c("POSIXct","numeric", "numeric", "POSIXct"),
+                    sep = ",",
+                    header=TRUE)  
+  rbrList[[i]]<-rbr.i
+}
+RBR65hh<-do.call(rbind, rbrList)
+
+rbrList<-list()
+for(i in 1:length(txtFiles30min66)){
+  rbr.i<-read.table(paste(filepath,"L1_30minRBR/RBR66/",txtFiles30min66[i], sep=""),
+                    colClasses=c("POSIXct","numeric", "numeric", "POSIXct"),
+                    sep = ",",
+                    header=TRUE)  
+  rbrList[[i]]<-rbr.i
+}
+RBR66hh<-do.call(rbind, rbrList)
 
 #### Step 3: join all of the reduced data frames into one data frame, and format for the rLakeAnalyzer --------
 
-RBRList<- list(reducedRbr59, reducedRbr61, reducedRbr62, reducedRbr63, reducedRbr64, reducedRbr65, reducedRbr66)
+RBRList<- list(RBR59hh, RBR61hh, RBR62hh, RBR63hh, RBR64hh, RBR65hh, RBR66hh)
 
 mergedRBRAvg<-Reduce(function(x, y) merge(x, y, all=TRUE), 
-                     list(reducedRbr59, reducedRbr61, reducedRbr62, reducedRbr63, reducedRbr64, reducedRbr65, reducedRbr66))
-                     #this gives all of the meanT values the value for RBR61, repeated for the six depths for each timestep
+                     list(RBR59hh, RBR61hh, RBR62hh, RBR63hh, RBR64hh, RBR65hh, RBR66hh))
+                     #this gives all of the meanT values the value for RBR61, repeated for the seven depths for each timestep
 
 mergedRBRAvg$datetime<-mergedRBRAvg$RDateTime #making mergedRBRAvg match usace.dam from Jake's readUsaceSonde.R
 
@@ -253,7 +364,7 @@ head(c.RBR)
 
 
 #Step 4: Plot default figures
-tiff("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/tempProfile20170510_20170809.tif", res=1200, compression="lzw", 
+tiff("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/tempProfile20170510_20170921.tif", res=1200, compression="lzw", 
      width=14, height=6, units='in')
 wtr.heat.map(c.RBR, 
              key.title = title(main = "Celsius", cex.main = 1, line=1),
@@ -268,7 +379,7 @@ dev.off()
 ##  no non-missing arguments to min; returning Inf
 ##2: In max(x, na.rm = na.rm) :
 ##  no non-missing arguments to max; returning -Inf
-
+########resolved by changing "RDateTime" to "datetime". Gah.
 m.RBR$depth.f<-as.factor(m.RBR$depth)
 
 #time series plot
@@ -290,10 +401,10 @@ ggsave(filename="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/
        width=8,height=5.5, units="in",
        dpi=800,compression="lzw")
 
-########resolved by changing "RDateTime" to "datetime". Gah. 
+ 
 
 write.table(c.RBR, 
-            file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/L1_30minRBR/RBR20170510_20170809.csv",
+            file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/L1_30minRBR/RBR20170510_20170921.csv",
             sep=",",
             row.names=FALSE)
 
