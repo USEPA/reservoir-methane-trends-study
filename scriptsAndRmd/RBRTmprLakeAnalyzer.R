@@ -366,10 +366,75 @@ head(c.RBR)
 #Step 4: Plot default figures
 tiff("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/tempProfile20170510_20170921.tif", res=1200, compression="lzw", 
      width=14, height=6, units='in')
-wtr.heat.map(c.RBR, 
+rLakeAnalyzer::wtr.heat.map(c.RBR, 
              key.title = title(main = "Celsius", cex.main = 1, line=1),
              plot.title = title(ylab = "Depth (m)"))
 #how do I get this plot to have more x-axis ticks? 
+dev.off()
+
+rLakeAnalyzer::wtr.lineseries(c.RBR)
+rLakeAnalyzer::wtr.plot.temp(c.RBR)
+
+tiff("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/tempLayerProfile20170510_20170921.tif", res=1200, compression="lzw", 
+     width=14, height=6, units='in')
+wtr<-c.RBR
+rLakeAnalyzer::wtr.heatmap.layers(wtr, 
+             key.title = title(main = "Celsius", cex.main = 1, line=1),
+             plot.title = title(ylab = "Depth (m)"))
+#how do I get this plot to have more x-axis ticks? 
+dev.off()
+
+#####MONTHLY TEMPERATURE PROFILE PLOTS, WITH AND WITHOUT THERMOCLINE LAYERS
+
+wtr<-filter(c.RBR, datetime>("2017-05-10"), datetime<("2017-06-01"))
+rLakeAnalyzer::wtr.plot.temp(wtr)
+tiff("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/tempProfile20170510_20170601.tif", res=1200, compression="lzw", 
+     width=14, height=6, units='in')
+rLakeAnalyzer::wtr.heat.map(wtr, 
+                            key.title = title(main = "Celsius", cex.main = 1, line=1),
+                            plot.title = title(ylab = "Depth (m)"))
+dev.off()
+tiff("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/tempLayerProfile20170510_20170601.tif", res=1200, compression="lzw", 
+     width=14, height=6, units='in')
+rLakeAnalyzer::wtr.heatmap.layers(wtr, 
+                            key.title = title(main = "Celsius", cex.main = 1, line=1),
+                            plot.title = title(ylab = "Depth (m)"))
+dev.off()
+
+###June
+wtr<-filter(c.RBR, datetime>("2017-06-01"), datetime<("2017-07-01"))
+rLakeAnalyzer::wtr.plot.temp(wtr)
+tiff("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/tempProfile20170601_20170701.tif", res=1200, compression="lzw", 
+     width=14, height=6, units='in')
+rLakeAnalyzer::wtr.heat.map(wtr, 
+                            key.title = title(main = "Celsius", cex.main = 1, line=1),
+                            plot.title = title(ylab = "Depth (m)"))
+dev.off()
+
+
+tiff("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/tempLayerProfile20170601_20170701.tif", res=1200, compression="lzw", 
+     width=14, height=6, units='in')
+rLakeAnalyzer::wtr.heatmap.layers(wtr, 
+                                  key.title = title(main = "Celsius", cex.main = 1, line=1),
+                                  plot.title = title(ylab = "Depth (m)"))
+dev.off()
+
+###July
+wtr<-filter(c.RBR, datetime>("2017-07-01"), datetime<("2017-08-01"))
+rLakeAnalyzer::wtr.plot.temp(wtr)
+tiff("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/tempProfile20170701_20170801.tif", res=1200, compression="lzw", 
+     width=14, height=6, units='in')
+rLakeAnalyzer::wtr.heat.map(wtr, 
+                            key.title = title(main = "Celsius", cex.main = 1, line=1),
+                            plot.title = title(ylab = "Depth (m)"))
+dev.off()
+
+
+tiff("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/tempLayerProfile20170701_20170801.tif", res=1200, compression="lzw", 
+     width=14, height=6, units='in')
+rLakeAnalyzer::wtr.heatmap.layers(wtr, 
+                                  key.title = title(main = "Celsius", cex.main = 1, line=1),
+                                  plot.title = title(ylab = "Depth (m)"))
 dev.off()
 #received this error: 
 ##Error in plot.window(xlim, ylim, "", xaxs = xaxs, yaxs = yaxs, asp = asp) : 
