@@ -7,6 +7,8 @@ U12depthTPro<-read.table(paste(filepath,"depthTProsRLakeAnalyzer.csv", sep=""),
                                colClasses=c("POSIXct", rep("numeric", 9)),
                                sep = ",",
                                header=TRUE)  
+U12depthTPro<-subset(U12depthTPro, select = -wtrT_8)
+
 rLakeAnalyzer::wtr.heatmap.layers(U12depthTPro, 
                             key.title = title(main = "Celsius", cex.main = 1, line=1),
                             plot.title = title(ylab = "Depth (m)"))

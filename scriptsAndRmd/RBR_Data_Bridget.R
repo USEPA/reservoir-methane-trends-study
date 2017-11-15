@@ -72,3 +72,35 @@ seich<-filter(mintimetemp, mintimetemp$mintime>12:00:00)
 library(openair)
 rbrS<-rbr
 rbrS$date<-as.POSIXct(rbrS$datetime, tz="UTC")
+rbrS$dateAirT<-as.POSIXct(rbrS$datetimeAirT, tz="UTC")
+
+rbrSmay<-filter(rbrS, rbrS$date<"2017-06-01 00:00")
+rbrSjune<-filter(rbrS, rbrS$date>"2017-06-01 00:00"&rbrS$date<"2017-07-01 00:00")
+
+timeVariation(rbrS, pollutant=c("airT","meanT_0.1","meanT_0.25","meanT_0.5",
+                                "meanT_0.75","meanT_1","meanT_1.25","meanT_1.6"),
+              normalize=FALSE)
+
+myOutput<-timeVariation(rbrSmay, pollutant=c("meanT_0.1","meanT_0.25","meanT_0.5",
+                                "meanT_0.75","meanT_1","meanT_1.25","meanT_1.6"),
+              normalize=FALSE,
+              key.columns=3)
+plot(myOutput, subset="hour")
+
+myOutput<-timeVariation(rbrSjune, pollutant=c("meanT_0.1","meanT_0.25","meanT_0.5",
+                                             "meanT_0.75","meanT_1","meanT_1.25","meanT_1.6"),
+                        normalize=FALSE,
+                        key.columns=3)
+plot(myOutput, subset="hour")
+
+windspeed<-wnd
+windspeed$date<-wnd$datetime
+timeVariation(windspeed, pollutant = "wnd")
+
+rbrS$meanT0.1_1.25diff<-rbrS$meanT_0.1-rbrS$meanT_1.25
+ggplot(rbrS, aes(date, meanT0.1_1.25diff))+
+  geom_line()
+myOutput2<-timeVariation(rbrS, pollutant="meanT0.1_1.25diff",
+                        normalize=FALSE,
+                        key.columns=3)
+plot(myOutput2, subset="hour")

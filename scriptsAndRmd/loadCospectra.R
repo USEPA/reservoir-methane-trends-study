@@ -116,7 +116,7 @@ cospectraDates<-cbind(cospectra, RDateTime)
 #######LOAD IN EDDYPRO OUTPUT------
 epFiles <- list.files("C:/R_Projects/EC/eddyproout/fullOutput/", 
                       pattern="*.csv$", recursive = TRUE) 
-
+epFiles
 epList <- list()  # Empty list to hold results
 
 ##header   

@@ -112,23 +112,4 @@ mylist4 <- lapply(mylist3, function(x) {
  estChemVol <- mean(eqAreaData[adjChmVol, "chmVol.L"])
  eqAreaData[toAdjChmVol, "chmVol.L"] =  estChemVol
  
- # # Apple Valley
- # toAdjChmVol <- with(eqAreaData, Lake_Name == "Apple Valley Lake" & EvalStatus == "sampled" & is.na(chmVol.L))
- # adjChmVol <- with(eqAreaData, Lake_Name == "Apple Valley Lake" & EvalStatus == "sampled" & !is.na(chmVol.L))
- # estChemVol <- mean(eqAreaData[adjChmVol, "chmVol.L"])
- # eqAreaData[toAdjChmVol, "chmVol.L"] =  estChemVol
- # 
- # # Lake Waynoka
- # toAdjChmVol <- with(eqAreaData, Lake_Name == "Lake Waynoka" & EvalStatus == "sampled" & is.na(chmVol.L))
- # adjChmVol <- with(eqAreaData, Lake_Name == "Lake Waynoka" & EvalStatus == "sampled" & !is.na(chmVol.L))
- # estChemVol <- mean(eqAreaData[adjChmVol, "chmVol.L"])
- # eqAreaData[toAdjChmVol, "chmVol.L"] =  estChemVol 
- # 
- # # 2.  Pleasent Hill (PH) sampled day before Charles Mill (CM).  No volume measurements
- # # made at CM; replace with mean from PH.
- # # First, create logical for conditions that need to be replaced
- # adjChmVol <- eqAreaData$Lake_Name == "Charles Mill Lake" & eqAreaData$EvalStatus == "sampled"
- # eqAreaData[adjChmVol, "chmVol.L"] = 
- #   mean(eqAreaData[eqAreaData$Lake_Name == "Pleasant Hill Lake", "chmVol.L"], na.rm = TRUE)
-
  

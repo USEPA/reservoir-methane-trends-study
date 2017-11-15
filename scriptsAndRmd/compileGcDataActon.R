@@ -28,10 +28,12 @@ gc.9 <- read_excel("L:/Lab/Lablan/GHG/GC/2017Data/17_09_19_STD_UNK_ECD_FID_TCD.x
                    trim_ws=TRUE, skip=102)
 gc.10 <- read_excel("L:/Lab/Lablan/GHG/GC/2017Data/17_09_28_UNK_STD_ECD_FID.xlsx", 
                     trim_ws=TRUE, skip=50)
+gc.11 <- read_excel("L:/Lab/Lablan/GHG/GC/2017Data/17_10_11_UNK_STD_ECD_FID_Dgas.xlsx", 
+                    trim_ws=TRUE, skip=67)
 
 # Merge gas data
 gc.all <- Reduce(function(...) merge(..., all=T),
-                  list(gc.1, gc.2, gc.3, gc.4, gc.5, gc.6, gc.7, gc.8, gc.9, gc.10))
+                  list(gc.1, gc.2, gc.3, gc.4, gc.5, gc.6, gc.7, gc.8, gc.9, gc.10, gc.11))
 
 # simplify names
 names(gc.all) = gsub(pattern = c("\\(| |#|)|/|%|-|\\+"), replacement = ".", 
@@ -109,28 +111,13 @@ xtrCodes.m <- filter(xtrCodes.m, !logicalIndicator)
 xtrCodes.gas <- merge(xtrCodes.m, gc.all, by.x = "value", by.y = "sampleNum", all = TRUE)
 
 str(xtrCodes.m)  #45 observations
-str(gc.all) # 201 observations
+str(gc.all) # 208 observations
 str(xtrCodes.gas) # 201 observations
 
 # Specific fixes
 # Still need to add codes for MIT trap redeployment
 
-omitCodes <- c(16170, # run on GC, but field notes indicate is bad and not entered in field sheets
-               16189, # 16189 air sample run w/trap samples.  Discard.
-               16199, 16200, # contaminated, per field sheets
-               16206, # bad, per field data sheets
-               16023, # chromatogram overwritten due to sequence problem
-               16475, # chromatogram overwritten due to sequence problem
-               16298, 16299, # contaminated, omit, per field sheets.
-               161235, 161281, 161257, 161262, 161266, 161258, # Cowan Lake cntl traps
-               161237, 16151, 161265, 16165, 161279, 16158, # Cowan Lake cntl traps
-               161267, 161268, 161269, # Harsha Lake MIT redeployment
-               16242, 16143, 161244, # Caesar Cr. MIT redeployment
-               16576,  # Empty short tube run on GC
-               16603, # trap sample, but no record in field sheets.
-               16825, # no record in field sheets
-               16614:16617, # no record in field sheets
-               16070) # Karen noted loose cap. Came from trap, but looks like air.
+omitCodes <- c() #any that need to be omitted due to physical QAQC
 
 
 
@@ -146,85 +133,85 @@ filter(xtrCodes.gas, is.na(xtrCodes.gas$co2.ppm)) %>% arrange(variable, value)
 # 16312. No record of this sample being run.  Have reps
 
 # Take a look at values
-ggplot(filter(xtrCodes.gas, variable == "tp.xtr"), aes(Lake_Name, n2o.ppm)) + 
+ggplot(filter(xtrCodes.gas, variable == "tp.xtr"), aes(siteID, n2o.ppm)) + 
   geom_jitter() +
   theme(axis.text.x = element_text(angle = 90))
 
-ggplot(filter(xtrCodes.gas, variable == "tp.xtr"), aes(Lake_Name, ch4.ppm/10000)) + 
+ggplot(filter(xtrCodes.gas, variable == "tp.xtr"), aes(siteID, ch4.ppm/10000)) + 
   geom_jitter() +
   theme(axis.text.x = element_text(angle = 90))
 
-ggplot(filter(xtrCodes.gas, variable == "tp.xtr"), aes(Lake_Name, co2.ppm/10000)) + 
+ggplot(filter(xtrCodes.gas, variable == "tp.xtr"), aes(siteID, co2.ppm/10000)) + 
   geom_jitter() +
   theme(axis.text.x = element_text(angle = 90))
 
-ggplot(filter(xtrCodes.gas, variable == "tp.xtr"), aes(Lake_Name, o2)) + 
-  geom_jitter() +
-  theme(axis.text.x = element_text(angle = 90))
-
-ggplot(filter(xtrCodes.gas, variable == "tp.xtr"), aes(Lake_Name, ar)) + 
-  geom_point() +
-  theme(axis.text.x = element_text(angle = 90))
-
-ggplot(filter(xtrCodes.gas, variable == "tp.xtr"), aes(Lake_Name, n2)) +  
-  geom_point() +
-  theme(axis.text.x = element_text(angle = 90))
-
-ggplot(filter(xtrCodes.gas, variable == "tp.xtr"), aes(Lake_Name, total)) + 
-  geom_point() +
-  theme(axis.text.x = element_text(angle = 90))
+# ggplot(filter(xtrCodes.gas, variable == "tp.xtr"), aes(Lake_Name, o2)) + 
+#   geom_jitter() +
+#   theme(axis.text.x = element_text(angle = 90))
+# 
+# ggplot(filter(xtrCodes.gas, variable == "tp.xtr"), aes(Lake_Name, ar)) + 
+#   geom_point() +
+#   theme(axis.text.x = element_text(angle = 90))
+# 
+# ggplot(filter(xtrCodes.gas, variable == "tp.xtr"), aes(Lake_Name, n2)) +  
+#   geom_point() +
+#   theme(axis.text.x = element_text(angle = 90))
+# 
+# ggplot(filter(xtrCodes.gas, variable == "tp.xtr"), aes(Lake_Name, total)) + 
+#   geom_point() +
+#   theme(axis.text.x = element_text(angle = 90))
 
 
 # QA/QC GC REPS--------------
 
-pdf("ohio2016/output/figures/scatterplot3dTrap.pdf",
-    paper = "a4r", width = 11, height = 8)  # initiate landscape pdf file)
-par(mfrow = c(1,2))
-
-uniqueCases <- filter(xtrCodes.gas, variable == "tp.xtr", # trap sample
-                      !is.na(ch4.ppm), # has GC data
-                      !is.na(Lake_Name)) %>% # is connected with Lake and station
-  distinct(Lake_Name, siteID) # unique combinations of lake and site
-
-for(i in 1:length(uniqueCases$Lake_Name)) {
-  site.i <- uniqueCases$siteID[i]
-  lake.i <- uniqueCases$Lake_Name[i]
-  data.i <- filter(xtrCodes.gas, 
-                   siteID == site.i, Lake_Name == lake.i, 
-                   !is.na(ch4.ppm), variable == "tp.xtr")
-  
-  # CO2, CH4, N2 scatterplot
-  try(
-    with(data.i, {
-      
-      s3d <- scatterplot3d(co2.ppm/10000, ch4.ppm/10000, n2, 
-                           xlab = "CO2 (%)", ylab = "CH4 (%)", zlab = "N2 (%)",
-                           pch=21, bg = "red", main = uniqueCases[i, ])
-      
-      s3d.coords <- s3d$xyz.convert(co2.ppm/10000, ch4.ppm/10000, n2)
-      text(s3d.coords$x, s3d.coords$y,             # x and y coordinates
-           labels=value,               # text to plot
-           cex=.5, pos=4)           # shrink text 50% and place to right of points)
-    }),
-    silent = TRUE)
-  
-  # n2o, o2, ar scatterplot 
-  try(
-    with(data.i, {
-      
-      s3d <- scatterplot3d(n2o.ppm, o2, ar, 
-                           xlab = "N2O (ppm)", ylab = "O2 (%)", zlab = "ar (%)",
-                           pch=21, bg = "red", main = uniqueCases[i, ])
-      
-      s3d.coords <- s3d$xyz.convert(n2o.ppm, o2, ar)
-      text(s3d.coords$x, s3d.coords$y,             # x and y coordinates
-           labels=value,               # text to plot
-           cex=.5, pos=4)           # shrink text 50% and place to right of points)
-    }),
-    silent = TRUE)  
-  
-}
-dev.off()
+# pdf("ohio2016/output/figures/scatterplot3dTrap.pdf",
+#     paper = "a4r", width = 11, height = 8)  # initiate landscape pdf file)
+# par(mfrow = c(1,2))
+# 
+# uniqueCases <- filter(xtrCodes.gas, variable == "tp.xtr", # trap sample
+#                       !is.na(ch4.ppm), # has GC data
+#                       !is.na(Lake_Name)) %>% # is connected with Lake and station
+#   distinct(Lake_Name, siteID) # unique combinations of lake and site
+# 
+# for(i in 1:length(uniqueCases$Lake_Name)) {
+#   site.i <- uniqueCases$siteID[i]
+#   lake.i <- uniqueCases$Lake_Name[i]
+#   data.i <- filter(xtrCodes.gas, 
+#                    siteID == site.i, Lake_Name == lake.i, 
+#                    !is.na(ch4.ppm), variable == "tp.xtr")
+#   
+#   # CO2, CH4, N2 scatterplot
+#   try(
+#     with(data.i, {
+#       
+#       s3d <- scatterplot3d(co2.ppm/10000, ch4.ppm/10000, n2, 
+#                            xlab = "CO2 (%)", ylab = "CH4 (%)", zlab = "N2 (%)",
+#                            pch=21, bg = "red", main = uniqueCases[i, ])
+#       
+#       s3d.coords <- s3d$xyz.convert(co2.ppm/10000, ch4.ppm/10000, n2)
+#       text(s3d.coords$x, s3d.coords$y,             # x and y coordinates
+#            labels=value,               # text to plot
+#            cex=.5, pos=4)           # shrink text 50% and place to right of points)
+#     }),
+#     silent = TRUE)
+#   
+#   # n2o, o2, ar scatterplot 
+#   try(
+#     with(data.i, {
+#       
+#       s3d <- scatterplot3d(n2o.ppm, o2, ar, 
+#                            xlab = "N2O (ppm)", ylab = "O2 (%)", zlab = "ar (%)",
+#                            pch=21, bg = "red", main = uniqueCases[i, ])
+#       
+#       s3d.coords <- s3d$xyz.convert(n2o.ppm, o2, ar)
+#       text(s3d.coords$x, s3d.coords$y,             # x and y coordinates
+#            labels=value,               # text to plot
+#            cex=.5, pos=4)           # shrink text 50% and place to right of points)
+#     }),
+#     silent = TRUE)  
+#   
+# }
+# dev.off()
 
 # Aggregate by Lake_Name and siteID, for now
 

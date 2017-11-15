@@ -55,19 +55,14 @@ gga <- do.call("rbind", ggaList)  # Coerces list into dataframe.
 
 
 
-# Merge times with gas concentration
-cowanChmTimesGas <- merge(cowanChm, cowanChmTimesDf) %>%
-  select(-sample, -n2o.ppm) %>%
-  rename(CH4._ppm = ch4.ppm, CO2._ppm = co2.ppm)
-
-# Merge GC chamber data from Cowan with gga data
-gga <- rbind(gga, cowanChmTimesGas) # rbind is smart enough to match col names
-
-
-
 # BASIC PLOTS-----------------
 ggplot(gga, aes(RDateTime, CH4._ppm)) + geom_point() + 
    scale_x_datetime(labels=date_format ("%m/%d %H:%M"))
+
+ggaGRTS1<-filter(gga, gga$RDateTime>("2017-07-10 00:00:00 UTC") & gga$RDateTime<("2017-07-10 20:00:00 UTC"))
+ggplot(ggaGRTS1, aes(RDateTime, CH4._ppm)) + geom_point() + 
+  scale_x_datetime(labels=date_format ("%m/%d %H:%M"))
+
 # 
 # ggplot(gga, aes(RDateTime, CO2._ppm)) + geom_point() + 
 #   scale_x_datetime(labels=date_format ("%m/%d %H:%M"))
