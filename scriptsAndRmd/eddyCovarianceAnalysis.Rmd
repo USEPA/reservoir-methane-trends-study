@@ -1,0 +1,668 @@
+---
+title: "eddyCovarianceAnalysis"
+author: "Sarah Waldo"
+date: "November 28, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# LIBRARIES---------------
+library(readxl)  # For reading Excel files
+library(gdata)   # Also for reading Excel files
+library(ggplot2) # For plotting
+library(gridExtra) # For plotting
+library(scales)  # For plotting
+library(rgl) # For plotting interactive response surface in 3d
+#library(persp3D) # Not compable with R 3.3.0
+library(scatterplot3d)  # for plotting
+library(reshape) # For merge_recurse function
+library(reshape2) # For melt/dcast
+library(tidyr)  # for separate
+
+library(knitr)   # To knit rmarkdown document
+library(ggmap)   # For ggmap plot of reservoirs
+library(rgdal)   # For reading shapefiles
+library(spsurvey)  # survey design
+library(maptools) # for ggplot plotting of shapefile (fortify function)
+#library(minpack.lm) # for non linear diffusion model -- not available for v3.4
+
+library(plot3D)
+library(plot3Drgl)   
+
+library(openair)
+library(FREddyPro)
+
+# car for variance inflation factor (vif)
+# http://www.statmethods.net/stats/rdiagnostics.html)
+library(car) # vif function
+library(fmsb) # variance inflation factor 'VIF' function
+library(relaimpo)  # dependent on MASS, which masks dplyr select
+library(nlme) # for gls function
+library(piecewiseSEM) # for rsquared of lme model
+
+# Always load dplyr after plyr and relaimpo!  These packages mask
+# dplyr functions.
+library(plyr)  # for 'join' in ggplot plotting of shapefile
+library(dplyr)   # For data manipulation
+
+ library(ggplot2) # load from masterLibrary
+ library(scales)  # load from masterLibrary
+library(stringr)
+
+
+```
+
+## Load Eddy Pro Output
+
+```{r results='hide', message=FALSE, warning=FALSE, echo=FALSE}
+myWd<-  "L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance"
+
+#######LOAD IN EDDYPRO OUTPUT------
+epFiles <- list.files(paste(myWd, "/L1eddyproOut/fullOutput2017", sep=""),
+                      pattern="*.csv$", recursive = TRUE) 
+epFiles
+epList <- list()  # Empty list to hold results
+
+##header   
+epHeader<- c("filename",	"date",	"time",	"DOY",	"daytime",	"file_records",	"used_records",
+"Tau",	"qc_Tau",	"rand_err_Tau",	"H",	"qc_H",	"rand_err_H",	"LE",	"qc_LE",	"rand_err_LE",
+"co2_flux",	"qc_co2_flux",	"rand_err_co2_flux",	"h2o_flux",	"qc_h2o_flux",	
+"rand_err_h2o_flux",	"ch4_flux",	"qc_ch4_flux",	"rand_err_ch4_flux",	"H_strg",	"LE_strg",
+"co2_strg",	"h2o_strg",	"ch4_strg",	"co2_vadv",	"h2o_vadv",	"ch4_vadv",	
+"co2_molar_density",	"co2_mole_fraction",	"co2_mixing_ratio",	"co2_time_lag",
+"co2_def_timelag",	"h2o_molar_density",	"h2o_mole_fraction",	"h2o_mixing_ratio",
+"h2o_time_lag",	"h2o_def_timelag",	"ch4_molar_density",	"ch4_mole_fraction",
+"ch4_mixing_ratio",	"ch4_time_lag",	"ch4_def_timelag",	"sonic_temperature",
+"air_temperature",	"air_pressure",	"air_density",	"air_heat_capacity",	"air_molar_volume",
+"ET",	"water_vapor_density",	"e",	"es",	"specific_humidity",	"RH",	"VPD",	"Tdew",
+"u_unrot",	"v_unrot",	"w_unrot",	"u_rot",	"v_rot",	"w_rot",	"wind_speed",
+"max_wind_speed",	"wind_dir",	"yaw",	"pitch",	"roll",	"ustar",	"TKE",	"L",	"zL",	
+"bowen_ratio",	"Tstar",	"model",	"x_peak",	"x_offset",	"x_10",	"x_30",	"x_50",	"x_70",
+"x_90",	"un_Tau",	"Tau_scf",	"un_H",	"H_scf",	"un_LE",	"LE_scf",	"un_co2_flux",	"co2_scf",
+"un_h2o_flux",	"h2o_scf",	"un_ch4_flux",	"ch4_scf",	"spikes_hf",	"amplitude_resolution_hf",
+"drop_out_hf",	"absolute_limits_hf",	"skewness_kurtosis_hf",	"skewness_kurtosis_sf",
+"discontinuities_hf",	"discontinuities_sf",	"timelag_hf",	"timelag_sf",	"attack_angle_hf",
+"non_steady_wind_hf",	"u_spikes",	"v_spikes",	"w_spikes",	"ts_spikes",	"co2_spikes",
+"h2o_spikes",	"ch4_spikes",	"chopper_LI7500",	"detector_LI7500",	"pll_LI7500",	"sync_LI7500",
+"not_ready_LI7700",	"no_signal_LI7700",	"re_unlocked_LI7700",	"bad_temp_LI7700",	
+"laser_temp_unregulated_LI7700",	"block_temp_unregulated_LI7700",	"motor_spinning_LI7700",
+"pump_on_LI7700",	"top_heater_on_LI7700",	"bottom_heater_on_LI7700",	"calibrating_LI7700",
+"motor_failure_LI7700",	"bad_aux_tc1_LI7700",	"bad_aux_tc2_LI7700",	"bad_aux_tc3_LI7700",
+'box_connected_LI7700',	"mean_value_RSSI_LI7500",	"u_var",	"v_var",	"w_var",	"ts_var",
+"co2_var",	"h2o_var",	"ch4_var",	"wts_cov",	"wco2_cov",	"wh2o_cov",	"wch4_cov",
+"air_t_mean",	"air_p_mean",	"co2_mean",	"h2o_mean",	"dew_point_mean",	"co2_signal_strength_7500_mean",
+"ch4_mean",	"rssi_77_mean",	"ch4_tc_1_mean",	"ch4_tc_2_mean",	"ch4_tc_3_mean")
+  
+#back to reality
+
+for (i in 1:length(epFiles)) {  # loop to read and format each file
+    ep.i <- read.table(paste(myWd, "/L1eddyproOut/fullOutput2017/", 
+                                    epFiles[i], sep=""),
+                              sep=",",  # comma separate
+                              skip=3,  # Skip first line of file.  Header info
+                              colClasses = c(rep("character", 3), rep("numeric", 97), rep("character",12), rep("numeric", 50)),
+                              as.is=TRUE, # Prevent conversion to factor
+                              header=FALSE, # don't import column names
+                              col.names = epHeader,
+                              na.strings = "NaN",
+                              fill=TRUE)  # Needed to deal with empty cells in last column
+  #format date and time
+    ep.i$RDateTime <- as.POSIXct(paste(ep.i$date, ep.i$time,sep=""),
+                                  format="%m/%d/%Y%H:%M",
+                                  tz = "UTC")  # POSIXct
+ #select what we want: wind direction, ch4 flux, time of day, stability parameters, footprint, 
+    ep.i <- select(ep.i, -filename, -co2_time_lag, -co2_def_timelag, -h2o_time_lag, -h2o_def_timelag, -ch4_time_lag, -ch4_def_timelag, -un_Tau, -Tau_scf, -un_H, -H_scf, -un_LE, -LE_scf, -un_co2_flux, -un_h2o_flux, -h2o_scf, -un_ch4_flux, -ch4_scf)  # select minimal columns of interest
+      #select(ep.i, RDateTime, ch4_flux, wind_speed, wind_dir, ustar, TKE, L, zL, x_70, w_var)  # select columns of interest
+    
+    epList[[i]] <- ep.i  # dump in list
+}  # End of loop, < 1 minute
+
+epOut <- do.call("rbind", epList)  # Coerces list into dataframe.
+
+####PLOT########
+summary(epOut$RDateTime)
+ 
+ggplot(epOut, aes(RDateTime, ch4_flux))+
+  geom_point(alpha=0.1)
+
+ggplot(epOut, aes(RDateTime, zL))+
+  geom_point(alpha=0.1)
+
+epOut$date<-epOut$RDateTime
+epOutFilt<-filter(epOut, abs(zL)<25)
+
+ggplot(epOutFilt, aes(RDateTime, zL))+
+  geom_point(alpha=0.1)
+
+zLDiurnalPlot<-timeVariation(epOutFilt, pollutant="zL", type="month")
+plot(zLDiurnalPlot, subset="hour")
+
+UdiurnalPlot<-timeVariation(epOutFilt, pollutant="wind_speed", type = "month")
+plot(UdiurnalPlot, subset="hour")
+
+```
+
+##Using Package FREddyPro
+
+
+```{r results='hide', message=FALSE, warning=FALSE, echo=FALSE}
+
+##qaqc fluxes
+epOut$u.<-epOut$wind_speed
+
+cleanFluxes(epOut, sdCor=TRUE, plot=TRUE)
+
+ggplot(epOutFilt, aes(RDateTime, co2_flux))+
+  geom_point()
+
+plotFingerprint(epOutFilt$ch4_flux, epOutFilt$DOY, epOutFilt$time, xlab="hour", ylab="day")
+
+plotMonthly(epOut)
+
+```
+
+
+## EddyPro Output QAQC
+
+
+```{r results='hide', message=FALSE, warning=FALSE, echo=FALSE}
+
+#It makes more sense to me to separate the four fluxes: H, LE, CO2, and CH4, then perform QAQC on them from there
+
+epOutCO2<-select(epOut, co2_flux, qc_co2_flux, rand_err_co2_flux, co2_strg, co2_mole_fraction, co2_mixing_ratio, ustar, wind_dir, spikes_hf, amplitude_resolution_hf, drop_out_hf, absolute_limits_hf, skewness_kurtosis_hf, discontinuities_hf, timelag_hf, co2_spikes, chopper_LI7500, detector_LI7500, pll_LI7500, sync_LI7500, mean_value_RSSI_LI7500, RDateTime)
+
+ggplot(epOutCO2, aes(RDateTime, co2_flux))+
+  geom_point(alpha=0.1)
+
+epOutCO2F1<-filter(epOutCO2, qc_co2_flux<2)
+
+ggplot(epOutCO2F1, aes(RDateTime, co2_flux))+
+  geom_point(alpha=0.1)
+
+#the spikes, amplitude resolution, drop outs, absolute limits, skewness/kurtosis, and discontinuities are all bitmaps with the format: 8u/v/w/ts/co2/h2o/ch4/none. That is, if co2 is hard flagged, it will show up as a "1" in the 6th digit from the left/4th digit from the right. These variables have been loaded as characters. Can use strsplit to parse them:
+
+#example from http://rfunction.com/archives/1499
+temp<-strsplit(epOutCO2F1$spikes_hf, "")
+tMat<-matrix(unlist(temp), ncol=9, byrow=TRUE)
+df_spikes<-as.data.frame(tMat)
+colnames(df_spikes)=(c("eight", "u_flag", "v_flag", "w_flag", "ts_flag", "co2_flag_spikes", "h2o_flag", "ch4_flag", "none_flag"))
+df_spikes<-select(df_spikes, co2_flag_spikes)
+
+temp<-strsplit(epOutCO2F1$amplitude_resolution_hf, "")
+tMat<-matrix(unlist(temp), ncol=9, byrow=TRUE)
+df_amp_res<-as.data.frame(tMat)
+colnames(df_amp_res)=(c("eight", "u_flag", "v_flag", "w_flag", "ts_flag", "co2_flag_amp_res", "h2o_flag", "ch4_flag", "none_flag"))
+df_amp_res<-select(df_amp_res, co2_flag_amp_res)
+
+temp<-strsplit(epOutCO2F1$drop_out_hf, "")
+tMat<-matrix(unlist(temp), ncol=9, byrow=TRUE)
+df_drop_outs<-as.data.frame(tMat)
+colnames(df_drop_outs)=(c("eight", "u_flag", "v_flag", "w_flag", "ts_flag", "co2_flag_drop_outs", "h2o_flag", "ch4_flag", "none_flag"))
+df_drop_outs<-select(df_drop_outs, co2_flag_drop_outs)
+
+temp<-strsplit(epOutCO2F1$absolute_limits_hf, "")
+tMat<-matrix(unlist(temp), ncol=9, byrow=TRUE)
+df_abs_lims<-as.data.frame(tMat)
+colnames(df_abs_lims)=(c("eight", "u_flag", "v_flag", "w_flag", "ts_flag", "co2_flag_abs_lims", "h2o_flag", "ch4_flag", "none_flag"))
+df_abs_lims<-select(df_abs_lims, co2_flag_abs_lims)
+
+temp<-strsplit(epOutCO2F1$skewness_kurtosis_hf, "")
+tMat<-matrix(unlist(temp), ncol=9, byrow=TRUE)
+df_skew_kur<-as.data.frame(tMat)
+colnames(df_skew_kur)=(c("eight", "u_flag", "v_flag", "w_flag", "ts_flag", "co2_flag_skew_kur", "h2o_flag", "ch4_flag", "none_flag"))
+df_skew_kur<-select(df_skew_kur, co2_flag_skew_kur)
+
+temp<-strsplit(epOutCO2F1$discontinuities_hf, "")
+tMat<-matrix(unlist(temp), ncol=9, byrow=TRUE)
+df_discont<-as.data.frame(tMat)
+colnames(df_discont)=(c("eight", "u_flag", "v_flag", "w_flag", "ts_flag", "co2_flag_discont", "h2o_flag", "ch4_flag", "none_flag"))
+df_discont<-select(df_discont, co2_flag_discont)
+
+df_spikes$RDateTime<-epOutCO2F1$RDateTime
+df_amp_res$RDateTime<-epOutCO2F1$RDateTime
+df_drop_outs$RDateTime<-epOutCO2F1$RDateTime
+df_abs_lims$RDateTime<-epOutCO2F1$RDateTime
+df_skew_kur$RDateTime<-epOutCO2F1$RDateTime
+df_discont$RDateTime<-epOutCO2F1$RDateTime
+
+summary(df_spikes) #376 hard flags, 12056 passes
+summary(df_amp_res) #only one hard flag for CO2
+summary(df_drop_outs) #only one hard flag for CO2
+summary(df_abs_lims) #224 hard flags, 12188 passes
+summary(df_skew_kur) #1744 hard flags, 10688 passes
+summary(df_discont) #351 hard flags, 12081 passes
+```
+
+
+
+```{r results='hide', message=FALSE, warning=FALSE, echo=FALSE}
+epOutCO2F2<-left_join(epOutCO2F1, df_skew_kur, by="RDateTime")
+
+epOutCO2F3<-filter(epOutCO2F2, co2_flag_skew_kur=="0")
+
+ggplot(epOutCO2F3, aes(RDateTime, co2_flux))+
+  geom_point(alpha=0.1)
+
+str(df_spikes)
+
+
+ggplot(epOutCO2F3, aes(ustar, co2_flux))+
+  geom_point(alpha=0.1)+
+  ylim(-50, 50)
+
+epOutCO2F3$date<-epOutCO2F3$RDateTime
+
+epOutCO2east<-filter(epOutCO2F3, wind_dir<195 | wind_dir>330)
+
+ggplot(epOutCO2F3, aes(wind_dir, co2_flux))+
+  geom_point(alpha=0.1)+
+  ylim(-100, 100)
+
+ggplot(epOutCO2east, aes(ustar, co2_flux))+
+  geom_point(alpha=0.1)
+#let's filter for ustar>0.5
+
+epOutCO2eastFU<-filter(epOutCO2east, ustar<0.5)
+ggplot(epOutCO2eastFU, aes(ustar, co2_flux))+
+  geom_point(alpha=0.1)
+
+ggplot(epOutCO2eastFU, aes(date, co2_flux))+
+  geom_point(alpha=0.2)
+
+epOutCO2eastFUhf<-filter(epOutCO2eastFU, abs(co2_flux)<50)
+
+co2fluxDiurnalPlot<-timeVariation(epOutCO2eastFUhf, pollutant="co2_flux", type="month")
+plot(co2fluxDiurnalPlot, subset="hour")
+
+```
+
+##Let's do that over, for CH4
+
+```{r results='hide', message=FALSE, warning=FALSE, echo=FALSE}
+
+#It makes more sense to me to separate the four fluxes: H, LE, CO2, and CH4, then perform QAQC on them from there
+
+epOutCH4<-select(epOut, ch4_flux, qc_ch4_flux, rand_err_ch4_flux, ch4_strg, ch4_mole_fraction, ch4_mixing_ratio, ustar, wind_dir, spikes_hf, amplitude_resolution_hf, drop_out_hf, absolute_limits_hf, skewness_kurtosis_hf, discontinuities_hf, timelag_hf, ch4_spikes, chopper_LI7500, detector_LI7500, pll_LI7500, sync_LI7500, mean_value_RSSI_LI7500, RDateTime)
+
+ggplot(epOutCH4, aes(RDateTime, ch4_flux))+
+  geom_point(alpha=0.1)
+
+epOutCH4F1<-filter(epOutCH4, qc_ch4_flux<2)
+
+ggplot(epOutCH4F1, aes(RDateTime, ch4_flux))+
+  geom_point(alpha=0.1)
+
+#hard filter for the two extreme outliers
+epOutCH4F1<-(filter(epOutCH4F1, abs(ch4_flux)<600))
+
+```
+
+
+```{r results='hide', message=FALSE, warning=FALSE, echo=FALSE}
+#the spikes, amplitude resolution, drop outs, absolute limits, skewness/kurtosis, and discontinuities are all bitmaps with the format: 8u/v/w/ts/co2/h2o/ch4/none. That is, if ch4 is hard flagged, it will show up as a "1" in the 8th digit from the left/2nd digit from the right. These variables have been loaded as characters. Can use strsplit to parse them:
+
+#example from http://rfunction.com/archives/1499
+temp<-strsplit(epOutCH4F1$spikes_hf, "")
+tMat<-matrix(unlist(temp), ncol=9, byrow=TRUE)
+df_spikes<-as.data.frame(tMat)
+colnames(df_spikes)=(c("eight", "u_flag", "v_flag", "w_flag", "ts_flag", "co2_flag_spikes", "h2o_flag", "ch4_flag_spikes", "none_flag"))
+df_spikes<-select(df_spikes, ch4_flag_spikes)
+
+temp<-strsplit(epOutCH4F1$amplitude_resolution_hf, "")
+tMat<-matrix(unlist(temp), ncol=9, byrow=TRUE)
+df_amp_res<-as.data.frame(tMat)
+colnames(df_amp_res)=(c("eight", "u_flag", "v_flag", "w_flag", "ts_flag", "co2_flag_amp_res", "h2o_flag", "ch4_flag_amp_res", "none_flag"))
+df_amp_res<-select(df_amp_res, ch4_flag_amp_res)
+
+temp<-strsplit(epOutCH4F1$drop_out_hf, "")
+tMat<-matrix(unlist(temp), ncol=9, byrow=TRUE)
+df_drop_outs<-as.data.frame(tMat)
+colnames(df_drop_outs)=(c("eight", "u_flag", "v_flag", "w_flag", "ts_flag", "co2_flag_drop_outs", "h2o_flag", "ch4_flag_drop_outs", "none_flag"))
+df_drop_outs<-select(df_drop_outs, ch4_flag_drop_outs)
+
+temp<-strsplit(epOutCH4F1$absolute_limits_hf, "")
+tMat<-matrix(unlist(temp), ncol=9, byrow=TRUE)
+df_abs_lims<-as.data.frame(tMat)
+colnames(df_abs_lims)=(c("eight", "u_flag", "v_flag", "w_flag", "ts_flag", "co2_flag_abs_lims", "h2o_flag", "ch4_flag_abs_lims", "none_flag"))
+df_abs_lims<-select(df_abs_lims, ch4_flag_abs_lims)
+
+temp<-strsplit(epOutCH4F1$skewness_kurtosis_hf, "")
+tMat<-matrix(unlist(temp), ncol=9, byrow=TRUE)
+df_skew_kur<-as.data.frame(tMat)
+colnames(df_skew_kur)=(c("eight", "u_flag", "v_flag", "w_flag", "ts_flag", "co2_flag_skew_kur", "h2o_flag", "ch4_flag_skew_kur", "none_flag"))
+df_skew_kur<-select(df_skew_kur, ch4_flag_skew_kur)
+
+temp<-strsplit(epOutCH4F1$discontinuities_hf, "")
+tMat<-matrix(unlist(temp), ncol=9, byrow=TRUE)
+df_discont<-as.data.frame(tMat)
+colnames(df_discont)=(c("eight", "u_flag", "v_flag", "w_flag", "ts_flag", "co2_flag_discont", "h2o_flag", "ch4_flag_discont", "none_flag"))
+df_discont<-select(df_discont, ch4_flag_discont)
+
+df_spikes$RDateTime<-epOutCH4F1$RDateTime
+df_amp_res$RDateTime<-epOutCH4F1$RDateTime
+df_drop_outs$RDateTime<-epOutCH4F1$RDateTime
+df_abs_lims$RDateTime<-epOutCH4F1$RDateTime
+df_skew_kur$RDateTime<-epOutCH4F1$RDateTime
+df_discont$RDateTime<-epOutCH4F1$RDateTime
+
+summary(df_spikes) #0 hard flags out of 8060
+summary(df_amp_res) #628 hard flags for ch4, 7432 passes
+summary(df_drop_outs) #0 hard flags for ch4
+summary(df_abs_lims) #5359 hard flags, 2701 passes  -- set to 0.17 and 100
+#seems suspect. I inspected the raw data for 4/14/2017 from noon-16:00. This time period 
+#was assigned three hard flags for absolute limits, but has a min and max of 1.9 and 4.5 ppm CH4. They also don't have discontinuities. 
+summary(df_skew_kur) #6460 hard flags, 1600 passes  -- set to 40
+summary(df_discont) #5129 hard flags, 2931 passes
+
+
+
+```
+
+
+```{r results='hide', message=FALSE, warning=FALSE, echo=FALSE}
+epOutCH4F2<-left_join(epOutCH4F1, df_abs_lims, by="RDateTime")
+
+ggplot(epOutCH4F2, aes(RDateTime, ch4_flag_abs_lims))+
+  geom_point(alpha=0.1)
+
+ggplot(epOutCH4F3, aes(RDateTime, ch4_flux))+
+  geom_point(alpha=0.1)
+
+str(df_spikes)
+
+
+ggplot(epOutCH4F2, aes(ustar, ch4_flux))+
+  geom_point(alpha=0.1)
+
+epOutCH4F2$date<-epOutCH4F2$RDateTime
+
+epOutCH4east<-filter(epOutCH4F2, wind_dir<195 | wind_dir>330)
+
+ggplot(epOutCH4F2, aes(wind_dir, ch4_flux))+
+  geom_point(alpha=0.1)
+
+ggplot(epOutCH4east, aes(ustar, ch4_flux))+
+  geom_point(alpha=0.1)
+#doesn't appear to be a ustar issue with CH4
+
+epOutCH4eastFU<-filter(epOutCH4east, ustar<0.5)
+ggplot(epOutCH4eastFU, aes(ustar, ch4_flux))+
+  geom_point(alpha=0.1)
+
+
+CH4fluxDiurnalPlot<-timeVariation(epOutCH4east, pollutant="ch4_flux", type="month")
+plot(CH4fluxDiurnalPlot, subset="hour")
+
+```
+```{r results='hide', message=FALSE, warning=FALSE, echo=FALSE}
+epOutCO2F2<-left_join(epOutCO2F1, df_skew_kur, by="RDateTime")
+
+epOutCO2F3<-filter(epOutCO2F2, co2_flag_skew_kur=="0")
+
+ggplot(epOutCO2F3, aes(RDateTime, co2_flux))+
+  geom_point(alpha=0.1)
+
+str(df_spikes)
+
+
+ggplot(epOutCO2F3, aes(ustar, co2_flux))+
+  geom_point(alpha=0.1)+
+  ylim(-50, 50)
+
+epOutCO2F3$date<-epOutCO2F3$RDateTime
+
+epOutCO2east<-filter(epOutCO2F3, wind_dir<195 | wind_dir>330)
+
+ggplot(epOutCO2F3, aes(wind_dir, co2_flux))+
+  geom_point(alpha=0.1)+
+  ylim(-100, 100)
+
+ggplot(epOutCO2east, aes(ustar, co2_flux))+
+  geom_point(alpha=0.1)
+#let's filter for ustar>0.5
+
+epOutCO2eastFU<-filter(epOutCO2east, ustar<0.5)
+ggplot(epOutCO2eastFU, aes(ustar, co2_flux))+
+  geom_point(alpha=0.1)
+
+ggplot(epOutCO2eastFU, aes(date, co2_flux))+
+  geom_point(alpha=0.2)
+
+epOutCO2eastFUhf<-filter(epOutCO2eastFU, abs(co2_flux)<50)
+
+co2fluxDiurnalPlot<-timeVariation(epOutCO2eastFUhf, pollutant="co2_flux", type="month")
+plot(co2fluxDiurnalPlot, subset="hour")
+
+```
+
+##And for LE
+
+```{r results='hide', message=FALSE, warning=FALSE, echo=FALSE}
+
+#It makes more sense to me to separate the four fluxes: H, LE, CO2, and CH4, then perform QAQC on them from there
+
+epOutLE<-select(epOut, LE, qc_LE, rand_err_LE, LE_strg, h2o_mole_fraction, h2o_mixing_ratio, ustar, wind_dir, spikes_hf, amplitude_resolution_hf, drop_out_hf, absolute_limits_hf, skewness_kurtosis_hf, discontinuities_hf, timelag_hf, chopper_LI7500, detector_LI7500, pll_LI7500, sync_LI7500, mean_value_RSSI_LI7500, RDateTime)
+
+ggplot(epOutLE, aes(RDateTime, LE))+
+  geom_point(alpha=0.1)
+
+epOutLEF1<-filter(epOutLE, qc_LE<2)
+
+ggplot(epOutLEF1, aes(RDateTime, LE))+
+  geom_point(alpha=0.1)
+
+#hard filter for the two extreme outliers
+epOutLEF1<-(filter(epOutLEF1, abs(LE)<1500))
+
+```
+
+
+```{r results='hide', message=FALSE, warning=FALSE, echo=FALSE}
+#the spikes, amplitude resolution, drop outs, absolute limits, skewness/kurtosis, and discontinuities are all bitmaps with the format: 8u/v/w/ts/co2/h2o/ch4/none. That is, if ch4 is hard flagged, it will show up as a "1" in the 8th digit from the left/2nd digit from the right. These variables have been loaded as characters. Can use strsplit to parse them:
+
+#example from http://rfunction.com/archives/1499
+temp<-strsplit(epOutLEF1$spikes_hf, "")
+tMat<-matrix(unlist(temp), ncol=9, byrow=TRUE)
+df_spikes<-as.data.frame(tMat)
+colnames(df_spikes)=(c("eight", "u_flag", "v_flag", "w_flag", "ts_flag", "co2_flag_spikes", "h2o_flag_spikes", "ch4_flag_spikes", "none_flag"))
+df_spikes<-select(df_spikes, h2o_flag_spikes)
+
+temp<-strsplit(epOutLEF1$amplitude_resolution_hf, "")
+tMat<-matrix(unlist(temp), ncol=9, byrow=TRUE)
+df_amp_res<-as.data.frame(tMat)
+colnames(df_amp_res)=(c("eight", "u_flag", "v_flag", "w_flag", "ts_flag", "co2_flag_amp_res", "h2o_flag_amp_res", "ch4_flag_amp_res", "none_flag"))
+df_amp_res<-select(df_amp_res, h2o_flag_amp_res)
+
+temp<-strsplit(epOutLEF1$drop_out_hf, "")
+tMat<-matrix(unlist(temp), ncol=9, byrow=TRUE)
+df_drop_outs<-as.data.frame(tMat)
+colnames(df_drop_outs)=(c("eight", "u_flag", "v_flag", "w_flag", "ts_flag", "co2_flag_drop_outs", "h2o_flag_drop_outs", "ch4_flag_drop_outs", "none_flag"))
+df_drop_outs<-select(df_drop_outs, h2o_flag_drop_outs)
+
+temp<-strsplit(epOutLEF1$absolute_limits_hf, "")
+tMat<-matrix(unlist(temp), ncol=9, byrow=TRUE)
+df_abs_lims<-as.data.frame(tMat)
+colnames(df_abs_lims)=(c("eight", "u_flag", "v_flag", "w_flag", "ts_flag", "co2_flag_abs_lims", "h2o_flag_abs_lims", "ch4_flag_abs_lims", "none_flag"))
+df_abs_lims<-select(df_abs_lims, h2o_flag_abs_lims)
+
+temp<-strsplit(epOutLEF1$skewness_kurtosis_hf, "")
+tMat<-matrix(unlist(temp), ncol=9, byrow=TRUE)
+df_skew_kur<-as.data.frame(tMat)
+colnames(df_skew_kur)=(c("eight", "u_flag", "v_flag", "w_flag", "ts_flag", "co2_flag_skew_kur", "h2o_flag_skew_kur", "ch4_flag_skew_kur", "none_flag"))
+df_skew_kur<-select(df_skew_kur, h2o_flag_skew_kur)
+
+temp<-strsplit(epOutLEF1$discontinuities_hf, "")
+tMat<-matrix(unlist(temp), ncol=9, byrow=TRUE)
+df_discont<-as.data.frame(tMat)
+colnames(df_discont)=(c("eight", "u_flag", "v_flag", "w_flag", "ts_flag", "co2_flag_discont", "h2o_flag_discont", "ch4_flag_discont", "none_flag"))
+df_discont<-select(df_discont, h2o_flag_discont)
+
+df_spikes$RDateTime<-epOutLEF1$RDateTime
+df_amp_res$RDateTime<-epOutLEF1$RDateTime
+df_drop_outs$RDateTime<-epOutLEF1$RDateTime
+df_abs_lims$RDateTime<-epOutLEF1$RDateTime
+df_skew_kur$RDateTime<-epOutLEF1$RDateTime
+df_discont$RDateTime<-epOutLEF1$RDateTime
+
+summary(df_spikes) #22 hard flags, 13978 passes
+summary(df_amp_res) #0 hard flags for LE out of 14000
+summary(df_drop_outs) #0 hard flags
+summary(df_abs_lims) #14000 hard flags -- all of them! max is set to 40 mmol/mol -- too low?
+#seems suspect. I inspected the raw data for 4/14/2017 from noon-16:00. This time period 
+#was assigned three hard flags for absolute limits, but has a min and max of 1.9 and 4.5 ppm CH4. They also don't have discontinuities. 
+summary(df_skew_kur) #944 hard flags
+summary(df_discont) #417 hard flags
+
+
+```
+
+
+```{r results='hide', message=FALSE, warning=FALSE, echo=FALSE}
+epOutLEF2<-left_join(epOutLEF1, df_abs_lims, by="RDateTime")
+
+ggplot(epOutLEF2, aes(RDateTime, h2o_flag_abs_lims))+
+  geom_point(alpha=0.1)
+
+ggplot(epOutLEF2, aes(ustar, LE))+
+  geom_point(alpha=0.1)
+
+epOutLEF2$date<-epOutLEF2$RDateTime
+
+epOutLEeast<-filter(epOutLEF2, wind_dir<195 | wind_dir>330)
+
+ggplot(epOutLEF2, aes(wind_dir, LE))+
+  geom_point(alpha=0.1)
+
+ggplot(epOutLEeast, aes(ustar, LE))+
+  geom_point(alpha=0.1)
+#doesn't appear to be a ustar issue with LE
+
+
+LEfluxDiurnalPlot<-timeVariation(epOutLEeast, pollutant="LE", type="month", statistic="median", conf.int=0.75)
+plot(LEfluxDiurnalPlot, subset="hour")
+
+```
+##And for H
+
+```{r results='hide', message=FALSE, warning=FALSE, echo=FALSE}
+
+#It makes more sense to me to separate the four fluxes: H, LE, CO2, and CH4, then perform QAQC on them from there
+
+epOutH<-select(epOut, H, qc_H, rand_err_H, H_strg, h2o_mole_fraction, h2o_mixing_ratio, ustar, wind_dir, spikes_hf, amplitude_resolution_hf, drop_out_hf, absolute_limits_hf, skewness_kurtosis_hf, discontinuities_hf, timelag_hf, chopper_LI7500, detector_LI7500, pll_LI7500, sync_LI7500, mean_value_RSSI_LI7500, RDateTime)
+
+ggplot(epOutH, aes(RDateTime, H))+
+  geom_point(alpha=0.1)
+
+epOutHF1<-filter(epOutH, qc_H<2)
+
+ggplot(epOutHF1, aes(RDateTime, H))+
+  geom_point(alpha=0.1)
+
+#hard filter for the few extreme outliers
+epOutHF1<-(filter(epOutHF1, abs(H)<1000))
+
+```
+
+
+```{r results='hide', message=FALSE, warning=FALSE, echo=FALSE}
+#the spikes, amplitude resolution, drop outs, absolute limits, skewness/kurtosis, and discontinuities are all bitmaps with the format: 8u/v/w/ts/co2/h2o/ch4/none. That is, if ch4 is hard flagged, it will show up as a "1" in the 8th digit from the left/2nd digit from the right. These variables have been loaded as characters. Can use strsplit to parse them:
+
+#example from http://rfunction.com/archives/1499
+temp<-strsplit(epOutHF1$spikes_hf, "")
+tMat<-matrix(unlist(temp), ncol=9, byrow=TRUE)
+df_spikes<-as.data.frame(tMat)
+colnames(df_spikes)=(c("eight", "u_flag", "v_flag", "w_flag", "ts_flag_spikes", "co2_flag_spikes", "h2o_flag_spikes", "ch4_flag_spikes", "none_flag"))
+df_spikes<-select(df_spikes, ts_flag_spikes)
+
+temp<-strsplit(epOutHF1$amplitude_resolution_hf, "")
+tMat<-matrix(unlist(temp), ncol=9, byrow=TRUE)
+df_amp_res<-as.data.frame(tMat)
+colnames(df_amp_res)=(c("eight", "u_flag", "v_flag", "w_flag", "ts_flag_amp_res", "co2_flag_amp_res", "h2o_flag_amp_res", "ch4_flag_amp_res", "none_flag"))
+df_amp_res<-select(df_amp_res, ts_flag_amp_res)
+
+temp<-strsplit(epOutHF1$drop_out_hf, "")
+tMat<-matrix(unlist(temp), ncol=9, byrow=TRUE)
+df_drop_outs<-as.data.frame(tMat)
+colnames(df_drop_outs)=(c("eight", "u_flag", "v_flag", "w_flag", "ts_flag_drop_outs", "co2_flag_drop_outs", "h2o_flag_drop_outs", "ch4_flag_drop_outs", "none_flag"))
+df_drop_outs<-select(df_drop_outs, ts_flag_drop_outs)
+
+temp<-strsplit(epOutHF1$absolute_limits_hf, "")
+tMat<-matrix(unlist(temp), ncol=9, byrow=TRUE)
+df_abs_lims<-as.data.frame(tMat)
+colnames(df_abs_lims)=(c("eight", "u_flag", "v_flag", "w_flag", "ts_flag_abs_lims", "co2_flag_abs_lims", "h2o_flag_abs_lims", "ch4_flag_abs_lims", "none_flag"))
+df_abs_lims<-select(df_abs_lims, ts_flag_abs_lims)
+
+temp<-strsplit(epOutHF1$skewness_kurtosis_hf, "")
+tMat<-matrix(unlist(temp), ncol=9, byrow=TRUE)
+df_skew_kur<-as.data.frame(tMat)
+colnames(df_skew_kur)=(c("eight", "u_flag", "v_flag", "w_flag", "ts_flag_skew_kur", "co2_flag_skew_kur", "h2o_flag_skew_kur", "ch4_flag_skew_kur", "none_flag"))
+df_skew_kur<-select(df_skew_kur, ts_flag_skew_kur)
+
+temp<-strsplit(epOutHF1$discontinuities_hf, "")
+tMat<-matrix(unlist(temp), ncol=9, byrow=TRUE)
+df_discont<-as.data.frame(tMat)
+colnames(df_discont)=(c("eight", "u_flag", "v_flag", "w_flag", "ts_flag_discont", "co2_flag_discont", "h2o_flag_discont", "ch4_flag_discont", "none_flag"))
+df_discont<-select(df_discont, ts_flag_discont)
+
+df_spikes$RDateTime<-epOutHF1$RDateTime
+df_amp_res$RDateTime<-epOutHF1$RDateTime
+df_drop_outs$RDateTime<-epOutHF1$RDateTime
+df_abs_lims$RDateTime<-epOutHF1$RDateTime
+df_skew_kur$RDateTime<-epOutHF1$RDateTime
+df_discont$RDateTime<-epOutHF1$RDateTime
+
+summary(df_spikes) #0 hard flags, 14377 passes
+summary(df_amp_res) #0 hard flags 
+summary(df_drop_outs) #0 hard flags
+summary(df_abs_lims) #1 hard flag 
+summary(df_skew_kur) #878 hard flags, 13499 passes
+summary(df_discont) #10 hard flags
+
+
+```
+
+
+```{r results='hide', message=FALSE, warning=FALSE, echo=FALSE}
+epOutHF2<-left_join(epOutHF1, df_skew_kur, by="RDateTime")
+
+ggplot(epOutHF2, aes(RDateTime, ts_flag_skew_kur))+
+  geom_point(alpha=0.1)
+
+ggplot(epOutHF2, aes(ustar, H))+
+  geom_point(alpha=0.1)
+
+epOutHF2$date<-epOutHF2$RDateTime
+
+epOutHeast<-filter(epOutHF2, wind_dir<195 | wind_dir>330)
+
+ggplot(epOutHF2, aes(wind_dir, H))+
+  geom_point(alpha=0.1)
+
+ggplot(epOutHeast, aes(ustar, H))+
+  geom_point(alpha=0.1)
+#lots of scatter after 0.45
+
+
+HfluxDiurnalPlot<-timeVariation(epOutHeast, pollutant="H", type="month")
+plot(HfluxDiurnalPlot, subset="hour")
+
+```
+```{r results='hide', message=FALSE, warning=FALSE, echo=FALSE}
+
+epOutH_LEeast<-full_join(epOutHeast, epOutLEeast, by="date")
+
+HLEfluxDiurnalPlot<-timeVariation(epOutH_LEeast, pollutant=c("H", "LE"), type="month", statistic="mean", ci=FALSE)
+plot(HLEfluxDiurnalPlot, subset="hour")
+
+
+
+```
+
+
+
+
+```{r results='hide', message=FALSE, warning=FALSE, echo=FALSE}
+library(openair)
+
+

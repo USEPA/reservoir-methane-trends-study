@@ -8,6 +8,14 @@ library(tidyverse)
 # Read individual files.
 
 # READ DATA-----------------
+# gc.all<-read.table("L:/Lab/Lablan/GHG/GC/2017Data/gcMasterFile2017updated2017-10-18.txt",
+#                    col.names=c("sample", "n2o.ppm", "co2.ppm", "ch4.ppm", "flag.n2o",
+#                                "flag.co2", "flag.ch4", "o2.ar.percent", "n2.perc",
+#                                "flag.n2", "flag.o2.ar"),
+#                    colClasses=c("character", rep("num", 3), rep("int", 3), rep("num", 2),
+#                                 rep("logi", 2)),
+#                    skip=1)
+
 gc.1 <- read_excel("L:/Lab/Lablan/GHG/GC/2017Data/17_06_29_STD_ECD_FID_UNK.xlsx", 
                    trim_ws=TRUE, skip=59) 
 gc.2 <- read_excel("L:/Lab/Lablan/GHG/GC/2017Data/17_07_25_UNK_STD_ECD_FID.xlsx", 
@@ -71,7 +79,9 @@ write.table(gc.all,
                          ".txt", sep = ""),
             row.names = FALSE, sep = "\t")
 
-
+rm(gc.1)
+rm(gc.2, gc.3)
+rm(gc.4, gc.5, gc.6, gc.7, gc.8, gc.9, gc.10, gc.11)
 
 ###Adapted/stolen from Jake's "readGc.R" code for the multiResSurvey
 # PREPARE EXETAINER CODES----------------------
@@ -104,13 +114,12 @@ xtrCodes.m[grepl(pattern = ".1|.2|.3", x = xtrCodes.m$variable), "variable"] <-
 filter(xtrCodes.m, duplicated(value,fromLast = TRUE) | duplicated(value,fromLast = FALSE)) %>% arrange(value)
 #on 10-12-2017, result is 0
 
-xtrCodes.m <- filter(xtrCodes.m, !logicalIndicator)
 
 # MERGE EXETAINER CODES WITH GC DATA-----
 
 xtrCodes.gas <- merge(xtrCodes.m, gc.all, by.x = "value", by.y = "sampleNum", all = TRUE)
 
-str(xtrCodes.m)  #45 observations
+str(xtrCodes.m)  #135 observations
 str(gc.all) # 208 observations
 str(xtrCodes.gas) # 201 observations
 
