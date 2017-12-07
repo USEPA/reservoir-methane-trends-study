@@ -1,0 +1,67 @@
+# READ HOBO FILES FROM USACE AND PEGASUS MONITORING AT ACTON, DILLON,
+# PIEDMONT, AND HARSHA LAKES
+
+
+
+txtFiles <- list.files("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/ebullition2017/data/HOBO", 
+                       pattern="*.csv$", recursive = TRUE) # $ matches end of string, excludes '...txt.zip' file
+
+hoboList <- list()  # Empty list to hold results
+
+for (i in 1:length(txtFiles)) {  # loop to read and format each file
+  hobo.i <- read.table(paste("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/ebullition2017/data/HOBO/", 
+                            txtFiles[i], sep=""),
+                      sep=",",  # comma separate
+                      skip=1,  # Skip first line of file.  Header info
+                      as.is=TRUE, # Prevent conversion to factor
+                      header=TRUE, # Import column names
+                      fill=TRUE)  # Needed to deal with empty cells in last column
+
+  # FORMAT DATA
+  # Extract unique ID.  This approach is verbose, but straightforard and accomodates 
+  # variation in file name format.  Will need to expand when USACE data are added
+  if(grepl(pattern = "hl", x = txtFiles[i])) {
+    lake.name = "harsha lake"
+  }
+  if(grepl(pattern = "al", x = txtFiles[i])) {
+    lake.name = "acton lake"
+  }
+  if(grepl(pattern = "u12", x = txtFiles[i])) {
+    site = "u12"
+  }
+  if(grepl(pattern = "u14", x = txtFiles[i])) {
+    site = "u14"
+  }
+  if(grepl(pattern = "buoy", x = txtFiles[i])) {
+    site = "buoy"
+  }
+  if(grepl(pattern = "eeb", x = txtFiles[i])) {
+    site = "eeb"
+  }
+  if(grepl(pattern = "eus", x = txtFiles[i])) {
+    site = "eus"
+  }  
+  
+  
+  hobo.i <- rename_all(hobo.i, tolower) %>%  
+    select(date, # select data of interest
+           # the following simultaneously selects AND renames!
+           # Remove logger SN to ensure consistent column names
+           time.gmt.04 = contains("time"), 
+           temp = contains("temp"), rh = contains("rh"),
+           volt = contains("volt")) %>%
+    mutate(date.time = as.POSIXct(paste(date, time.gmt.04),
+                                  format = "%d/%m/%y %H:%M:%S",
+                                  # UTC ensures no adjustments for daylight savings time
+                                  tz="UTC"),
+           temp.c = (temp-32)*(5/9), # convert to celsius
+           file.number = i,  # identify unique files
+           lake.name = lake.name, # add lake name
+           site = site)  %>% # add site 
+    select(-temp)
+
+    hoboList[[i]] <- hobo.i  # dump in list
+}  # End of loop
+
+# Merge files
+hobo <- do.call("rbind", hoboList)  # Coerces list into dataframe.
