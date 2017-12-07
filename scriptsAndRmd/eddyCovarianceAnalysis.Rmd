@@ -32,6 +32,7 @@ library(plot3Drgl)
 
 library(openair)
 library(FREddyPro)
+library(EBImage)
 
 # car for variance inflation factor (vif)
 # http://www.statmethods.net/stats/rdiagnostics.html)
@@ -45,11 +46,13 @@ library(piecewiseSEM) # for rsquared of lme model
 # dplyr functions.
 library(plyr)  # for 'join' in ggplot plotting of shapefile
 library(dplyr)   # For data manipulation
+library(tidyr)
+library(lubridate)
 
  library(ggplot2) # load from masterLibrary
  library(scales)  # load from masterLibrary
 library(stringr)
-
+source("C:/R_Projects/actonFluxProject/scriptsAndRmd/calc_footprint_FFP_climatology.R")
 
 ```
 
@@ -119,30 +122,306 @@ for (i in 1:length(epFiles)) {  # loop to read and format each file
 }  # End of loop, < 1 minute
 
 epOut <- do.call("rbind", epList)  # Coerces list into dataframe.
+````
 
+
+#Plot eddypro out
+```{r results='hide', message=FALSE, warning=FALSE, echo=FALSE}
 ####PLOT########
-summary(epOut$RDateTime)
- 
-ggplot(epOut, aes(RDateTime, ch4_flux))+
-  geom_point(alpha=0.1)
-
-ggplot(epOut, aes(RDateTime, zL))+
-  geom_point(alpha=0.1)
-
-epOut$date<-epOut$RDateTime
-epOutFilt<-filter(epOut, abs(zL)<25)
-
-ggplot(epOutFilt, aes(RDateTime, zL))+
-  geom_point(alpha=0.1)
-
-zLDiurnalPlot<-timeVariation(epOutFilt, pollutant="zL", type="month")
-plot(zLDiurnalPlot, subset="hour")
-
-UdiurnalPlot<-timeVariation(epOutFilt, pollutant="wind_speed", type = "month")
-plot(UdiurnalPlot, subset="hour")
+# summary(epOut$RDateTime)
+#  
+# ggplot(epOut, aes(RDateTime, ch4_flux))+
+#   geom_point(alpha=0.1)
+# 
+# ggplot(epOut, aes(RDateTime, zL))+
+#   geom_point(alpha=0.1)
+# 
+# epOut$date<-epOut$RDateTime
+# epOutFilt<-filter(epOut, abs(zL)<25)
+# 
+# ggplot(epOutFilt, aes(RDateTime, zL))+
+#   geom_point(alpha=0.1)
+# 
+# zLDiurnalPlot<-timeVariation(epOutFilt, pollutant="zL", type="month")
+# plot(zLDiurnalPlot, subset="hour")
+# 
+# UdiurnalPlot<-timeVariation(epOutFilt, pollutant="wind_speed", type = "month")
+# plot(UdiurnalPlot, subset="hour")
 
 ```
 
+###Read in vanni weather station data
+```{r results='hide', message=FALSE, warning=FALSE, echo=FALSE}
+
+vws<-read.csv(paste(myWd, "/vanniWeatherStation/vws20160929_20171106_concat.csv", sep=""),
+           sep=",",
+           skip=5,
+           #colClasses=c("character", rep("numeric", 10)),
+           as.is=TRUE,
+           header=FALSE,
+           col.names=c("dateTime","PAR","WindDir","WindSp","AirTemp","RH","BP","DailyRain","Level","Temp","Bat"),
+           na.strings="NaN",
+           fill=TRUE)
+
+vws$RH<-as.numeric(vws$RH)
+vws$BP<-as.numeric(vws$BP)
+vws$WindDir<-as.numeric(vws$WindDir)
+vws$WindSp<-as.numeric(vws$WindSp)
+vws$AirTemp<-as.numeric(vws$AirTemp)
+vws$DailyRain<-as.numeric(vws$DailyRain)
+
+vws$RDateTime <- as.POSIXct(vws$dateTime,
+                                  format="%m/%d/%Y%H:%M",
+                                  tz = "UTC")  # POSIXct
+
+ggplot(vws, aes(RDateTime, Level))+
+  geom_line()+
+  ylim(0, 1)
+
+library(plotly)
+
+plot_ly(data=vws, x=~RDateTime, y=~Level, type="scatter", mode="line")
+
+#this plot shows thon April 25, 2017 between the data points of 10:45 and 11:15, the Level went from 0.472 to 0.317
+#can fix this offset by adding 0.472-0.317 = 0.155 to all points after 4/25/17 11:15
+
+vws$LevelAdj<-vws$Level
+
+for(i in 1:nrow(vws)){
+  if(vws$RDateTime[i]>"2017-04-25 10:45:00") {
+    vws$LevelAdj[i]<-vws$LevelAdj[i]+0.155
+  }
+}
+
+plot_ly(data=vws, x=~RDateTime, y=~LevelAdj, type="scatter", mode="line")
+
+#The depth measured at site U-14 ranged from 1.2-1.6 m over the measurement season.
+#We'll approximate the flux tower footprint water depth as Level + 1 m
+
+vws$FFlevel<-vws$LevelAdj+1
+vws$FFwaterPressure<-vws$FFlevel*9800   #pressure produced by 1-m of water is 9800 Pa
+ggplot(vws, aes(RDateTime, FFwaterPressure))+
+  geom_line()
+#biggest deltaP from water is around 600 Pa
+
+ggplot(epOut, aes(RDateTime, air_p_mean))+
+  geom_line()
+
+epOutVws<-left_join(epOut, vws, by="RDateTime")
+ggplot(epOutVws, aes(RDateTime, FFwaterPressure))+
+  geom_line()
+
+epOutVws$hsPressure<-epOutVws$FFwaterPressure+epOutVws$air_p_mean
+ggplot(epOutVws, aes(RDateTime, hsPressure))+
+  geom_line()
+
+
+epOutHSPDaily<-epOutVws%>%
+  group_by(RDateTime=cut(RDateTime, breaks="1 day"))%>%
+  summarize(meanHSP=mean(hsPressure))
+
+epOutHSPDaily$RDateTime <- as.POSIXct(epOutHSPDaily$RDateTime,
+                                  format="%Y-%m-%d",
+                                  tz = "UTC")  # POSIXct
+
+ ggplot(epOutHSPDaily, aes(RDateTime, meanHSP))+
+  geom_line()  
+ 
+ epOutAPDaily<-epOutVws%>%
+  group_by(RDateTime=cut(RDateTime, breaks="1 day"))%>%
+  summarize(meanAP=mean(air_p_mean))
+
+epOutAPDaily$RDateTime <- as.POSIXct(epOutAPDaily$RDateTime,
+                                  format="%Y-%m-%d",
+                                  tz = "UTC")  # POSIXct
+
+ ggplot(epOutAPDaily, aes(RDateTime, meanAP))+
+  geom_line()               
+
+
+#ranges up to 2000 Pa
+```
+
+
+
+###Output files to be used in the Kljun footprint calculator
+```{r results='hide', message=FALSE, warning=FALSE, echo=FALSE}
+
+epMonths <- c("June", "July", "Aug", "Sept", "Oct") #vector of months
+
+for (i in 1:length(epMonths)) {
+  epMonths.i <- epMonths[i]
+    if(epMonths[i]=="June"){
+      data.i<-filter(epOut, RDateTime>="2017-06-01"&RDateTime<"2017-07-01")
+    }
+    else if (epMonths[i]=="July"){
+      data.i<-filter(epOut, RDateTime>="2017-07-01"&RDateTime<"2017-08-01")
+    }
+    else if (epMonths[i]=="Aug"){
+      data.i<-filter(epOut, RDateTime>="2017-08-01"&RDateTime<"2017-09-01")
+    }
+    else if (epMonths[i]=="Sept"){
+      data.i<-filter(epOut, RDateTime>="2017-09-01"&RDateTime<"2017-10-01")
+    }
+    else if (epMonths[i]=="Oct"){
+      data.i<-filter(epOut, RDateTime>="2017-10-01"&RDateTime<"2017-11-01")
+    }
+  epOutKljun <-
+  select(data.i, RDateTime, time, u_rot, L, ustar, wind_dir, v_var)
+  epOutKljun$sigma_v <- sqrt(epOutKljun$v_var)
+  epOutKljun$zm <- 2.85
+  epOutKljun$z0 <- -999
+  epOutKljun$d <- 0.0067
+  epOutKljun$u_mean <- epOutKljun$u_rot
+  
+  #need to change time from local to UTC
+  epOutKljun$RDateTimeUTC <- epOutKljun$RDateTime + (5 * 60 * 60)
+  temp<-strsplit(as.character(epOutKljun$RDateTimeUTC), "-")
+  tMat<-matrix(unlist(temp), ncol=3, byrow=TRUE)
+  df_time<-as.data.frame(tMat)
+  colnames(df_time)=(c("yyyy", "mm", "day"))
+  
+  temp<-strsplit(as.character(df_time$d), " ")
+  tMat<-matrix(unlist(temp), ncol=2, byrow=TRUE)
+  df_time2<-as.data.frame(tMat)
+  colnames(df_time2)=c("day", "HHMMSS")
+  
+  temp<-strsplit(as.character(df_time2$HHMMSS), ":")
+  tMat<-matrix(unlist(temp), ncol=3, byrow=TRUE)
+  df_time3<-as.data.frame(tMat)
+  colnames(df_time3)=c("HH", "MM", "SS")
+  
+  df_time<-select(df_time, -day)
+  df_time2<-select(df_time2, -HHMMSS)
+  df_time3<-select(df_time3, -SS)
+  
+  df_time$RDateTime<-epOutKljun$RDateTime
+  df_time2$RDateTime<-epOutKljun$RDateTime
+  df_time3$RDateTime<-epOutKljun$RDateTime
+  
+  epOutKljun<-left_join(epOutKljun, df_time, by="RDateTime")
+  epOutKljun<-left_join(epOutKljun, df_time2, by="RDateTime")
+  epOutKljun<-left_join(epOutKljun, df_time3, by="RDateTime")
+  
+  epOutKljunFilt <- filter(epOutKljun, L < -0.184 | L > 0)
+  
+  #filtered for L between -0.18387 and 0  (ie, z/L>-15.5)
+  file.name = paste(
+  "L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/footprint/",
+  epMonths.i,
+  "KljunFilt.csv",
+  sep = ""
+  )
+  write.csv(
+  select(epOutKljunFilt,
+  yyyy, mm, day, HH, MM, zm, d, z0, u_mean, L, sigma_v, ustar, wind_dir),
+  file = file.name,
+  na = "-999",
+  row.names = FALSE,
+  quote = FALSE
+  )
+}
+
+epOutJuneKljun<-select(epOutJune, RDateTime, time, u_rot, L, ustar, wind_dir, v_var )
+epOutJuneKljun$sigma_v<-sqrt(epOutJuneKljun$v_var)
+epOutJuneKljun$zm<-2.85
+epOutJuneKljun$z0<- -999
+epOutJuneKljun$d<-0.0067
+epOutJuneKljun$u_mean<-epOutJuneKljun$u_rot
+
+#need to change time from local to UTC
+epOutJuneKljun$RDateTimeUTC<-epOutJuneKljun$RDateTime+(5*60*60)
+
+temp<-strsplit(as.character(epOutJuneKljun$RDateTimeUTC), "-")
+tMat<-matrix(unlist(temp), ncol=3, byrow=TRUE)
+df_time<-as.data.frame(tMat)
+colnames(df_time)=(c("yyyy", "mm", "day"))
+
+temp<-strsplit(as.character(df_time$d), " ")
+tMat<-matrix(unlist(temp), ncol=2, byrow=TRUE)
+df_time2<-as.data.frame(tMat)
+colnames(df_time2)=c("day", "HHMMSS")
+
+temp<-strsplit(as.character(df_time2$HHMMSS), ":")
+tMat<-matrix(unlist(temp), ncol=3, byrow=TRUE)
+df_time3<-as.data.frame(tMat)
+colnames(df_time3)=c("HH", "MM", "SS")
+
+df_time<-select(df_time, -day)
+df_time2<-select(df_time2, -HHMMSS)
+df_time3<-select(df_time3, -SS)
+
+df_time$RDateTime<-epOutJuneKljun$RDateTime
+df_time2$RDateTime<-epOutJuneKljun$RDateTime
+df_time3$RDateTime<-epOutJuneKljun$RDateTime
+
+epOutJuneKljun<-left_join(epOutJuneKljun, df_time, by="RDateTime")
+epOutJuneKljun<-left_join(epOutJuneKljun, df_time2, by="RDateTime")
+epOutJuneKljun<-left_join(epOutJuneKljun, df_time3, by="RDateTime")
+
+epOutJuneKljunUf<-filter(epOutJuneKljun, ustar>0.1)
+
+write.csv(select(epOutJuneKljun, yyyy, mm, day, HH, MM, zm, d, z0, u_rot, L, sigma_v, ustar, wind_dir, blH), file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/footprint/JuneKljun.csv", na="-999", row.names=FALSE)
+
+write.csv(select(epOutJuneKljunUf, yyyy, mm, day, HH, MM, zm, d, z0, u_rot, L, sigma_v, ustar, wind_dir), file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/footprint/JuneKljunUstarFilt.csv", na="-999", row.names=FALSE)
+
+epOutJuneKljunFilt<-filter(epOutJuneKljun, ustar>0.1)
+epOutJuneKljunFilt<-filter(epOutJuneKljunFilt, L>-0.184)
+
+#filtered for both ustar>0.1 and L>-0.18387 (ie, z/L>-15.5)
+write.csv(select(epOutJuneKljunFilt, yyyy, mm, day, HH, MM, zm, d, z0, u_mean, L, sigma_v, ustar, wind_dir), file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/footprint/JuneKljunFilt2.csv", 
+          na="-999", 
+          row.names=FALSE,
+          quote=FALSE)
+
+```
+
+
+##The online Kljun footprint  calculator was not working for me, so I downloaded the R code 
+```{r results='hide', message=FALSE, warning=FALSE, echo=FALSE}
+#this needs boundary layer heights as an input. Boundary layer height depends on stability. 
+
+for(i in 1:nrow(epOutJuneKljun)){
+  if((epOutJuneKljun$zm[i]/epOutJuneKljun$L[i])< -0.05) { #unstable
+    epOutJuneKljun$blH[i]<-1500
+  } 
+  else if((epOutJuneKljun$zm[i]/epOutJuneKljun$L[i])>0.05){ #stable
+    epOutJuneKljun$blH[i]<-((epOutJuneKljun$L[i]/3.8)*(-1+(1+(2.28*(epOutJuneKljun$ustar[i])/(epOutJuneKljun$L[i]*0.0000927)))^0.5))
+  }
+  else if(abs(epOutJuneKljun$zm[i]/epOutJuneKljun$L[i])<=0.05){ # near neutral
+    epOutJuneKljun$blH[i]<- 0.3*epOutJuneKljun$ustar[i]/0.0000927
+  }
+}
+
+epOutJuneKljunFilt<-filter(epOutJuneKljun, ustar>0.1)
+epOutJuneKljunFilt<-filter(epOutJuneKljunFilt, L>-0.184)
+
+FFP<-calc_footprint_FFP_climatology(zm=epOutJuneKljunFilt$zm,
+                         z0=NaN,
+                         umean=epOutJuneKljunFilt$u_rot,
+                         h=epOutJuneKljunFilt$blH,
+                         ol=epOutJuneKljunFilt$L,
+                         sigmav=epOutJuneKljunFilt$sigma_v,
+                         ustar=epOutJuneKljunFilt$ustar,
+                         wind_dir=epOutJuneKljunFilt$wind_dir,
+                         domain=c(-100,100,-100,100))
+
+#Crosswind‐integrated footprint
+plot(FFP$x.ci,FFP$f.ci, type="l")
+
+#Two‐dimensional footprint with contour lines of R% (using the fields package)
+image.plot(FFP$x_2d[1,], FFP$y_2d[,1], FFP$fclim_2d)
+box()
+for (i in 1:8) lines(FFP$xr[[i]], FFP$yr[[i]], type="l", col="red")
+
+#Three‐dimensional footprint surface (using the plot3D package)
+surf3D(FFP$x_2d, FFP$y_2d,FFP$fclim_2d)
+
+
+
+summary(epOutJuneUF0.05$blH)
+
+```
 ##Using Package FREddyPro
 
 
@@ -283,7 +562,7 @@ plot(co2fluxDiurnalPlot, subset="hour")
 
 #It makes more sense to me to separate the four fluxes: H, LE, CO2, and CH4, then perform QAQC on them from there
 
-epOutCH4<-select(epOut, ch4_flux, qc_ch4_flux, rand_err_ch4_flux, ch4_strg, ch4_mole_fraction, ch4_mixing_ratio, ustar, wind_dir, spikes_hf, amplitude_resolution_hf, drop_out_hf, absolute_limits_hf, skewness_kurtosis_hf, discontinuities_hf, timelag_hf, ch4_spikes, chopper_LI7500, detector_LI7500, pll_LI7500, sync_LI7500, mean_value_RSSI_LI7500, RDateTime)
+epOutCH4<-select(epOut, ch4_flux, qc_ch4_flux, rand_err_ch4_flux, ch4_strg, ch4_mole_fraction, ch4_mixing_ratio, ustar, wind_dir, u_rot, spikes_hf, amplitude_resolution_hf, drop_out_hf, absolute_limits_hf, skewness_kurtosis_hf, discontinuities_hf, timelag_hf, ch4_spikes, chopper_LI7500, detector_LI7500, pll_LI7500, sync_LI7500, mean_value_RSSI_LI7500, RDateTime, time)
 
 ggplot(epOutCH4, aes(RDateTime, ch4_flux))+
   geom_point(alpha=0.1)
@@ -362,6 +641,7 @@ summary(df_discont) #5129 hard flags, 2931 passes
 
 ```{r results='hide', message=FALSE, warning=FALSE, echo=FALSE}
 epOutCH4F2<-left_join(epOutCH4F1, df_abs_lims, by="RDateTime")
+epOutCH4F2$ch4_fluxmgm2h<-epOutCH4F2$ch4_flux*60*60*16/1000
 
 ggplot(epOutCH4F2, aes(RDateTime, ch4_flag_abs_lims))+
   geom_point(alpha=0.1)
@@ -386,15 +666,130 @@ ggplot(epOutCH4east, aes(ustar, ch4_flux))+
   geom_point(alpha=0.1)
 #doesn't appear to be a ustar issue with CH4
 
-epOutCH4eastFU<-filter(epOutCH4east, ustar<0.5)
-ggplot(epOutCH4eastFU, aes(ustar, ch4_flux))+
-  geom_point(alpha=0.1)
+# epOutCH4eastFU<-filter(epOutCH4east, ustar<0.5)
+# ggplot(epOutCH4eastFU, aes(ustar, ch4_flux))+
+#   geom_point(alpha=0.1)
+
+#Feb, March, April
+epOutCH4eastSpr<-filter(epOutCH4east, RDateTime>"2017-02-01 00:00:00 UTC" & RDateTime<"2017-05-01 00:00:00 UTC" & ch4_fluxmgm2h>0)
+#May, June, July
+epOutCH4eastJuly<-filter(epOutCH4east, RDateTime>"2017-07-01 00:00:00 UTC" & RDateTime<"2017-08-01 00:00:00 UTC" & ch4_fluxmgm2h >0)
+#Aug, Sept, Oct
+epOutCH4eastFal<-filter(epOutCH4east, RDateTime>"2017-08-01 00:00:00 UTC" & RDateTime<"2017-11-01 00:00:00 UTC" & ch4_fluxmgm2h >0)
+
+epOutCH4eastPer<-filter(epOutCH4east, RDateTime>"2017-05-01 00:00:00 UTC" & RDateTime<"2017-09-30 00:00:00 UTC" & ch4_fluxmgm2h >0)
+epOutCH4eastPer$time<-as.factor(epOutCH4eastPer$time)
+epOutCH4eastPer$time<-as.character(epOutCH4eastPer$time)
+epOutCH4eastPer$time<-as.numeric(epOutCH4eastPer$time)
+
+CH4fluxDiurnalPlotSpr<-timeVariation(epOutCH4eastSpr, pollutant="ch4_fluxmgm2h", type="month", statistic="mean", name.pol=expression(CH[4]~Flux~(mg~m^{-2}~hr^{-1})))
+CH4fluxDiurnalPlotJuly<-timeVariation(epOutCH4eastJuly, pollutant="ch4_fluxmgm2h", type="month", name.pol=expression(CH[4]~Flux~(mg~m^{-2}~hr^{-1})))
+CH4fluxDiurnalPlotFal<-timeVariation(epOutCH4eastFal, pollutant="ch4_fluxmgm2h", type="month", name.pol=expression(CH[4]~Flux~(mg~m^{-2}~hr^{-1})))
+plot(CH4fluxDiurnalPlotSpr, subset="hour")
+plot(CH4fluxDiurnalPlotJuly, subset="hour")
+plot(CH4fluxDiurnalPlotFal, subset="hour")
+
+epOut$date<-epOut$RDateTime
+
+epOutSum<-filter(epOut, RDateTime>"2017-06-01 00:00:00 UTC" & RDateTime<"2017-09-01 00:00:00 UTC")
+#pressure may drive dirunal patterns in CH4 ebullition
+pressureDiurnalPlot<-timeVariation(epOutSum, pollutant="air_p_mean",
+                                   #type="month", 
+                                   normalise=TRUE)
+plot(pressureDiurnalPlot, subset="hour")
+
+epOutVwsSum<-filter(epOutVws, RDateTime>"2017-05-01 00:00:00 UTC" & RDateTime<"2017-09-30 00:00:00 UTC")
+#pressure may drive dirunal patterns in CH4 ebullition
+HSPDiurnalPlot<-timeVariation(epOutVwsSum, pollutant="hsPressure",
+                                   type="month", 
+                                   normalise=TRUE)
+plot(HSPDiurnalPlot, subset="hour")
+
+CH4_HSPcomp<-left_join(epOutCH4eastPer, epOutVwsSum, by="RDateTime")
+CH4_HSPcomp$date<-CH4_HSPcomp$RDateTime
+
+CH4_compPlot<-timeVariation(CH4_HSPcomp, pollutant="ch4_fluxmgm2h",
+                                   type="month", 
+                                   normalise=TRUE,
+                            cols="blue")
+plot(CH4_compPlot, subset="hour")
+
+CH4_HSPcompPlot<-timeVariation(CH4_HSPcomp, pollutant="hsPressure",
+                                   type="month", 
+                                   normalise=TRUE)
+plot(CH4_HSPcompPlot, subset="hour")
 
 
-CH4fluxDiurnalPlot<-timeVariation(epOutCH4east, pollutant="ch4_flux", type="month")
-plot(CH4fluxDiurnalPlot, subset="hour")
+epOutCH4eastPer$Time<-epOutCH4eastPer$RDateTime%>%
+    unclass(RDateTime)
+    
+epOutCH4eastPer$Time<-as.numeric(epOutCH4eastPer$Time)
+ggplot(epOutCH4eastPer, aes(time))+
+  geom_bar(stat="count")+
+  coord_flip()
+```
+
+
+##Daily CH4 from the water
+```{r results='hide', message=FALSE, warning=FALSE, echo=FALSE}
+
+ch4eastDaily<-epOutCH4east%>%
+  group_by(RDateTime=cut(RDateTime, breaks="1 day"))%>%
+  summarize(meanFch4=mean(ch4_flux))
+
+ch4eastDaily$RDateTime <- as.POSIXct(ch4eastDaily$RDateTime,
+                                  format="%Y-%m-%d",
+                                  tz = "UTC")  # POSIXct
+ggplot(ch4eastDaily, aes(RDateTime, meanFch4*57.6*24))+
+  geom_point()
+
+ch4eastDaily<-left_join(ch4eastDaily, epOutHSPDaily, by="RDateTime")
+ch4eastDaily<-left_join(ch4eastDaily, epOutAPDaily, by="RDateTime")
+
+ch4eastDaily$HSPdiff<-c(NA, diff(ch4eastDaily$meanHSP, lag=1))
+ch4eastDaily$APdiff<-c(NA, diff(ch4eastDaily$meanAP, lag=1))
+
+
+ggplot(ch4eastDaily, aes(HSPdiff, meanFch4*57.6*24))+
+  geom_point(alpha=0.5)+
+  xlab("Delta Hydrostatic Pressure (Pa)")+
+    ylab(expression(Daily~Mean~CH[4]~Flux~(mg~m^{-2}~hr^{-1})))
+
+ggplot(ch4eastDaily, aes(APdiff, meanFch4*57.6*24))+
+  geom_point(alpha=0.5)+
+  xlab("Delta Air Pressure (Pa)")+
+    ylab(expression(Daily~Mean~CH[4]~Flux~(mg~m^{-2}~hr^{-1})))
+
+ggplot(ch4eastDaily, aes(meanHSP/1000, meanFch4*57.6*24))+
+  geom_point(alpha=0.5, size = 3)+
+  xlab("Daily Mean Total Hydrostatic Pressure (kPa)")+
+    ylab(expression(Daily~Mean~CH[4]~Flux~(mg~m^{-2}~d^{-1})))+
+  theme_classic()+
+  theme(axis.text = element_text(size=14), axis.title=element_text(size=15))
+
+ggplot(ch4eastDaily, aes(meanAP/1000, meanFch4*57.6*24))+
+  geom_point(alpha=0.5)+
+  xlab("Daily Mean Air Pressure (kPa)")+
+    ylab(expression(Daily~Mean~CH[4]~Flux~(mg~m^{-2}~hr^{-1})))
 
 ```
+
+#wind roses
+```{r results='hide', message=FALSE, warning=FALSE, echo=FALSE}
+
+windRose(epOutCH4eastSpr, ws="u_rot", wd="wind_dir")
+windRose(epOutCH4F2, ws="u_rot", wd="wind_dir")
+
+epOut$date<-epOut$RDateTime
+epOutDay<-filter(epOut, daytime==1)
+epOutNight<-filter(epOut, daytime==0)
+
+windRose(epOutDay, ws="u_rot", wd="wind_dir", ws.int=2)
+windRose(epOutNight, ws="u_rot", wd="wind_dir", ws.int=2)
+
+```
+
+
 ```{r results='hide', message=FALSE, warning=FALSE, echo=FALSE}
 epOutCO2F2<-left_join(epOutCO2F1, df_skew_kur, by="RDateTime")
 
