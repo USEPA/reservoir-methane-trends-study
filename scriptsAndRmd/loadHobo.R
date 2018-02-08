@@ -81,12 +81,62 @@ hobo12$datetime<-paste(hobo12$Date, hobo12$Time, sep=" ")
 hobo12$RDateTime <- as.POSIXct(hobo12$datetime,
                            format="%d/%m/%y %H:%M:%S",
                             tz = "UTC")  # POSIXct
-ggplot(filter(hobo12, RDateTime>"2017-10-01" & RDateTime<"2017-11-01"),
+ggplot(filter(hobo12, RDateTime>"2017-7-01"),
               aes(RDateTime, Voltage))+
   geom_line()
   
+write.table(hobo12,
+            file=paste(myWD, "actonEddyCovariance/hobo/u12concat.csv", sep=""),
+            sep=",",
+            row.names=FALSE
+)
+
+####U-14
+# READ DATA-----------------
+# List of .txt files containing data
+csvFiles14 <- list.files(paste(myWD, "ebullition2017/data/HOBO/Acton Lake/U14/u14 csv format",
+                               sep=""),
+                         pattern="*.csv$", recursive = TRUE) # $ matches end of string, excludes '...txt.zip' file
+
+hobo14List <- list()  # Empty list to hold results
+
+hobo14Header<- c("obsNum", "Date", "Time", "Tmpr", "RH", "Voltage", "c1", "c2", "c3")
+
+for (i in 2:length(csvFiles14)) {  # loop to read and format each file
+  hobo14.i <- read.table(paste(myWD, "ebullition2017/data/HOBO/Acton Lake/U14/u14 csv format/", 
+                               csvFiles14[i], sep=""),
+                         sep=",",  # comma separate
+                         skip=3,  # Skip first three lines of file.  Header info
+                         colClasses = c("numeric", rep("character",2), rep("numeric", 3), rep("factor", 3)),
+                         as.is=TRUE, # Prevent conversion to factor
+                         header=FALSE, # don't import column names
+                         col.names = hobo14Header)
+  
+  #names(gga.i)[grep("ppm", names(gga.i))] = gsub("^X.", "", names(gga.i)[grep("X", names(gga.i))]) # replace "X." with ""
+  #SELECT WHICH FIELDS OF THE COSPECTRA FILE WE WANT TO KEEP
+  hobo14.i <- select(hobo14.i, -c1, -c2, -c3)  # select columns of interest
+  
+  hobo14List[[i]] <- hobo14.i  # dump in list
+}  # End of loop, < 1 minute
+
+# Merge all of the loaded cospectra files
+hobo14 <- do.call("rbind", hobo14List)  # Coerces list into dataframe.
 
 
+hobo14$datetime<-paste(hobo14$Date, hobo14$Time, sep=" ")
+
+hobo14$RDateTime <- as.POSIXct(hobo14$datetime,
+                               format="%d/%m/%y %H:%M:%S",
+                               tz = "UTC")  # POSIXct
+ggplot(filter(hobo14, RDateTime>"2017-7-01"),
+       aes(RDateTime, Voltage))+
+  geom_line()
+
+write.table(hobo14,
+            file=paste(myWD, "actonEddyCovariance/hobo/u14concat.csv", sep=""),
+            sep=",",
+            row.names=FALSE
+)
 
 
 
