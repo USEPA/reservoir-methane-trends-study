@@ -39,3 +39,5 @@ library(ggplot2) # load from masterLibrary
 library(scales)  # load from masterLibrary
 library(stringr)
 library(mefa)
+
+source("scriptsAndRmd/def.calc.sdg.R")
