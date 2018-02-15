@@ -41,18 +41,68 @@ library(stringr)
 
 myWD<-"L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance"
 
-tenHzFiles<-list.files(paste(myWD, "/L0data/data/CO2troubleshooting", sep=""))
+#load in EC output so we can reference the calculated CO2 fluxes:
+epHeader<- c("filename",	"date",	"time",	"DOY",	"daytime",	"file_records",	"used_records",
+             "Tau",	"qc_Tau",	"rand_err_Tau",	"H",	"qc_H",	"rand_err_H",	"LE",	"qc_LE",	"rand_err_LE",
+             "co2_flux",	"qc_co2_flux",	"rand_err_co2_flux",	"h2o_flux",	"qc_h2o_flux",	
+             "rand_err_h2o_flux",	"ch4_flux",	"qc_ch4_flux",	"rand_err_ch4_flux",	"H_strg",	"LE_strg",
+             "co2_strg",	"h2o_strg",	"ch4_strg",	"co2_vadv",	"h2o_vadv",	"ch4_vadv",	
+             "co2_molar_density",	"co2_mole_fraction",	"co2_mixing_ratio",	"co2_time_lag",
+             "co2_def_timelag",	"h2o_molar_density",	"h2o_mole_fraction",	"h2o_mixing_ratio",
+             "h2o_time_lag",	"h2o_def_timelag",	"ch4_molar_density",	"ch4_mole_fraction",
+             "ch4_mixing_ratio",	"ch4_time_lag",	"ch4_def_timelag",	"sonic_temperature",
+             "air_temperature",	"air_pressure",	"air_density",	"air_heat_capacity",	"air_molar_volume",
+             "ET",	"water_vapor_density",	"e",	"es",	"specific_humidity",	"RH",	"VPD",	"Tdew",
+             "u_unrot",	"v_unrot",	"w_unrot",	"u_rot",	"v_rot",	"w_rot",	"wind_speed",
+             "max_wind_speed",	"wind_dir",	"yaw",	"pitch",	"roll",	"ustar",	"TKE",	"L",	"zL",	
+             "bowen_ratio",	"Tstar",	"model",	"x_peak",	"x_offset",	"x_10",	"x_30",	"x_50",	"x_70",
+             "x_90",	"un_Tau",	"Tau_scf",	"un_H",	"H_scf",	"un_LE",	"LE_scf",	"un_co2_flux",	"co2_scf",
+             "un_h2o_flux",	"h2o_scf",	"un_ch4_flux",	"ch4_scf",	"spikes_hf",	"amplitude_resolution_hf",
+             "drop_out_hf",	"absolute_limits_hf",	"skewness_kurtosis_hf",	"skewness_kurtosis_sf",
+             "discontinuities_hf",	"discontinuities_sf",	"timelag_hf",	"timelag_sf",	"attack_angle_hf",
+             "non_steady_wind_hf",	"u_spikes",	"v_spikes",	"w_spikes",	"ts_spikes",	"co2_spikes",
+             "h2o_spikes",	"ch4_spikes",	"chopper_LI7500",	"detector_LI7500",	"pll_LI7500",	"sync_LI7500",
+             "not_ready_LI7700",	"no_signal_LI7700",	"re_unlocked_LI7700",	"bad_temp_LI7700",	
+             "laser_temp_unregulated_LI7700",	"block_temp_unregulated_LI7700",	"motor_spinning_LI7700",
+             "pump_on_LI7700",	"top_heater_on_LI7700",	"bottom_heater_on_LI7700",	"calibrating_LI7700",
+             "motor_failure_LI7700",	"bad_aux_tc1_LI7700",	"bad_aux_tc2_LI7700",	"bad_aux_tc3_LI7700",
+             'box_connected_LI7700',	"mean_value_RSSI_LI7500",	"u_var",	"v_var",	"w_var",	"ts_var",
+             "co2_var",	"h2o_var",	"ch4_var",	"wts_cov",	"wco2_cov",	"wh2o_cov",	"wch4_cov",
+             "air_t_mean",	"air_p_mean",	"co2_mean",	"h2o_mean",	"dew_point_mean",	"co2_signal_strength_7500_mean",
+             "ch4_mean",	"rssi_77_mean",	"ch4_tc_1_mean",	"ch4_tc_2_mean",	"ch4_tc_3_mean")
+epOut <- read.table(paste(myWD, "/L1eddyproOut/",
+                          "eddypro_2017june27oct31_dynamicIH_full_output_2017-11-28T161747_adv.csv", 
+                          sep=""),
+                   sep=",",  # comma separate
+                   skip=3,  # Skip first line of file.  Header info
+                   colClasses = c(rep("character", 3), rep("numeric", 159)),
+                   as.is=TRUE, # Prevent conversion to factor
+                   header=FALSE, # don't import column names
+                   col.names = epHeader,
+                   na.strings = "NaN",
+                   fill=TRUE)  # Needed to deal with empty cells in last column
+#format date and time
+epOut$RDateTime <- as.POSIXct(paste(epOut$date, epOut$time,sep=""),
+                             format="%Y-%m-%d%H:%M",
+                             tz = "UTC")  # POSIXct
+epOut<-select(epOut, RDateTime, co2_flux, qc_co2_flux, co2_mixing_ratio, 
+              un_co2_flux, co2_scf, co2_spikes)
+
+tenHzFiles<-list.files(paste(myWD, "/L0data/data/CO2troubleshooting2", sep=""))
 tenHzColNames<-c("datah", "secs", "nsecs", "skip1", "skip2", "DateW", "TimeW", 
                  "CO2_abs", "H2O_abs", "CO2_mmolm3", "skip6", "H2O_mmolm3", "skip3",
                  "Tmpr_C", "Press_kpa", "U", "V", "W", "Ts", "CO2ppm", "H2Oppm",
                  "Dew_pt", "CO2_ss", "CH4ppm", "CH4_mmolm3", "CH4_T", "CH4_P",
                  "CH4_SS", "skip4", "skip5", "skip7", "CH4_diagnostic", "CH4_drop", "CHK")
+tenHzList<-list()
 
-pdf("C:/R_Projects/actonFluxProject/output/co2Troubleshooting.pdf", paper = "a4r", width = 10) # landscape orientation
+
+pdf("C:/R_Projects/actonFluxProject/output/co2Troubleshooting.pdf", 
+    paper = "a4r", width = 10) # landscape orientation  
 
 for(i in 1:length(tenHzFiles)){
-
-  test_file.i<-read.table(paste(myWD, "/L0data/data/CO2troubleshooting/", tenHzFiles[i],
+  
+  test_file.i<-read.table(paste(myWD, "/L0data/data/CO2troubleshooting2/", tenHzFiles[i],
                             sep=""),
                       skip=8, #first 8 lines are header info, including col names
                       colClasses=c("character", rep("numeric", 4), rep("character", 2),
@@ -68,16 +118,42 @@ for(i in 1:length(tenHzFiles)){
                                  tz="UTC")
 
   #head(test_file$rDateTime)
-  test_file.i<-select(test_file.i, rDateTime, CO2ppm, CH4ppm)
+  test_file.i<-select(test_file.i, rDateTime, CO2ppm, CH4ppm, CO2_ss)
+  tenHzList[[i]]<-test_file.i
+  # plot.i<-plot(test_file.i$rDateTime, test_file.i$CO2ppm, 
+  #              type="l",
+  #              main=test_file.i$rDateTime[1])
+  # plot.ii<-plot(test_file.i$rDateTime, test_file.i$CH4ppm, 
+  #              type="l",
+  #              main=test_file.i$rDateTime[1])
+  data.i<-filter(epOut, RDateTime==test_file.i$rDateTime[1])
+  co2flux.i<-round(data.i$co2_flux, digits=3)
+  unCO2flux.i<-round(data.i$un_co2_flux, digits=3)
+  co2_spikes.i<-data.i$co2_spikes
+  qc.i<-data.i$qc_co2_flux
 
-   plot.i<- ggplot(test_file.i, aes(rDateTime, CO2ppm))+
-      geom_point(alpha=0.2)+
-      ggtitle(test_file.i$rDateTime[1])
-   plot.ii<-ggplot(test_file.i, aes(rDateTime, CH4ppm))+
-     geom_point(alpha=0.2)
-   
-   grid.arrange(plot.i, plot.ii, ncol = 2)  # use to put two plots per page
-   #widths = 4) 
+  plot.i<- ggplot(test_file.i, aes(rDateTime, CO2ppm))+
+    #geom_point(alpha=0.2)+
+    geom_line()+
+    ggtitle(paste(test_file.i$rDateTime[1], "CO2 Flux = ", co2flux.i))
+  plot.ii<-ggplot(test_file.i, aes(rDateTime, CO2_ss))+
+    #geom_point(alpha=0.2)
+    geom_line()+
+    ggtitle(paste("Uncor Flux = ", unCO2flux.i, "Spikes = ", co2_spikes.i, 
+                  "QC=", qc.i))
+  
+  grid.arrange(plot.i, plot.ii, ncol = 2)  # use to put two plots per page
+  #widths = 4) 
   rm(test_file.i)
 }
 dev.off()
+
+  
+tenHzCO2<-do.call("rbind", tenHzList)  
+ggplot(tenHzCO2, aes(rDateTime, CO2ppm))+
+  geom_point(alpha=0.2)
+
+
+  
+  
+   
