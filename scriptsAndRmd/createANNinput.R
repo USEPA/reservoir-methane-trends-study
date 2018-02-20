@@ -209,3 +209,9 @@ write.table(ANNdata,
              file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/exampleDatasetANN.csv",
              sep=",",
              row.names=FALSE)
+
+#write it to the C: drive so that it can go on Git
+write.table(ANNdata, 
+            file=("C:/R_Projects/actonFluxProject/output/exampleDatasetANN.csv"),
+            sep=",",
+            row.names=FALSE)
