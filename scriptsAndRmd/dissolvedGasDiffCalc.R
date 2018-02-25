@@ -79,4 +79,9 @@ ggplot(filter(actonDGoutput,Depth_m==0.1), aes(Date_Sampled, deltaCH4))+
   geom_point(aes(color=Location))
 
 ggplot(filter(actonDGoutput,Depth_m==0.1), aes(Date_Sampled, deltaN2O))+
-  geom_point(aes(color=Location), alpha=0.3)                            
+  geom_point(aes(color=Location), alpha=0.3)   
+
+write.table(actonDGoutput,
+            file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/gasTransferVelocity/actonDGoutput.csv",
+            sep=",",
+            row.names=FALSE)
