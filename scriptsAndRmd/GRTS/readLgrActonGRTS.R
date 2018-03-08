@@ -10,7 +10,7 @@
 
 # READ DATA-----------------
 # List of .txt files containing data
-txtFiles <- list.files("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/ebullition2017/data/GGA", 
+txtFiles <- list.files("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/ebullition2017/data/GGA/acton", 
                        pattern="*.txt$", recursive = TRUE) # $ matches end of string, excludes '...txt.zip' file
 
 # Directories contain _s, _l, and _b files that don't contain data of interest.
@@ -29,7 +29,7 @@ txtFiles <- txtFiles[!grepl(pattern = "_s|_l|_b", x = txtFiles)] # exclude files
 ### them from the "txtFiles" vector
 
 # Find the size of the files
-txtFilesSize <- file.info(paste("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/ebullition2017/data/GGA/", 
+txtFilesSize <- file.info(paste("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/ebullition2017/data/GGA/acton/", 
                                 txtFiles, sep = ""))
 # Add the file size information to the txtFiles list %>% reformat %>% keep only files that aren't 0 kB
 txtFiles <- cbind(txtFiles, dplyr::select(txtFilesSize, size)) %>%
@@ -41,7 +41,7 @@ txtFiles <- txtFiles$txtFiles # Needs to be a vector for loop below; so turn bac
 ggaList <- list()  # Empty list to hold results
 
 for (i in 1:length(txtFiles)) {  # loop to read and format each file
-  gga.i <- read.table(paste("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/ebullition2017/data/GGA/", 
+  gga.i <- read.table(paste("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/ebullition2017/data/GGA/acton/", 
                             txtFiles[i], sep=""),
                       sep=",",  # comma separate
                       skip=1,  # Skip first line of file.  Header info
@@ -82,6 +82,9 @@ gga <- do.call("rbind", ggaList)  # Coerces list into dataframe.
 # BASIC PLOTS-----------------
 ggplot(gga, aes(RDateTime, CH4._ppm)) + geom_point() + 
    scale_x_datetime(labels=date_format ("%m/%d %H:%M"))
+
+ggplot(gga, aes(RDateTime, CO2._ppm)) + geom_point() + 
+  scale_x_datetime(labels=date_format ("%m/%d %H:%M"))
 
 ggaGRTS1<-filter(gga, gga$RDateTime>("2017-07-10 00:00:00 UTC") & gga$RDateTime<("2017-07-10 20:00:00 UTC"))
 ggplot(ggaGRTS1, aes(RDateTime, CH4._ppm)) + geom_point() + 
