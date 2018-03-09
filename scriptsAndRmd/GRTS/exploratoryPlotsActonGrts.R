@@ -36,12 +36,12 @@ ggplot(meanVariance.c,
   geom_errorbar(aes(ymax = ch4.erate.mg.h_UCB95Pct,
                     ymin = ch4.erate.mg.h_LCB95Pct))+
   ylim(0, 15)+
-  xlim("Acton Lake 07", "Acton Lake 08")+
+  #xlim("Acton Lake 07", "Acton Lake 08")+
   labs(x="", y=expression(CH[4]~Ebullition~(mg~CH[4]~m^{-2}~hr^{-1})))
 
 ggsave('C:/R_Projects/actonFluxProject/figures/ch4EbDotChartAGU.tiff',  # export as .tif
        units="in",  # specify units for dimensions
-       width=3   # 1 column
+       width=3,   # 1 column
        height=3, # Whatever works
        dpi=600,   # ES&T. 300-600 at PLOS One,
        compression = "lzw")

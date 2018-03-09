@@ -63,7 +63,7 @@ myWd<-  "L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance"
 
 #######LOAD IN EDDYPRO OUTPUT------
 epFiles <- list.files(paste(myWd, "/L1eddyproOut/fullOutput2017", sep=""),
-                      pattern="*.csv$", recursive = TRUE) 
+                      pattern="*.csv$", recursive = FALSE) 
 epFiles
 epList <- list()  # Empty list to hold results
 
@@ -122,6 +122,7 @@ for (i in 1:length(epFiles)) {  # loop to read and format each file
 }  # End of loop, < 1 minute
 
 epOut <- do.call("rbind", epList)  # Coerces list into dataframe.
+str(epOut$RDateTime)
 ````
 
 
@@ -149,6 +150,41 @@ epOut <- do.call("rbind", epList)  # Coerces list into dataframe.
 # plot(UdiurnalPlot, subset="hour")
 
 ```
+
+###Read in 5-min results
+```{r results='hide', message=FALSE, warning=FALSE, echo=FALSE}
+epFiles5 <- list.files(paste(myWd, "/L1eddyproOut/fullOutput2017/5min", sep=""),
+                      pattern="*.csv$", recursive = TRUE) 
+epFiles5
+epList5 <- list()  # Empty list to hold results
+
+for (i in 1:length(epFiles5)) {  # loop to read and format each file
+    ep5.i <- read.table(paste(myWd, "/L1eddyproOut/fullOutput2017/5min/", 
+                                    epFiles5[i], sep=""),
+                              sep=",",  # comma separate
+                              skip=3,  # Skip first line of file.  Header info
+                              colClasses = c(rep("character", 3), rep("numeric", 97), rep("character",12), rep("numeric", 50)),
+                              as.is=TRUE, # Prevent conversion to factor
+                              header=FALSE, # don't import column names
+                              col.names = epHeader,
+                              na.strings = "NaN",
+                              fill=TRUE)  # Needed to deal with empty cells in last column
+  #format date and time
+    ep5.i$RDateTime <- as.POSIXct(paste(ep5.i$date, ep5.i$time,sep=""),
+                                  format="%Y-%m-%d%H:%M",
+                                  tz = "UTC")  # POSIXct
+ #select what we want: wind direction, ch4 flux, time of day, stability parameters, footprint, 
+    ep5.i <- select(ep5.i, -filename, -co2_time_lag, -co2_def_timelag, -h2o_time_lag, -h2o_def_timelag, -ch4_time_lag, -ch4_def_timelag, -un_Tau, -Tau_scf, -un_H, -H_scf, -un_LE, -LE_scf, -un_co2_flux, -un_h2o_flux, -h2o_scf, -un_ch4_flux, -ch4_scf)  # select minimal columns of interest
+      #select(ep.i, RDateTime, ch4_flux, wind_speed, wind_dir, ustar, TKE, L, zL, x_70, w_var)  # select columns of interest
+    
+    epList5[[i]] <- ep5.i  # dump in list
+}  # End of loop, < 1 minute
+
+epOut5 <- do.call("rbind", epList5)  # Coerces list into dataframe.
+
+```
+
+
 
 ###Read in vanni weather station data
 ```{r results='hide', message=FALSE, warning=FALSE, echo=FALSE}
@@ -449,16 +485,27 @@ plotMonthly(epOut)
 
 #It makes more sense to me to separate the four fluxes: H, LE, CO2, and CH4, then perform QAQC on them from there
 
-epOutCO2<-select(epOut, co2_flux, qc_co2_flux, rand_err_co2_flux, co2_strg, co2_mole_fraction, co2_mixing_ratio, ustar, wind_dir, spikes_hf, amplitude_resolution_hf, drop_out_hf, absolute_limits_hf, skewness_kurtosis_hf, discontinuities_hf, timelag_hf, co2_spikes, chopper_LI7500, detector_LI7500, pll_LI7500, sync_LI7500, mean_value_RSSI_LI7500, RDateTime)
+epOutCO2<-select(epOut, co2_flux, qc_co2_flux, rand_err_co2_flux, co2_strg, co2_mole_fraction, co2_mixing_ratio, ustar, wind_dir, wind_speed, spikes_hf, amplitude_resolution_hf, drop_out_hf, absolute_limits_hf, skewness_kurtosis_hf, discontinuities_hf, timelag_hf, co2_spikes, chopper_LI7500, detector_LI7500, pll_LI7500, sync_LI7500, mean_value_RSSI_LI7500, RDateTime)
+
+epOut5CO2<-select(epOut5, co2_flux, qc_co2_flux, rand_err_co2_flux, co2_strg, co2_mole_fraction, co2_mixing_ratio, ustar, wind_dir, spikes_hf, amplitude_resolution_hf, drop_out_hf, absolute_limits_hf, skewness_kurtosis_hf, discontinuities_hf, timelag_hf, co2_spikes, chopper_LI7500, detector_LI7500, pll_LI7500, sync_LI7500, mean_value_RSSI_LI7500, RDateTime)
 
 ggplot(epOutCO2, aes(RDateTime, co2_flux))+
   geom_point(alpha=0.1)
 
 epOutCO2F1<-filter(epOutCO2, qc_co2_flux<2)
+epOut5CO2F1<-filter(epOut5CO2, qc_co2_flux<2)
+epOut5CO2E<-filter(epOut5CO2F1, wind_dir<165)
 
 ggplot(epOutCO2F1, aes(RDateTime, co2_flux))+
   geom_point(alpha=0.1)
+ggplot(epOut5CO2E, aes(RDateTime, co2_flux))+
+  geom_point(alpha=0.1)+
+  ylim(-20, 20)
+```
 
+
+## Soft flag filtering
+```{r results='hide', message=FALSE, warning=FALSE, echo=FALSE}
 #the spikes, amplitude resolution, drop outs, absolute limits, skewness/kurtosis, and discontinuities are all bitmaps with the format: 8u/v/w/ts/co2/h2o/ch4/none. That is, if co2 is hard flagged, it will show up as a "1" in the 6th digit from the left/4th digit from the right. These variables have been loaded as characters. Can use strsplit to parse them:
 
 #example from http://rfunction.com/archives/1499
@@ -513,26 +560,74 @@ summary(df_skew_kur) #1744 hard flags, 10688 passes
 summary(df_discont) #351 hard flags, 12081 passes
 ```
 
+## Processing 5-min fluxes back into 30-min via block avearging
+```{r results='hide', message=FALSE, warning=FALSE, echo=FALSE}
+#1. Sort into E and W fluxes
 
+
+epOut5CO2E<-filter(epOut5CO2F1, wind_dir<195 | wind_dir>330)
+epOut5CO2W<-filter(epOut5CO2F1, wind_dir>195 & wind_dir<330)
+
+#2.Block average into 30 min fluxes
+epOut5Co2Esort<-epOut5CO2E[order(epOut5CO2E$RDateTime),]
+epOut5Co2Esort<-epOut5Co2Esort[-c(1:11),]
+
+epOut5CO2E30<-epOut5Co2Esort%>%
+  group_by(RDateTime=cut(RDateTime, breaks="30 min"))%>%
+  summarize(meanFco2=mean(co2_flux))
+
+tmprDaily<-epOut%>%
+  group_by(RDateTime=cut(RDateTime, breaks="1 day"))%>%
+  summarize(meanTmpr=mean(air_temperature-273.15))
+tmprDaily$RDateTime <- as.POSIXct(tmprDaily$RDateTime,
+                                  format="%Y-%m-%d",
+                                  tz = "UTC")  # POSIXct
+
+
+epOut5CO2E30$RDateTime <- as.POSIXct(epOut5CO2E30$RDateTime,
+                                  format="%Y-%m-%d%H:%M:%S",
+                                  tz = "UTC")  # POSIXct
+ggplot(epOut5CO2E30, aes(RDateTime, meanFco2))+
+  geom_point(alpha=0.2)+
+  ylim(-20, 20)
+
+epOut5vs30<-left_join(epOut5CO2E30, epOutCO2east, by="RDateTime")
+
+ggplot(epOut5vs30, aes(co2_flux, meanFco2))+
+  geom_point()
+
+```
 
 ```{r results='hide', message=FALSE, warning=FALSE, echo=FALSE}
+#distribution of 30-min CO2 fluxes
+
+ggplot(epOutCO2F1, aes(co2_flux))+
+  geom_histogram(binwidth=0.5)+
+  xlim(-25, 25)
+#dist of 5-min fluxes
+ggplot(epOut5CO2E, aes(co2_flux))+
+  geom_histogram(binwidth=0.5)+
+  xlim(-25, 25)
+    
 epOutCO2F2<-left_join(epOutCO2F1, df_skew_kur, by="RDateTime")
 
 epOutCO2F3<-filter(epOutCO2F2, co2_flag_skew_kur=="0")
 
 ggplot(epOutCO2F3, aes(RDateTime, co2_flux))+
-  geom_point(alpha=0.1)
+  geom_point(alpha=0.1)+
+
 
 str(df_spikes)
 
 
-ggplot(epOutCO2F3, aes(ustar, co2_flux))+
+ggplot(epOutCO2F1, aes(ustar, co2_flux))+
   geom_point(alpha=0.1)+
   ylim(-50, 50)
 
 epOutCO2F3$date<-epOutCO2F3$RDateTime
 
-epOutCO2east<-filter(epOutCO2F3, wind_dir<195 | wind_dir>330)
+
+epOutCO2east<-filter(epOutCO2F1, wind_dir<195 | wind_dir>330)
 
 ggplot(epOutCO2F3, aes(wind_dir, co2_flux))+
   geom_point(alpha=0.1)+
@@ -737,6 +832,14 @@ ch4eastDaily<-epOutCH4east%>%
   group_by(RDateTime=cut(RDateTime, breaks="1 day"))%>%
   summarize(meanFch4=mean(ch4_flux))
 
+tmprDaily<-epOut%>%
+  group_by(RDateTime=cut(RDateTime, breaks="1 day"))%>%
+  summarize(meanTmpr=mean(air_temperature-273.15))
+tmprDaily$RDateTime <- as.POSIXct(tmprDaily$RDateTime,
+                                  format="%Y-%m-%d",
+                                  tz = "UTC")  # POSIXct
+
+
 ch4eastDaily$RDateTime <- as.POSIXct(ch4eastDaily$RDateTime,
                                   format="%Y-%m-%d",
                                   tz = "UTC")  # POSIXct
@@ -745,9 +848,28 @@ ggplot(ch4eastDaily, aes(RDateTime, meanFch4*57.6*24))+
 
 ch4eastDaily<-left_join(ch4eastDaily, epOutHSPDaily, by="RDateTime")
 ch4eastDaily<-left_join(ch4eastDaily, epOutAPDaily, by="RDateTime")
+ch4eastDaily<-left_join(ch4eastDaily, tmprDaily, by="RDateTime")
 
 ch4eastDaily$HSPdiff<-c(NA, diff(ch4eastDaily$meanHSP, lag=1))
 ch4eastDaily$APdiff<-c(NA, diff(ch4eastDaily$meanAP, lag=1))
+
+ggplot(ch4eastDaily, aes(meanTmpr, log(meanFch4*57.6*24)))+
+  geom_point(alpha=0.5)+
+  xlab("Mean Daily T")+
+    ylab(expression(Daily~Mean~CH[4]~Flux~(mg~m^{-2}~hr^{-1})))
+
+ggplot(ch4eastDaily, aes(cut_number(meanTmpr, 10, boundary=-5), log(meanFch4*57.6*24)))+
+  geom_boxplot()+
+  xlab("Mean Daily T")+
+    ylab(expression(Daily~Mean~CH[4]~Flux~(mg~m^{-2}~hr^{-1})))
+
+
+
+binnedDF<-data.frame(binnedCH4, binnedT)
+ggplot(binnedDF, aes(binnedT, binnedCH4*57.6*24))+
+  geom_point(alpha=0.5)+
+  xlab("Mean Daily T")+
+    ylab(expression(Daily~Mean~CH[4]~Flux~(mg~m^{-2}~hr^{-1})))
 
 
 ggplot(ch4eastDaily, aes(HSPdiff, meanFch4*57.6*24))+
@@ -944,7 +1066,7 @@ plot(LEfluxDiurnalPlot, subset="hour")
 
 #It makes more sense to me to separate the four fluxes: H, LE, CO2, and CH4, then perform QAQC on them from there
 
-epOutH<-select(epOut, H, qc_H, rand_err_H, H_strg, h2o_mole_fraction, h2o_mixing_ratio, ustar, wind_dir, spikes_hf, amplitude_resolution_hf, drop_out_hf, absolute_limits_hf, skewness_kurtosis_hf, discontinuities_hf, timelag_hf, chopper_LI7500, detector_LI7500, pll_LI7500, sync_LI7500, mean_value_RSSI_LI7500, RDateTime)
+epOutH<-select(epOut, H, qc_H, rand_err_H, H_strg, h2o_mole_fraction, h2o_mixing_ratio, ustar, wind_dir, wind_speed, spikes_hf, amplitude_resolution_hf, drop_out_hf, absolute_limits_hf, skewness_kurtosis_hf, discontinuities_hf, timelag_hf, chopper_LI7500, detector_LI7500, pll_LI7500, sync_LI7500, mean_value_RSSI_LI7500, RDateTime)
 
 ggplot(epOutH, aes(RDateTime, H))+
   geom_point(alpha=0.1)
@@ -1059,5 +1181,8 @@ plot(HLEfluxDiurnalPlot, subset="hour")
 
 ```{r results='hide', message=FALSE, warning=FALSE, echo=FALSE}
 library(openair)
+epOutCO2F1$date<-epOutCO2F1$RDateTime
+windRose(epOutCO2F1, ws="wind_speed", wd="wind_dir")
 
+```
 

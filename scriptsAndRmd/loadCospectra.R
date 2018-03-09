@@ -46,17 +46,17 @@ library(stringr)
 
 # READ DATA-----------------
 # List of .txt files containing data
-csvFiles <- list.files("C:/R_Projects/EC/eddyproout/eddypro_binned_cospectra", 
+csvFiles08 <- list.files("C:/R_Projects/EC/eddyproout/eddypro_binned_cospectra/201708", 
                        pattern="*.csv$", recursive = TRUE) # $ matches end of string, excludes '...txt.zip' file
 
-cospectraList <- list()  # Empty list to hold results
+cospectra08List <- list()  # Empty list to hold results
 
 cospectraHeader<- c("freq", "naturalFreq", "normFreq", "uSpec", "vSpec", "wSpec", "TsSpec", "co2Spec", "h2oSpec",
                     "ch4Spec", "NoneSpec", "uwCospec", "vwCospec", "wTsCospec", "wCo2Cospec", "wH2oCospec", "wCh4Cospec", "NoneCospec")
 
-for (i in 1:length(csvFiles)) {  # loop to read and format each file
-  cospectra.i <- read.table(paste("C:/R_Projects/EC/eddyproout/eddypro_binned_cospectra/", 
-                            csvFiles[i], sep=""),
+for (i in 1:length(csvFiles08)) {  # loop to read and format each file
+  cospectra08.i <- read.table(paste("C:/R_Projects/EC/eddyproout/eddypro_binned_cospectra/201708/", 
+                            csvFiles08[i], sep=""),
                       sep=",",  # comma separate
                       skip=12,  # Skip first line of file.  Header info
                       colClasses = c(rep("numeric", 18)),
@@ -68,25 +68,25 @@ for (i in 1:length(csvFiles)) {  # loop to read and format each file
  
   #names(gga.i)[grep("ppm", names(gga.i))] = gsub("^X.", "", names(gga.i)[grep("X", names(gga.i))]) # replace "X." with ""
  #SELECT WHICH FIELDS OF THE COSPECTRA FILE WE WANT TO KEEP
-   cospectra.i <- select(cospectra.i, naturalFreq, normFreq, uSpec, vSpec, TsSpec, wSpec, co2Spec, h2oSpec, ch4Spec,
+   cospectra08.i <- select(cospectra08.i, naturalFreq, normFreq, uSpec, vSpec, TsSpec, wSpec, co2Spec, h2oSpec, ch4Spec,
                          uwCospec, wTsCospec, wCo2Cospec, wCh4Cospec, wH2oCospec )  # select columns of interest
   
-  cospectraList[[i]] <- cospectra.i  # dump in list
+  cospectra08List[[i]] <- cospectra08.i  # dump in list
 }  # End of loop, < 1 minute
 
 # Merge all of the loaded cospectra files
-cospectra <- do.call("rbind", cospectraList)  # Coerces list into dataframe.
+cospectra08 <- do.call("rbind", cospectra08List)  # Coerces list into dataframe.
 
 #head(csvFiles)
 
 ####MAKING DATE AND TIME LIST FROM FILE NAME LIST ----
 #Need to add date and time to cospectra files. Could extract it from file names, which
 # are in the csvFiles list. 
-csvFilesDF<-data.frame(csvFiles, nrow=length(csvFiles))
+csvFiles08DF<-data.frame(csvFiles08, nrow=length(csvFiles08))
  # str(csvFilesDF)
   #summary(csvFilesDF)
 #the date and time are the first part of the file name, the first 13 characters
-dateTimeList <- substr(csvFilesDF$csvFiles, start=1, stop=13) #cha-ching!
+dateTimeList <- substr(csvFiles08DF$csvFiles08, start=1, stop=13) #cha-ching!
   str(dateTimeList)     #still a character
   summary(dateTimeList)
   head(dateTimeList)
@@ -108,7 +108,7 @@ dateTimeListRep<-rep(dateTimeListR, each=50)
   str(dateTimeListRep)
   
 RDateTime<-dateTimeListRep  
-cospectraDates<-cbind(cospectra, RDateTime)
+cospectraDates<-cbind(cospectra08, RDateTime)
   str(cospectraDates)
   
   
@@ -151,6 +151,21 @@ epHeader<- c("filename",	"date",	"time",	"DOY",	"daytime",	"file_records",	"used
   
 #back to reality
 
+epOut<-read.table("C:/R_Projects/EC/eddyproout/fullOutput/continuous/eddypro_2017june27oct31_dynamicIH_full_output_2017-11-28T161747_adv.csv",
+           sep=",",  # comma separate
+           skip=3,  # Skip first line of file.  Header info
+           colClasses = c(rep("character", 3), rep("numeric", 159)),
+           as.is=TRUE, # Prevent conversion to factor
+           header=FALSE, # don't import column names
+           col.names = epHeader,
+           na.strings = "NaN",
+           fill=TRUE)
+
+epOut$RDateTime <- as.POSIXct(paste(epOut$date, epOut$time,sep=""),
+                             format="%Y-%m-%d%H:%M",
+                             tz = "UTC")  # POSIXct
+epOutSub <- select(epOut, RDateTime, wind_dir, ustar, zL, w_var, co2_flux, ch4_flux, ch4_var, Tau) 
+
 for (i in 1:length(epFiles)) {  # loop to read and format each file
     ep.i <- read.table(paste("C:/R_Projects/EC/eddyproout/fullOutput/", 
                                     epFiles[i], sep=""),
@@ -181,7 +196,7 @@ epOut <- do.call("rbind", epList)  # Coerces list into dataframe.
 
 #dateTime column for cospectraDates is RDateTime
 #dateTime column for epOut is RDateTime
-cospectraEC<-left_join(cospectraDates, epOut, 
+cospectraEC<-left_join(cospectraDates, epOutSub, 
                        by="RDateTime")      #seemed to work! so much faster than merge
 
 
@@ -1239,7 +1254,7 @@ ggsave(filename="C:/R_Projects/EC/output/postDockWspeczL.tiff",
 
 #5. PLOT INDIVIDUAL UW COSPECTRA FOR INSPECTION
 
-pdf("C:/R_Projects/EC/output/CH4cospectra.pdf", paper = "a4r", width = 10) # landscape orientation
+pdf("C:/R_Projects/EC/output/CH4cospectraJuly.pdf", paper = "a4r", width = 10) # landscape orientation
 
 for (i in 1:length(unique(cospectraEC$RDateTime))) {  # each time period
   
@@ -1279,7 +1294,7 @@ for (i in 1:length(unique(cospectraEC$RDateTime))) {  # each time period
 dev.off() 
 
 
-pdf("C:/R_Projects/EC/output/CO2cospectra.pdf", paper = "a4r", width = 10) # landscape orientation
+pdf("C:/R_Projects/EC/output/CO2cospectraJuly.pdf", paper = "a4r", width = 10) # landscape orientation
 
 for (i in 1:length(unique(cospectraEC$RDateTime))) {  # each time period
   
@@ -1292,25 +1307,36 @@ for (i in 1:length(unique(cospectraEC$RDateTime))) {  # each time period
   wind_dir.i <- (round(data.i$wind_dir, digits = 0))  # for panel title
   zL.i<-(round(data.i$zL, digits=2))
   ustar.i<-(round(data.i$ustar, digits = 2))
+  co2_flux.i<-(round(data.i$co2_flux, digits = 3))
   
   plot.i <- ggplot(data.i,  aes(x = normFreq, y = wSpec)) + 
-    xlim(0.001, 100) + ylim(0.01, 10) +
     geom_point() +
-    coord_trans(x="log10", y="log10")+
-    #geom_smooth()+
+    theme(legend.position="none")+
     ggtitle(paste(flux.period.i, "Wind Dir=", wind_dir.i, "z/L = ", zL.i, "u* = ", ustar.i)) +
     theme(axis.text.x = element_text(size = 7),
-          plot.title = element_text(size = 11))
+          plot.title = element_text(size = 11))+
+    scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                  labels = trans_format("log10", math_format(10^.x)),
+                  limits = c(10^-6, 10^1))+
+    scale_x_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                  labels = trans_format("log10", math_format(10^.x)),
+                  limits = c(10^-4, 10^2))
+    #geom_smooth()+
+    
   
   plot.ii <- ggplot(data.i,  aes(x = normFreq, y = wCo2Cospec)) + 
-    xlim(0.001, 10) + ylim(0.001, 10) +
     geom_point() +
-    coord_trans(x="log10", y="log10")+
-    #geom_smooth()+
-    # ggtitle(paste(flux.period.i, "Wind Dir=", wind_dir.i, "z/L = ", zL.i, "u* = ", ustar.i)) +
+    geom_vline(linetype=2, xintercept = 0.0125)+
+    theme(legend.position="none")+
+    ggtitle(paste(flux.period.i, "CO2 Flux = ", co2_flux.i)) +
     theme(axis.text.x = element_text(size = 7),
-          plot.title = element_text(size = 11))
-  
+          plot.title = element_text(size = 11))+
+    scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                  labels = trans_format("log10", math_format(10^.x)),
+                  limits = c(10^-6, 10^1))+
+    scale_x_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                  labels = trans_format("log10", math_format(10^.x)),
+                  limits = c(10^-4, 10^2))
   grid.arrange(plot.i, plot.ii, ncol = 2)  # use to put two plots per page
   #widths = 4) 
 }
@@ -1320,10 +1346,126 @@ dev.off()
 
 
 
+###Added Jan 2018. Goal is to recreate the analysis performed last spring to analyze the impact of the dock, but this time look at the 
+### impact of advection, using the co2 flux magnitude as a proxy. 
+    ### 1. Break cospectraEC into categories: |CO2 flux| <2; |CO2 flux| between 2-5; and |CO2 flux| >5
+    ### 2. Perform the same binning and averaging procedure: break them into frequncy bins, filter extreme 10%, then take the geometric mean
+    ### 3. Plot
+
+
+###1. Break into categories:
+
+smallCO2flux<-filter(cospectraEC, abs(co2_flux)<2)
+modCO2flux<-filter(cospectraEC, abs(co2_flux)>2 & abs(co2_flux)<5)
+bigCO2flux<-filter(cospectraEC, abs(co2_flux)>5)
+
+###2. 
+#### Establish discrete freqency bins, discard the extreme 10%, ensemble averaging the spectral values 
+listOfDataFrames <- list(smallCO2flux, modCO2flux, bigCO2flux
+)
+names(listOfDataFrames) = c("small CO2 flux", "moderate CO2 flux", "big CO2 flux"
+                            ) 
+#"Pre dock Unstable", "Post dock 2.4m Unstable", "Post dock 2.8 m Unstable"
+#neutStabList<-c("neutral", "neutral", "neutral", "stable", "stable", "stable")                            
+
+#test with a simpler function:
+#listOfDataFrames <- lapply(listOfDataFrames, function(x) mutate(x, newColumn = normFreq +1))
+
+# for each data frame in the list, add a column that defines the bounds of the normalized frequency bin
+listOfDataFrames <- lapply(listOfDataFrames, function(x) {
+  mutate(x, freqBin = cut(x$normFreq,
+                          breaks=c(10^-4, 10^-3.5, 10^-3, 10^-2.8, 10^-2.6, 10^-2.4, 10^-2.2, 10^-2, 
+                                   10^-1.8, 10^-1.6, 10^-1.4, 10^-1.2, 10^-1,
+                                   10^-0.8, 10^-0.6, 10^-0.4, 10^-0.2,
+                                   1, 10^0.2, 10^0.4, 10^0.6, 10^0.8, 10,
+                                   10^1.2, 10^1.4, 10^1.6, 10^1.8, 100)))})
+
+
+# discard the highest 90% and lowest 10% of the w spectra values within each bin,
+# then take the geometric mean (?) of the w Spectra, and the geometric mean of the frequency
+reducedListOfDataFrames.basic <- lapply(listOfDataFrames, function(x) group_by(x, freqBin) %>%
+                                          # #w
+                                          mutate(wSpecPerc = percentile(wSpec),
+                                                 uSpecPerc = percentile(uSpec),
+                                                 vSpecPerc = percentile(vSpec),
+                                                 TsSpecPerc = percentile(TsSpec),
+                                                 wCo2CoPerc = percentile(wCo2Cospec),
+                                                 wCh4CoPerc = percentile(wCh4Cospec)
+                                          ) %>%
+                                          filter(wSpecPerc < 90, wSpecPerc > 10,
+                                                 uSpecPerc < 90, uSpecPerc >10,
+                                                 vSpecPerc < 90, vSpecPerc > 10,
+                                                 TsSpecPerc < 90, TsSpecPerc > 10,
+                                                 wCo2CoPerc < 90, wCo2CoPerc> 10,
+                                                 wCh4CoPerc < 90, wCh4CoPerc> 10
+                                          ) %>%
+                                          summarize(binnedW = exp(mean(log(wSpec))),
+                                                    binnedU = exp(mean(log(uSpec))),
+                                                    binnedV = exp(mean(log(vSpec))),
+                                                    binnedTs = exp(mean(log(TsSpec))),
+                                                    binnedwCo2 = mean(wCo2Cospec),
+                                                    binnedwCh4 = mean(wCh4Cospec),
+                                                    binnedFreq = exp(mean(log(normFreq)))))
 
 
 
+#now the list needs to be merged together
+# Coerce to DF for easier manipulation
+SpectraByFreqBin <- do.call("rbind", reducedListOfDataFrames.basic) %>%
+  as.data.frame()
+
+# Add column to df specifying which time period the data came from.
+# The distribution is specified as the name of each element in the original
+# list.  Now that the list is collapsed into a dataframe, we need to associate
+# the names from the list with the appropriate row in each df.  This is tricky
+# because lake distributions have different number of rows (i.e. fewer for
+# lake size classes for Messager). Also need to make code flexible in case we
+# add additional distributions.
+
+# Step 1: create vector of number of rows for each distribution.
+numberOfRows <- NULL # empty vector to hold 'for' loop output.
+for (i in 1:length(reducedListOfDataFrames.basic)) { # for each element of the list
+  numberOfRows[i] = nrow(reducedListOfDataFrames.basic[[i]]) # extract number of rows,
+}
+# Step 2:  Add distribution column to dataframe
+SpectraByFreqBin <- mutate(SpectraByFreqBin, 
+                           distribution = rep(x = names(reducedListOfDataFrames.basic), 
+                                              times = numberOfRows))
+
+tail(SpectraByFreqBin)
+head(SpectraByFreqBin)
+#####PLOT and SAVE U, V, W, Ts, spectra categoriezed by stability and timeframe: -------
+#Co2 cospectra
+ggplot(SpectraByFreqBin, aes(binnedFreq, binnedwCo2))+
+  #geom_point(aes(color=distribution))+
+  #scale_shape_discrete(solid=F)
+  geom_line(aes(color=distribution), size=2)+
+  geom_vline(linetype=2, xintercept = 0.0125)+
+  #theme(legend.position="none")+
+  #scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+   #             labels = trans_format("log10", math_format(10^.x)),
+    #            limits = c(10^-3, 10^0))+
+  scale_x_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x)))
+#limits = c(10^-3, 10^2.5))
 
 
+ggsave(filename="C:/R_Projects/EC/output/binnedW.tiff",
+       width=4,height=2.75, units="in",
+       dpi=800,compression="lzw")
 
+
+#CH4 cospectra
+ggplot(SpectraByFreqBin, aes(binnedFreq, binnedwCh4))+
+  #geom_point(aes(color=distribution))+
+  #scale_shape_discrete(solid=F)
+  geom_line(aes(color=distribution), size=2)+
+  geom_vline(linetype=2, xintercept = 0.0125)+
+  #theme(legend.position="none")+
+  #scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+  #             labels = trans_format("log10", math_format(10^.x)),
+  #            limits = c(10^-3, 10^0))+
+  scale_x_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x)))
+#limits = c(10^-3, 10^2.5))
 

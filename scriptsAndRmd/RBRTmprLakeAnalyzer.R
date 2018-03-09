@@ -482,4 +482,16 @@ write.table(c.RBR,
             sep=",",
             row.names=FALSE)
 
+c.RBRsub<-filter(c.RBR, datetime>="2017-05-11")
+c.RBRdaily<-c.RBRsub %>%
+  group_by(datetime = cut(datetime, breaks = "24 hour")) %>%
+  summarize(dailyT_1.6 = mean(meanT_1.6, na.rm=TRUE))
+c.RBRdaily$RDateTime<-as.POSIXct(c.RBRdaily$datetime,
+                                  format = "%Y-%m-%d %H:%M",
+                                  tz="UTC")
 
+write.table(c.RBRdaily, 
+            file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/L1_30minRBR/RBRdailySed20170510_20171020.csv",
+            sep=",",
+            row.names=FALSE)
+   

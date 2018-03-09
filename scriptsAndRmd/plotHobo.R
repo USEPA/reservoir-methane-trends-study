@@ -59,6 +59,9 @@ plot_ly(data = filter(hobo, lake.name == "acton lake", site == "u14"),
 
 
 # u12 (deep site) service dates, circut ID's and datalogger ID's
+## only have good results for u12 after 7/14:
+      ## Used circut #9 the whole time
+      ## Field notes on 8/24/17 specify that u12 trap tube is "skinny" diameter, ie 1.25 cm
 u12date<-c("2017-05-10", "2017-05-26", "2017-06-09", "2017-06-12", 
            "2017-06-26", "2017-07-14", "2017-07-26", "2017-08-09",
            "2017-08-24", "2017-09-15", "2017-09-21", "2017-10-05",
@@ -79,6 +82,8 @@ u14circutID<-c(1, 1, 1, NA, 1, 19, 19, 19,
                19, 19, 19, 19, 19, 19)
 u14LoggerID<-c(2, 2, 2, NA, 2, 1, 1, 1,
                1, 1, 1, 1, 1, 1)
+
+
 
 
 

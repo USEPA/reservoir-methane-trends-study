@@ -1424,7 +1424,8 @@ ggplot(SpectraByFreqBin, aes(binnedFreq, binnedwCo2))+
    #             labels = trans_format("log10", math_format(10^.x)),
     #            limits = c(10^-3, 10^0))+
   scale_x_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x)))
+                labels = trans_format("log10", math_format(10^.x)))+
+ggtitle("Harsha w CO2 cospectra")
 #limits = c(10^-3, 10^2.5))
 
 
