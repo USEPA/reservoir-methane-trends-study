@@ -12,12 +12,15 @@ gga <- filter(gga, !is.na(RDateTime))  # strip out missing RDateTime.  They comp
 
 chamData<-read.xls("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/survey/chamberBiweekly.xlsx")
 
-chamData$chmDeplyDtTm<-as.POSIXct(paste(chamData$deplyDt, chamData$chmStTm, sep=""),
-                                  format="%Y-%m-%d%H:%M:%S",
-                                  tz="UTC")
-chamData$siteID<-as.character(chamData$siteID)
-chamData$deplyDt<-as.character(chamData$deplyDt)
-chamData$dateTimeSampled<-as.character(chamData$chmDeplyDtTm)
+#reformat several columns and make two derivitive columns
+chamData <- mutate(chamData, 
+                   chmDeplyDtTm = as.POSIXct(paste(deplyDt, chmStTm, sep=""),
+                                             format="%Y-%m-%d%H:%M:%S",
+                                             tz="UTC"),
+                   deplyDt = as.character(deplyDt),
+                   siteID = as.character(siteID),
+                   chmVol.L = (42.057 + (-0.2189 * chm_vol)),
+                   dateTimeSampled = as.character(chmDeplyDtTm))
 
 #3.  LOOP TO ASSIGN LAKE NAME, SITEID, AND DEPLY TIME TO LGR OBSERVATIONS.
 
@@ -50,14 +53,41 @@ gga[ , c("co2DeplyDtTm", "co2RetDtTm", "ch4DeplyDtTm", "ch4RetDtTm")] <-
 # This order is critical!
 adjData <- c("2017-05-10 12:11:00", "U-12", "2017-05-10 12:12:00", "2017-05-10 12:17:00", "2017-05-10 12:12:00", "2017-05-10 12:17:00",
              "2017-05-10 13:53:00", "U-14", "2017-05-10 13:54:30", "2017-05-10 13:58:30", "2017-05-10 13:54:30", "2017-05-10 13:58:30",
-             "2017-05-26 13:02:00", "U-14", "2017-05-10 12:12:00", "2017-05-10 12:17:00", "2017-05-10 12:12:00", "2017-05-10 12:17:00",
-             "2017-05-26 13:53:00", "U-14", "2017-05-10 13:54:30", "2017-05-10 13:58:30", "2017-05-10 13:54:30", "2017-05-10 13:58:30",
-             "Acton Lake Oct", "U-04", "2017-10-04 15:26:00", "2017-10-04 15:29:00", "2017-10-04 15:26:20", "2017-10-04 15:27:30"
+             "2017-05-26 13:02:00", "U-12", "2017-05-26 13:02:30", "2017-05-26 13:07:00", "2017-05-26 13:02:30", "2017-05-26 13:07:00",
+             "2017-06-09 13:46:45", "U-14", "2017-06-09 13:47:15", "2017-06-09 13:52:00", "2017-06-09 13:47:15", "2017-06-09 13:52:00",
+             "2017-06-09 13:46:45", "U-14", "2017-06-09 13:47:15", "2017-06-09 13:52:00", "2017-06-09 13:47:15", "2017-06-09 13:52:00",
+             "2017-06-26 13:27:30", "U-14", "2017-06-26 13:28:00", "2017-06-26 13:32:30", "2017-06-26 13:28:00", "2017-06-26 13:32:30",
+             "2017-06-26 15:12:30", "U-12", "2017-06-26 15:12:40", "2017-06-26 15:16:00", "2017-06-26 15:12:40", "2017-06-26 15:14:00",
+             "2017-07-10 12:34:00", "U-14", "2017-07-10 12:34:20", "2017-07-10 12:39:00", "2017-07-10 12:34:20", "2017-07-10 12:38:40",
+             "2017-07-10 16:43:51", "U-12", "2017-07-10 16:36:00", "2017-07-10 16:40:00", "2017-07-10 16:36:00", "2017-07-10 16:37:40",
+             "2017-08-09 11:51:30", "U-12", "2017-08-09 11:55:30", "2017-08-09 11:57:30", "2017-08-09 11:55:30", "2017-08-09 11:56:20",
+             "2017-08-09 13:51:22", "U-14", "2017-08-09 13:54:00", "2017-08-09 13:57:00", "2017-08-09 13:55:00", "2017-08-09 13:55:50",
+             "2017-08-24 12:02:33", "U-12", "2017-08-24 12:02:33", "2017-08-24 12:05:33", "2017-08-24 12:03:33", "2017-08-24 12:04:40",
+             "2017-08-24 13:15:30", "U-14", "2017-08-24 13:16:00", "2017-08-24 13:21:00", "2017-08-24 13:16:00", "2017-08-24 13:18:30",
+             "2017-08-31 11:30:15", "U-14", "2017-08-31 11:36:00", "2017-08-31 11:40:00", "2017-08-31 11:36:00", "2017-08-31 11:40:00",
+             "2017-08-31 15:22:10", "U-12", "2017-08-31 15:23:00", "2017-08-31 15:28:00", "2017-08-31 15:23:00", "2017-08-31 15:28:00",
+             "2017-09-15 11:56:00", "U-12", "2017-09-15 11:56:00", "2017-09-15 12:00:30", "2017-09-15 11:56:00", "2017-09-15 11:58:00",
+             "2017-09-15 11:56:00", "U-12", "2017-09-15 11:56:00", "2017-09-15 12:00:30", "2017-09-15 11:56:00", "2017-09-15 11:58:00",
+             "2017-09-15 13:11:11", "U-14", "2017-09-15 13:11:30", "2017-09-15 13:16:00", "2017-09-15 13:12:30", "2017-09-15 13:14:20",
+             "2017-09-21 12:04:41", "U-12", "2017-09-21 12:04:41", "2017-09-21 12:09:41", "2017-09-21 12:04:41", "2017-09-21 12:06:15",
+             "2017-10-04 11:20:52", "U-14", "2017-10-04 11:21:00", "2017-10-04 11:24:30", "2017-10-04 11:20:40", "2017-10-04 11:21:50",
+             "2017-10-04 15:11:21", "U-12", "2017-10-04 15:15:00", "2017-10-04 15:17:20", "2017-10-04 15:16:40", "2017-10-04 15:17:20",
+             "2017-10-20 12:10:15", "U-12", "2017-10-20 12:10:15", "2017-10-20 12:13:00", "2017-10-20 12:10:15", "2017-10-20 12:11:45",
+             "2017-10-20 14:21:40", "U-14", "2017-10-20 14:21:40", "2017-10-20 14:23:40", "2017-10-20 14:21:40", "2017-10-20 14:23:40",
+             "2017-10-31 12:15:01", "U-12", "2017-10-31 12:15:50", "2017-10-31 12:20:01", "2017-10-31 12:15:50", "2017-10-31 12:20:01",
+             "2017-10-31 14:04:10", "U-14", "2017-10-31 14:04:30", "2017-10-31 14:10:00", "2017-10-31 14:04:30", "2017-10-31 14:10:00",
+             "2017-11-14 12:20:00", "U-12", "2017-11-14 12:20:10", "2017-11-14 12:25:00", "2017-11-14 12:20:30", "2017-11-14 12:25:30",
+             "2017-11-14 13:49:49", "U-14", "2017-11-14 13:50:10", "2017-11-14 13:53:00", "2017-11-14 13:50:00", "2017-11-14 13:53:00",
+             "2017-12-11 13:05:48", "U-12", "2017-12-11 13:06:10", "2017-12-11 13:11:00", "2017-12-11 13:06:10", "2017-12-11 13:11:00",
+             "2017-12-11 15:16:42", "U-14", "2017-12-11 15:17:30", "2017-12-11 15:22:00", "2017-12-11 15:17:30", "2017-12-11 15:22:00"
+             
+             
+             
 )
 
 ###-----
 # Coerce to data.frame  
-adjDataDf <- data.frame(Lake_Name = adjData[seq(1,length(adjData), 6)],
+adjDataDf <- data.frame(Date_Time_Sampled = adjData[seq(1,length(adjData), 6)],
                         siteID = adjData[seq(2,length(adjData), 6)],
                         co2DeplyDtTm = adjData[seq(3,length(adjData), 6)],
                         co2RetDtTm = adjData[seq(4,length(adjData), 6)],
@@ -72,8 +102,8 @@ adjDataDf[, c("co2DeplyDtTm", "co2RetDtTm", "ch4DeplyDtTm", "ch4RetDtTm")] <-
 
 #5. UPDATE DEPLOYMENT AND RETRIEVAL TIMES BASED ON FIXES ABOVE (SEE POINT 3)
 
-for (i in 1:with(adjDataDf, length(unique(paste(siteID, Lake_Name))))) { # for each unique site x lake combination
-  lake.i <- adjDataDf$Lake_Name[i]  # extract ith lake
+for (i in 1:with(adjDataDf, length(unique(paste(siteID, Date_Time_Sampled))))) { # for each unique site x lake combination
+  Date_Time_Sampled.i <- adjDataDf$Date_Time_Sampled[i]  # extract ith lake
   site.i <- adjDataDf$siteID[i]  # extract ith site
   data.i <- adjDataDf[i, ]  # extract data.i
   
@@ -92,7 +122,7 @@ for (i in 1:with(adjDataDf, length(unique(paste(siteID, Lake_Name))))) { # for e
   
   #Delete original CO2 and CH4 deployment / retrieval times from gga file.  These will be replaced with 
   #updated values.
-  gga[gga$Lake_Name == lake.i &  !is.na(gga$Lake_Name) & gga$siteID == site.i & !is.na(gga$siteID), 
+  gga[gga$Date_Time_Sampled == Date_Time_Sampled.i &  !is.na(gga$Date_Time_Sampled) & gga$siteID == site.i & !is.na(gga$siteID), 
       c("co2DeplyDtTm", "co2RetDtTm", "ch4DeplyDtTm", "ch4RetDtTm")] = NA
   
   #Logical indicator indicator block of gga data that should be updated
@@ -103,8 +133,8 @@ for (i in 1:with(adjDataDf, length(unique(paste(siteID, Lake_Name))))) { # for e
   
   # Replace original time stamps with updated numbers
   # POSIXct and time zone preserved through this step.  Wow!
-  gga[logicalIndicator.i, c("Lake_Name", "siteID", "co2DeplyDtTm", "co2RetDtTm", "ch4DeplyDtTm", "ch4RetDtTm")] =
-    data.i[, c("Lake_Name", "siteID", "co2DeplyDtTm", "co2RetDtTm", "ch4DeplyDtTm", "ch4RetDtTm")]
+  gga[logicalIndicator.i, c("Date_Time_Sampled", "siteID", "co2DeplyDtTm", "co2RetDtTm", "ch4DeplyDtTm", "ch4RetDtTm")] =
+    data.i[, c("Date_Time_Sampled", "siteID", "co2DeplyDtTm", "co2RetDtTm", "ch4DeplyDtTm", "ch4RetDtTm")]
 }
 
 

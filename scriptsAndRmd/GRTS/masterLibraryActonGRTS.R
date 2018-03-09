@@ -34,6 +34,8 @@ library(piecewiseSEM) # for rsquared of lme model
 library(plyr)  # for 'join' in ggplot plotting of shapefile
 library(dplyr)   # For data manipulation
 
+library(chron)
+
 
 # TRIM FUNCTION--------------------------
 # returns string w/o leading or trailing whitespace
