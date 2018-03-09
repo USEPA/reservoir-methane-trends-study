@@ -1,9 +1,6 @@
 
 ##From the GRTS master script, run the masterLibrary, then the readLgrActonGRTS
 ##then run plotCleanLgrActon
-source("scriptsAndRmd/GRTS/masterLibraryActonGRTS.R")
-source("scriptsAndRmd/GRTS/readLgrActonGRTS.R")
-source("scriptsAndRmd/plotCleanLgrActon.R")
 
 # EMISSION RATE CALCULATIONS--------------------
 # STEP 1:  CALCULATE EMISSION RATE VIA LINEAR AND NONLINEAR REGRESSION
@@ -320,82 +317,82 @@ write.table(chamDataSub,
             row.names=FALSE,
             na="NA")
 
-# CALCULATE EBULLITION RATE------------------
-
-# First calculate volumetric ebullion rate.  Straightforward operation
-# that can be vectorized across the entire df.
-eqAreaData <- mutate(eqAreaData, 
-                     ebMlHrM2 = TtTrpVl / 
-                       (as.numeric(trapRtrvDtTm - trapDeplyDtTm) * 
-                          ((3.14*.28^2)))) # diameter = 22.25in=0.56m, r=.28m))
-
-# Mass flux rate must be calculated by Lake.  Tried to apply by group using
-# by_group, ddply, and lapply.  I couldn't figure it out, resorted to for loop
-
-myEbList <- list()
-for (i in 1:length(unique(eqAreaData$Lake_Name))) {
-  lake.i <- unique(eqAreaData$Lake_Name)[i]
-  data.i <- filter(eqAreaData, Lake_Name == lake.i )
-  out.ch4 <- mass.rate(data.i, choice1 = "ch4") 
-  out.co2 <- mass.rate(data.i, choice1 = "co2")
-  out.n2o <- mass.rate(data.i, choice1 = "n2o")
-  
-  myEbList[[i]] <- data.frame(ebCh4mgM2h = out.ch4,
-                              ebCo2mgM2h = out.co2,
-                              ebN2omgM2h = out.n2o,
-                              Lake_Name = data.i$Lake_Name,
-                              siteID = data.i$siteID)
-}
-
-ebResults <- do.call("rbind", myEbList) %>%  # This coerces the list into a dataframe. Cool.
-  rename(ch4.erate.mg.h = ebCh4mgM2h,
-         co2.erate.mg.h = ebCo2mgM2h,
-         n2o.erate.mg.h = ebN2omgM2h)
-
-
-str(eqAreaData) # 35
-str(ebResults)  # 35 observations
-eqAreaData <- merge(eqAreaData,ebResults, all = TRUE) 
-str(eqAreaData) # 35 observations
-
-
-# CALCULATE TOTAL EMISSION RATES------------------
-# If CH4 ebul is measured, but CH4 diff couldn't be calculated,
-# CH4 tot = CH4 ebb.  In all other cases TOT = diff + ebul,
-# resulting tot = NA if is.na(ebul) or is.na(diff).
-eqAreaData <- mutate(eqAreaData, 
-                     co2.trate.mg.h = co2.drate.mg.h.best + co2.erate.mg.h,
-                     ch4.trate.mg.h = ifelse(is.na(ch4.drate.mg.h.best) &
-                                               !is.na(ch4.erate.mg.h),
-                                             ch4.erate.mg.h,
-                                             ch4.drate.mg.h.best +ch4.erate.mg.h))
-
-eqAreaDataSub<-filter(eqAreaData, EvalStatus=="sampled")
-
-ggplot(eqAreaDataSub, aes(siteID, ebMlHrM2))+
-  geom_point()
-
-eqAreaDataSub$fsiteID <- orderSite(eqAreaDataSub, 
-                                   choice1 = "ch4.d")
-ggplot(eqAreaDataSub, aes(fsiteID, ch4.drate.mg.h.best))+
-  geom_point(aes(color=Lake_Name))+
-  ylim(0, 26)+
-  ggtitle("CH4 Diffusive Emissions (mg CH4 m-2 hr-1)")
-eqAreaDataSub$fsiteID <- orderSite(eqAreaDataSub, 
-                                   choice1 = "co2.d")
-ggplot(eqAreaDataSub, aes(fsiteID, co2.drate.mg.h.best))+
-  geom_point(aes(color=Lake_Name))+
- # ylim(0, 26)+
-  ggtitle("CO2 Diffusive Emissions (mg CO2 m-2 hr-1)")
-
-
-eqAreaDataSub$fsiteID <- orderSite(eqAreaDataSub, 
-                                   choice1 = "ch4.e")
-
-ggplot(eqAreaDataSub, aes(fsiteID, ch4.erate.mg.h))+
-  geom_point(aes(color=Lake_Name))+
-  ggtitle("CH4 Ebullitive Emissions (mg CH4 m-2 hr-1)")
-
-ggplot(eqAreaDataSub, aes(fsiteID, co2.erate.mg.h))+
-  geom_point(aes(color=Lake_Name))+
-  ggtitle("CO2 Ebullitive Emissions (mg CO2 m-2 hr-1)")
+# # CALCULATE EBULLITION RATE------------------
+# 
+# # First calculate volumetric ebullion rate.  Straightforward operation
+# # that can be vectorized across the entire df.
+# eqAreaData <- mutate(eqAreaData, 
+#                      ebMlHrM2 = TtTrpVl / 
+#                        (as.numeric(trapRtrvDtTm - trapDeplyDtTm) * 
+#                           ((3.14*.28^2)))) # diameter = 22.25in=0.56m, r=.28m))
+# 
+# # Mass flux rate must be calculated by Lake.  Tried to apply by group using
+# # by_group, ddply, and lapply.  I couldn't figure it out, resorted to for loop
+# 
+# myEbList <- list()
+# for (i in 1:length(unique(eqAreaData$Lake_Name))) {
+#   lake.i <- unique(eqAreaData$Lake_Name)[i]
+#   data.i <- filter(eqAreaData, Lake_Name == lake.i )
+#   out.ch4 <- mass.rate(data.i, choice1 = "ch4") 
+#   out.co2 <- mass.rate(data.i, choice1 = "co2")
+#   out.n2o <- mass.rate(data.i, choice1 = "n2o")
+#   
+#   myEbList[[i]] <- data.frame(ebCh4mgM2h = out.ch4,
+#                               ebCo2mgM2h = out.co2,
+#                               ebN2omgM2h = out.n2o,
+#                               Lake_Name = data.i$Lake_Name,
+#                               siteID = data.i$siteID)
+# }
+# 
+# ebResults <- do.call("rbind", myEbList) %>%  # This coerces the list into a dataframe. Cool.
+#   rename(ch4.erate.mg.h = ebCh4mgM2h,
+#          co2.erate.mg.h = ebCo2mgM2h,
+#          n2o.erate.mg.h = ebN2omgM2h)
+# 
+# 
+# str(eqAreaData) # 35
+# str(ebResults)  # 35 observations
+# eqAreaData <- merge(eqAreaData,ebResults, all = TRUE) 
+# str(eqAreaData) # 35 observations
+# 
+# 
+# # CALCULATE TOTAL EMISSION RATES------------------
+# # If CH4 ebul is measured, but CH4 diff couldn't be calculated,
+# # CH4 tot = CH4 ebb.  In all other cases TOT = diff + ebul,
+# # resulting tot = NA if is.na(ebul) or is.na(diff).
+# eqAreaData <- mutate(eqAreaData, 
+#                      co2.trate.mg.h = co2.drate.mg.h.best + co2.erate.mg.h,
+#                      ch4.trate.mg.h = ifelse(is.na(ch4.drate.mg.h.best) &
+#                                                !is.na(ch4.erate.mg.h),
+#                                              ch4.erate.mg.h,
+#                                              ch4.drate.mg.h.best +ch4.erate.mg.h))
+# 
+# eqAreaDataSub<-filter(eqAreaData, EvalStatus=="sampled")
+# 
+# ggplot(eqAreaDataSub, aes(siteID, ebMlHrM2))+
+#   geom_point()
+# 
+# eqAreaDataSub$fsiteID <- orderSite(eqAreaDataSub, 
+#                                    choice1 = "ch4.d")
+# ggplot(eqAreaDataSub, aes(fsiteID, ch4.drate.mg.h.best))+
+#   geom_point(aes(color=Lake_Name))+
+#   ylim(0, 26)+
+#   ggtitle("CH4 Diffusive Emissions (mg CH4 m-2 hr-1)")
+# eqAreaDataSub$fsiteID <- orderSite(eqAreaDataSub, 
+#                                    choice1 = "co2.d")
+# ggplot(eqAreaDataSub, aes(fsiteID, co2.drate.mg.h.best))+
+#   geom_point(aes(color=Lake_Name))+
+#  # ylim(0, 26)+
+#   ggtitle("CO2 Diffusive Emissions (mg CO2 m-2 hr-1)")
+# 
+# 
+# eqAreaDataSub$fsiteID <- orderSite(eqAreaDataSub, 
+#                                    choice1 = "ch4.e")
+# 
+# ggplot(eqAreaDataSub, aes(fsiteID, ch4.erate.mg.h))+
+#   geom_point(aes(color=Lake_Name))+
+#   ggtitle("CH4 Ebullitive Emissions (mg CH4 m-2 hr-1)")
+# 
+# ggplot(eqAreaDataSub, aes(fsiteID, co2.erate.mg.h))+
+#   geom_point(aes(color=Lake_Name))+
+#   ggtitle("CO2 Ebullitive Emissions (mg CO2 m-2 hr-1)")

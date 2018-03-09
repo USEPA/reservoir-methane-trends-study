@@ -6,7 +6,10 @@
 
 #' @description This function calculates dissolved CO2, CH4, and N2O concentrations from water samples based on inputs of equilibration conditions and reference and equilibrated air CO2, CH4, and N2O concentrations. If samples were equilibrated with a pure gas that contains no CO2, CH4, or N2O, the concentrations for the reference air ("concentrationCO2Air", "concentrationCH4Air", "concentrationN2OAir") for those gases should be set to 0.
 
-#' @param inputFile Name of the data fram containing the information needed to calculate the dissolved gas concentrations. If the headers are named: "gasVolume", "waterVolume", "barometricPressure", "waterTemp", "concentrationCO2Gas", "concentrationCO2Air", "concentrationCH4Gas", "concentrationCH4Air", "concentrationN2OGas", "concentrationN2OAir", respectively, no other inputs are required. Otherwise, the names of the columns need to be input for the function to work.
+#' @param inputFile Name of the data fram containing the information needed to calculate the dissolved gas concentrations. 
+#' If the headers are named: "gasVolume", "waterVolume", "barometricPressure", "waterTemp", "concentrationCO2Gas", "concentrationCO2Air", 
+#' "concentrationCH4Gas", "concentrationCH4Air", "concentrationN2OGas", "concentrationN2OAir", respectively, no other inputs are required. 
+#' Otherwise, the names of the columns need to be input for the function to work.
 #' @param volGas Volume of air equilibrated with water [mL]
 #' @param volH2O Volume of water equilibrated with air [mL]
 #' @param baro Barometric pressure at the time of equilibration [kPa]
@@ -28,7 +31,6 @@
 
 #' @references
 #' License: GNU AFFERO GENERAL PUBLIC LICENSE Version 3, 19 November 2007
-
 #' @keywords dissolved gases, methane, CH4, carbon dioxide, CO2, nitrous oxide, N2O, surface water, aquatic, streams, lakes, rivers
 
 #' @examples
@@ -70,7 +72,7 @@ def.calc.sdg <- function(
                   inputFile$concentrationCH4Air),
   sourceCH4 = inputFile$concentrationCH4Source,
   eqN2O = inputFile$concentrationN2OGas,
-  airN2O = ifelse(is.na(inputFile$concentrationN2OAir), # use global average if not measured
+  airN2O = ifelse(is.na(inputFile$concentrationN2OAir), # use glo0000000bal average if not measured
                   0.330, #https://www.esrl.noaa.gov/gmd/hats/combined/N2O.html
                   inputFile$concentrationN2OAir),
   sourceN2O = inputFile$concentrationN2OSource
@@ -82,14 +84,14 @@ def.calc.sdg <- function(
   
   
   ##### Constants #####
-  cGas<-8.3144598 #universal gas constant (J K-1 mol-1)
+  cGas<-8.3144598 #universal gas constant (J K-1 mol-1, or equivalently, m3 Pa K-1 mol-1)
   cKelvin <- 273.15 #Conversion factor from Kelvin to Celsius
   cPresConv <- 0.000001 # Constant to convert mixing ratio from umol/mol (ppmv) to mol/mol. Unit conversions from kPa to Pa, m^3 to L, cancel out.
   cT0 <- 298.15#Henry's law constant T0
   #Henry's law constants and temperature dependence from Sander (2015) DOI: 10.5194/acp-15-4399-2015
-  ckHCO2 <- 0.00033 #mol m-3 Pa, range: 0.00031 - 0.00045
-  ckHCH4 <- 0.000014 #mol m-3 Pa, range: 0.0000096 - 0.000092
-  ckHN2O <- 0.00024 #mol m-3 Pa, range: 0.00018 - 0.00025
+  ckHCO2 <- 0.00033 #mol m-3 Pa-1, range: 0.00031 - 0.00045
+  ckHCH4 <- 0.000014 #mol m-3 Pa-1, range: 0.0000096 - 0.000092
+  ckHN2O <- 0.00024 #mol m-3 Pa-1, range: 0.00018 - 0.00025
   cdHdTCO2 <- 2400 #K, range: 2300 - 2600
   cdHdTCH4 <- 1900 #K, range: 1400-2400
   cdHdTN2O <- 2700 #K, range: 2600 - 3600

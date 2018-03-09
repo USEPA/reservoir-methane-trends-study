@@ -2,7 +2,7 @@ library(dplyr)
 library(tidyverse)
 library(readxl)
 
-gc.all.NonGrts<-read.table("L:/Lab/Lablan/GHG/GC/2017Data/gcMasterFile2017updated2018-02-13.txt",
+gc.all.NonGrts<-read.table("L:/Lab/Lablan/GHG/GC/2017Data/gcMasterFile2017updated2018-03-08.txt",
                    col.names=c("sample", "n2o.ppm", "co2.ppm", "ch4.ppm", "flag.n2o",
                                "flag.co2", "flag.ch4", "o2.ar.percent", "n2.perc", "o2.chk",
                                "flag.n2", "flag.o2.ar"),
@@ -15,6 +15,8 @@ gc.all.NonGrts$sampleNum<-gsub("([0-9]*).*","\\1",gc.all.NonGrts$sample) #extrac
 gc.all.NonGrts$sampleNum<-substring(gc.all.NonGrts$sample, 4)
 
 gc.Acton<-dplyr::filter(gc.all.NonGrts, grepl("ACT",sample)) #346 observations
+                                                             #388 observations 3/1/2018 am
+                                                             #405 observations 3/1/2018 pm  
 
 # 
 # # Check for duplicates.
@@ -28,17 +30,17 @@ metaData<-read_excel("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovari
                      na="NA")
 metaData$sample<-metaData$Exetainer_Code
 
-actonJoin<-left_join(metaData, gc.Acton, by="sample") #2/22, 312 observations
+actonDgJoin<-left_join(metaData, gc.Acton, by="sample") #2/22, 312 observations
 
 
-ggplot(filter(actonJoin, Type=="DG" & Depth_m==0.1), aes(Date_Sampled, n2o.ppm))+
+ggplot(filter(actonDgJoin, Type=="DG" & Depth_m==0.1), aes(Date_Sampled, n2o.ppm))+
   geom_point(aes(color=Location))
 
-ggplot(filter(actonJoin, Type=="Air" & Location =="dock"), aes(Date_Sampled, ch4.ppm))+
+ggplot(filter(actonDgJoin, Type=="Air" & Location =="dock"), aes(Date_Sampled, ch4.ppm))+
   geom_point(aes(color=Location))
   #geom_boxplot()
 
-dockAmbientAir<-filter(actonJoin, Type=="Air" & Location == "dock")
+dockAmbientAir<-filter(actonDgJoin, Type=="Air" & Location == "dock")
 dockAmbientAir<-select(dockAmbientAir, Date_Sampled, co2.ppm, ch4.ppm, n2o.ppm)
 
 
