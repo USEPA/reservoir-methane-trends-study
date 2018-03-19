@@ -72,7 +72,7 @@ def.calc.sdg <- function(
                   inputFile$concentrationCH4Air),
   sourceCH4 = inputFile$concentrationCH4Source,
   eqN2O = inputFile$concentrationN2OGas,
-  airN2O = ifelse(is.na(inputFile$concentrationN2OAir), # use glo0000000bal average if not measured
+  airN2O = ifelse(is.na(inputFile$concentrationN2OAir), # use global average if not measured
                   0.330, #https://www.esrl.noaa.gov/gmd/hats/combined/N2O.html
                   inputFile$concentrationN2OAir),
   sourceN2O = inputFile$concentrationN2OSource

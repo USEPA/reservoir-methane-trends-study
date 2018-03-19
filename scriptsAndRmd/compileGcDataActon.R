@@ -8,7 +8,7 @@ library(tidyverse)
 # Read individual files.
 
 # READ DATA-----------------
- gc.all<-read.table("L:/Lab/Lablan/GHG/GC/2017Data/gcMasterFile2017updated2018-02-07.txt",
+ gc.all<-read.table("L:/Lab/Lablan/GHG/GC/2017Data/gcMasterFile2017updated2018-03-15.txt",
                     col.names=c("sample", "n2o.ppm", "co2.ppm", "ch4.ppm", "flag.n2o",
                                 "flag.co2", "flag.ch4", "o2.ar.percent", "n2.perc",
                                 "flag.n2", "flag.o2.ar"),
