@@ -7,7 +7,7 @@
 
 ##Updated 20 Feb 2018 -- let's make the example ANN dataset June 1 thru Aug 31 
 ##Updated 21 Mar 2018 -- putting together a longer ANN dataset that includes all sediment T observations
-                        # so 5/10/2017 - 10/20/2017
+                        # so 5/10/2017 - 11/29/2017
 head(rbrTsub$RDateTime)
 tail(rbrTsub$RDateTime)
 
@@ -21,9 +21,9 @@ tail(rbrTsub$RDateTime)
 
 epOutSub<-epOut
 #head(epOut$RDateTime)
-epOutSub<-filter(epOut, RDateTime>("2017-05-31 19:30:00")
-                 & RDateTime < ("2017-08-31 20:00:00"))
-#head(epOutSub$RDateTime)
+epOutSub<-filter(epOut, RDateTime>("2017-05-10 08:30:00")
+                 & RDateTime < ("2017-11-29 12:00:00"))
+head(epOutSub$RDateTime)
 tail(epOutSub$RDateTime)
 
 ##Select the variables we want:
@@ -85,40 +85,15 @@ write.table(MonthlyCh4,
             sep=",",
             row.names=FALSE)
 
-#6. CREATE SECONDARY VARIABLES: OVERLYING STATIC PRESSURE, W ----
-
-### I previously derived the total static pressure (hydrostatic + atmospheric)
-### in the eddyCovarianceAnalysis.Rmd document
-
-#on April 25, 2017 between the data points of 10:45 and 11:15, the Level went from 0.472 to 0.317
-#can fix this offset by adding 0.472-0.317 = 0.155 to all points after 4/25/17 11:15
-
-vanni30min$LevelAdj<-vanni30min$WaterLevel
-
-for(i in 1:nrow(vanni30min)){
-  if(vanni30min$RDateTime[i]>"2017-04-25 10:45:00") {
-    vanni30min$LevelAdj[i]<-vanni30min$LevelAdj[i]+0.155
-  }
-}
 
 
-plot_ly(data=vanni30min, x=~RDateTime, y=~LevelAdj, type="scatter", mode="line")
-
-#The depth measured at site U-14 (the shallow site) ranged from 1.2-1.6 m 
-#over the measurement season.
-#We'll approximate the flux tower footprint water depth as Level + 1 m
-
-vanni30min$LevelAdj<-vanni30min$LevelAdj+1
-#pressure produced by 1-m of water is 9800 Pa
-vanni30min$waterPressure<-vanni30min$LevelAdj*9800  
-
-
-#7. JOIN THE FOUR DATA STREAMS INTO ONE DATA FRAME -----
+#6. JOIN THE FOUR DATA STREAMS INTO ONE DATA FRAME -----
 
 ANNdata<-left_join(epOutSub, vanni30min, by="RDateTime")
 ANNdata<-left_join(ANNdata, rbrTsub, by="RDateTime")
 ANNdata<-left_join(ANNdata, buoyT30min, by="RDateTime")
 
+#7. CREATE SECONDARY VARIABLES: OVERLYING STATIC PRESSURE, W ----
 ANNdata$staticPress<-(ANNdata$waterPressure+ANNdata$air_pressure)/1000
 head(ANNdata$staticPress)
 ANNdata<-select(ANNdata, -qc_ch4_factor)
