@@ -43,8 +43,12 @@ for(i in 1:nrow(vanni30min)){
   }
 }
 
-#estimate that the typical depth in the footprint is 1 meter deeper than at the VWS
+#The depth measured at site U-14 (the shallow site) ranged from 1.2-1.6 m 
+#over the measurement season.
+#We'll approximate the flux tower footprint water depth as Level + 1 m
 vanni30min$LevelAdj<-vanni30min$LevelAdj+1
+### I previously derived the total static pressure (hydrostatic + atmospheric)
+### in the eddyCovarianceAnalysis.Rmd document
 #pressure produced by 1-m of water is 9800 Pa
 vanni30min$waterPressure<-vanni30min$LevelAdj*9800  
 

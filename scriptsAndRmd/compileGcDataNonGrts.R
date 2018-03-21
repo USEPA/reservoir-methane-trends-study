@@ -57,8 +57,8 @@ metaDataTrapAct<-filter(metaDataTrap, lake=="acton")
 xtrCodes <- select(metaDataTrapAct, site, site.visit.date, exetainer.code)  
  
 
-# Split codes into separate fields -- not sure why some visits have four exetainers recorded
-xtrCodes <- tidyr::separate(xtrCodes, exetainer.code, into = c("tp.xtr.1", "tp.xtr.2", "tp.xtr.3", "tp.xtr.4"), sep = ", ")
+# Split codes into separate fields
+xtrCodes <- tidyr::separate(xtrCodes, exetainer.code, into = c("tp.xtr.1", "tp.xtr.2", "tp.xtr.3"), sep = ", ")
 xtrCodes$site.visit.date<-as.character(xtrCodes$site.visit.date)
 #was getting an error using the melt command, turns out xtrCodes wasn't a dataframe:
 #https://stackoverflow.com/questions/16941111/r-cannot-melt-data-frame/35500964
@@ -71,8 +71,8 @@ xtrCodes.m <- melt(xtrCodes, id.vars = c("site.visit.date", "site")) %>% # melt,
   filter(!is.na(value))  # remove NAs
 
 # Simplify variable names 
-xtrCodes.m[grepl(pattern = ".1|.2|.3|.4", x = xtrCodes.m$variable), "variable"] <- 
-  gsub(pattern = ".1|.2|.3|.4", replacement = "", x = xtrCodes.m[grepl(pattern = ".1|.2|.3|.4", x = xtrCodes.m$variable), "variable"])
+xtrCodes.m[grepl(pattern = ".1|.2|.3", x = xtrCodes.m$variable), "variable"] <- 
+  gsub(pattern = ".1|.2|.3", replacement = "", x = xtrCodes.m[grepl(pattern = ".1|.2|.3", x = xtrCodes.m$variable), "variable"])
 
 
 # Check for duplicates.  Should be none.
