@@ -1,7 +1,4 @@
 
-
-
-
 ##Need to load Vanni weather station, RBR thermistor, and Vanni buoy Tmpr
 ##Updated 20 Feb 2018 
 ###2. LOAD VANNI WEATHER STATION ----
@@ -22,8 +19,8 @@ vanniMet$RDateTime<-as.POSIXct(vanniMet$dateTimeW,
                                tz = "UTC")
 vanniMetSub<-filter(vanniMet, RDateTime>"2016-09-29 00:45:00")
 
-head(vanniMetSub$RDateTime)
-tail(vanniMetSub$RDateTime)
+#head(vanniMetSub$RDateTime)
+#tail(vanniMetSub$RDateTime)
 #average 15-min readings into 30-min averages
 vanni30min<-vanniMetSub %>%
   group_by(RDateTime = cut(RDateTime, breaks = "30 min")) %>%
@@ -46,12 +43,13 @@ for(i in 1:nrow(vanni30min)){
   }
 }
 
+#estimate that the typical depth in the footprint is 1 meter deeper than at the VWS
 vanni30min$LevelAdj<-vanni30min$LevelAdj+1
 #pressure produced by 1-m of water is 9800 Pa
 vanni30min$waterPressure<-vanni30min$LevelAdj*9800  
 
 #3. LOAD rbr thermistor ----
-rbrT<-read.table(paste(myWd, "/RBR/Acton/L1_30minRBR/RBR20170510_20171020.csv", sep=""),
+rbrT<-read.table(paste(myWd, "/RBR/Acton/L1_30minRBR/RBR20170510_20171211.csv", sep=""),
                  sep=",",  # comma separate
                  skip=1,  # Skip first line of file.  Header info
                  colClasses = c("character", rep("numeric", 7)),

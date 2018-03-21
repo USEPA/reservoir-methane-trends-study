@@ -1,101 +1,19 @@
-library(plotly)
+#1. Run actonTimeSeriesMasterScript.R:
+  ## "scriptsAndRmd/loadVWS_RBR.R" loads the Vanni Weather Station Data, the RBR
+    ### data, and the Vanni buoy T data, turns 15-min Vanni data into 30-min averages,
+    ### and accounts for the offset in the VWS Level time series. Returns columns:
+    ### vanni30min for the VWS, rbrTsub for the RBRs, and bouyT30min
+  ## "scriptsAndRmd/loadEddyPro.R" loads and runs QA/QC on the eddypro output
 
-###1. First run the first part of loadEddyPro.R to load the EddyPro output
-
-##Need to load Vanni weather station, RBR thermistor, and Vanni buoy Tmpr
 ##Updated 20 Feb 2018 -- let's make the example ANN dataset June 1 thru Aug 31 
-###2. LOAD VANNI WEATHER STATION ----
-myWd
-vanniMet<-read.table(paste(myWd, "/vanniWeatherStation/vws20160929_20171106_concat.csv", sep=""),
-                     sep=",",  # comma separate
-                     skip=4,  # Skip first line of file.  Header info
-                     colClasses = c("character", rep("numeric", 9), "character"),
-                     as.is=TRUE, # Prevent conversion to factor
-                     header=FALSE, # don't import column names
-                     col.names = c("dateTimeW", "PAR", "WindDir", "WindSp", "AirT", 
-                                   "RH", "Bpress", "DailyRain", "WaterLevel", "WaterT", 
-                                   "Bat"),
-                     na.strings = "NaN",
-                     fill=TRUE)
-vanniMet$RDateTime<-as.POSIXct(vanniMet$dateTimeW,
-                               format="%m/%d/%Y %H:%M",
-                               tz = "UTC")
-vanniMetSub<-filter(vanniMet, RDateTime>("2017-05-31 19:45:00")
-                    &RDateTime < ("2017-08-31 20:00:00"))
-head(vanniMetSub$RDateTime)
-tail(vanniMetSub$RDateTime)
-#average 15-min readings into 30-min averages
-vanni30min<-vanniMetSub %>%
-  group_by(RDateTime = cut(RDateTime, breaks = "30 min")) %>%
-  summarize(WaterLevel = mean(WaterLevel, na.rm=TRUE),
-            PAR= mean(PAR, na.rm=TRUE),
-            DailyRain = max(DailyRain, na.rm=TRUE))
+##Updated 21 Mar 2018 -- putting together a longer ANN dataset that includes all sediment T observations
+                        # so 5/10/2017 - 10/20/2017
+head(rbrTsub$RDateTime)
+tail(rbrTsub$RDateTime)
 
 
-vanni30min$RDateTime<-as.POSIXct(vanni30min$RDateTime,
-                                  format = "%Y-%m-%d %H:%M:%S",
-                                  tz="UTC")
-
-#3. LOAD rbr thermistor ----
-rbrT<-read.table(paste(myWd, "/RBR/Acton/L1_30minRBR/RBR20170510_20171020.csv", sep=""),
-                 sep=",",  # comma separate
-                 skip=1,  # Skip first line of file.  Header info
-                 colClasses = c("character", rep("numeric", 7)),
-                 as.is=TRUE, # Prevent conversion to factor
-                 header=FALSE, # don't import column names
-                 col.names = c("datetimeW", "RBRmeanT_0.1", "RBRmeanT_0.25",
-                               "RBRmeanT_0.5","RBRmeanT_0.75","RBRmeanT_1",
-                               "RBRmeanT_1.25","RBRmeanT_1.6"),
-                 na.strings = "NA",
-                 fill=TRUE)
-rbrT$RDateTime<-as.POSIXct(rbrT$datetimeW,
-                           format="%Y-%m-%d %H:%M:%S",
-                           tz="UTC")
-
-rbrTsub<-filter(rbrT,  RDateTime>("2017-05-31 19:45:00")
-                &RDateTime < ("2017-08-31 20:00:00"))
-rbrTsub<-select(rbrTsub, RDateTime, RBRmeanT_0.1, RBRmeanT_0.25,
-                RBRmeanT_0.5,RBRmeanT_0.75,RBRmeanT_1,
-                RBRmeanT_1.25,RBRmeanT_1.6)
 
 
-#4. LOAD VANNI BOUY TMPR DATA ----
-
-buoyT<-read.table(paste(myWd, "/vanniBuoyTmpr.csv", sep=""),
-                  sep=",",  # comma separate
-                  skip=4,  # Skip first line of file.  Header info
-                  colClasses = c("character", rep("numeric", 11)),
-                  as.is=TRUE, # Prevent conversion to factor
-                  header=FALSE, # don't import column names
-                  col.names = c("datetimeW", "bouyMeanT_0.1", "bouyMeanT_01",
-                                "bouyMeanT_02", "bouyMeanT_03","bouyMeanT_04",
-                                "bouyMeanT_05","bouyMeanT_06","bouyMeanT_07",
-                                "bouyMeanT_08","bouyMeanT_09","bouyMeanT_10"),
-                  na.strings = "NA",
-                  fill=TRUE)
-buoyT$RDateTime<-as.POSIXct(buoyT$datetimeW,
-                           format="%m/%d/%Y %H:%M",
-                           tz="UTC")
-
-buoyTSub<-filter(buoyT, RDateTime>("2017-05-31 19:45:00")
-                 &RDateTime < ("2017-08-31 20:00:00"))
-#tail(buoyTSub$RDateTime)
-buoyT30min<-buoyTSub %>%
-  group_by(RDateTime = cut(RDateTime, breaks = "30 min")) %>%
-  summarize(bouyMeanT_0.1 = mean(bouyMeanT_0.1, na.rm=TRUE),
-            bouyMeanT_01 = mean(bouyMeanT_01, na.rm=TRUE),
-            bouyMeanT_02 = mean(bouyMeanT_02, na.rm=TRUE),
-            bouyMeanT_03 = mean(bouyMeanT_03, na.rm=TRUE),
-            bouyMeanT_04 = mean(bouyMeanT_04, na.rm=TRUE),
-            bouyMeanT_05 = mean(bouyMeanT_05, na.rm=TRUE),
-            bouyMeanT_06 = mean(bouyMeanT_06, na.rm=TRUE),
-            bouyMeanT_07 = mean(bouyMeanT_07, na.rm=TRUE),
-            bouyMeanT_08 = mean(bouyMeanT_08, na.rm=TRUE),
-            bouyMeanT_09 = mean(bouyMeanT_09, na.rm=TRUE),
-            bouyMeanT_10 = mean(bouyMeanT_10, na.rm=TRUE))
-buoyT30min$RDateTime<-as.POSIXct(buoyT30min$RDateTime,
-                            format="%Y-%m-%d %H:%M:%S",
-                            tz="UTC")
 
 
 #5. FILTER AND SELECT THE EDDY PRO OUTPUT ----

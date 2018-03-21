@@ -35,6 +35,7 @@ library(plyr)  # for 'join' in ggplot plotting of shapefile
 library(dplyr)   # For data manipulation
 
 library(chron)
+library(plotly)
 
 
 # TRIM FUNCTION--------------------------

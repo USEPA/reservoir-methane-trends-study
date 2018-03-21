@@ -8,16 +8,25 @@ source("scriptsAndRmd/def.calc.sdg.R")
 #load raw data files: GC, LGR, eddyPro:
 source("scriptsAndRmd/compileGcDataNonGrts.R")  
         #loads GC data from master file on the lablan, 
-        #loads the dissolved gas sample field data from the file
-        # "actonEddyCovariance/gasTransferVelocity/dissolvedGasSampleCodes.xlsx" 
-        # on the L: drive, puts them together into a dataframe called 
-        # actonDgJoin
+        #loads the dissolved gas and trap sample field data from different tabs the file
+        #"ReservoirEbullitionStudy/ebullition2017/data/masterDataSheetEbullition2017.xlsx" 
+        #on the L: drive, puts them together into two dataframes called 
+        #actonDgJoin, actonTrapJoin
+        #also calculates actonTrapAgg with aggregated mean and sd trap GHG #s
+
 source("scriptsAndRmd/GRTS/readLgrActonGRTS.R")
         #reads in raw LGR files. Modified so that the script only 
         #searches in the Acton subfolder of the GGA data directory
+
 source("scriptsAndRmd/loadEddyPro.R")
+        #just loads, doesn't filter or change
 source("scriptsAndRmd/loadVWS_RBR.R") 
-        #load the vanni weather station, buoy T, and RBR thermistor data
+        #load the vanni weather station, buoy T, and RBR thermistor data, 
+        #turn 15-min VWS readings into 30-min averages,
+        #adjust the level offset in the VWS dataset,
+        #turn the 15-min buoy T readings into 30-min averages
+
+
 
 
 #turn raw data into data products: dissolved/sat gas, chamber fluxes
@@ -35,6 +44,6 @@ source("scriptsAndRmd/qcEddyPro.R") #makes epOutSub, filters data by QC paramete
 #remove non longer needed data frames and lists:
 rm(vanniMet, vanniMetSub, txtFilesSize, OUT, rbrT, ggaGRTS1, 
    gga.model,gga.i,ep.i, data.i.co2, data.i.ch4, data.i, 
-   buoyT, buoyT30min, adjDataDf)
+   buoyT, adjDataDf)
 rm(ch4.ex.pred, chmVol.L.i, co2.ex.pred, gga, epList, 
    ggaList)
