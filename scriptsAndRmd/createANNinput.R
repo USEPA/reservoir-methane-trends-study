@@ -19,15 +19,15 @@ tail(rbrTsub$RDateTime)
 #5. FILTER AND SELECT THE EDDY PRO OUTPUT ----
 ###for a subset of time for the test set for Will:
 
-epOutSub<-epOut
+epOutANN<-epOutOrder
 #head(epOut$RDateTime)
-epOutSub<-filter(epOut, RDateTime>("2017-05-10 08:30:00")
+epOutANN<-filter(epOutANN, RDateTime>("2017-05-10 08:30:00")
                  & RDateTime < ("2017-11-29 12:00:00"))
-head(epOutSub$RDateTime)
-tail(epOutSub$RDateTime)
+head(epOutANN$RDateTime)
+tail(epOutANN$RDateTime)
 
 ##Select the variables we want:
-epOutSub<-select(epOutSub, RDateTime, date,	time,Tau,qc_Tau,H,	qc_H,	LE,	qc_LE,
+epOutANN<-select(epOutANN, RDateTime, date,	time,Tau,qc_Tau,H,	qc_H,	LE,	qc_LE,
                 co2_flux,	qc_co2_flux,ch4_flux,	qc_ch4_flux,
                 co2_mixing_ratio,	h2o_mixing_ratio, ch4_mixing_ratio,	
                 air_temperature,	air_pressure,	air_density,	air_heat_capacity,
@@ -37,12 +37,14 @@ epOutSub<-select(epOutSub, RDateTime, date,	time,Tau,qc_Tau,H,	qc_H,	LE,	qc_LE,
                 x_90)
 
 
-epOutSub$qc_ch4_factor<-as.factor(epOutSub$qc_ch4_flux)
-summary(epOutSub$qc_ch4_factor)
-
+epOutANN$qc_ch4_factor<-as.factor(epOutANN$qc_ch4_flux)
+summary(epOutANN$qc_ch4_factor)
+tot<-length(epOutANN$ch4_flux)
+noObs<-sum(length(which(is.na(epOutANN$ch4_flux))))
+print(c("Site Down %:", round(noObs/tot*100, digits=2)))
 
 ##Can filter fluxes for QAQC parameters and replace with NAs using mutate: 
-epOutSub<-epOutSub %>% mutate(ch4_flux=replace(ch4_flux, qc_ch4_flux==2, NA)) %>%
+epOutANN<-epOutANN %>% mutate(ch4_flux=replace(ch4_flux, qc_ch4_flux==2, NA)) %>%
   mutate(co2_flux=replace(co2_flux, qc_co2_flux==2, NA))%>%
   mutate(H=replace(H, qc_H==2, NA))%>%
   mutate(LE=replace(LE, qc_LE==2, NA))%>%
@@ -52,11 +54,13 @@ epOutSub<-epOutSub %>% mutate(ch4_flux=replace(ch4_flux, qc_ch4_flux==2, NA)) %>
   mutate(H=replace(H, wind_dir>195 & wind_dir<330, NA))%>%
   mutate(LE=replace(LE, wind_dir>195 & wind_dir<330, NA))
 
-ggplot(epOutSub, aes(RDateTime, ch4_flux))+
+ggplot(epOutANN, aes(RDateTime, ch4_flux))+
   geom_point(alpha=0.2)
 
+noObsFilt<-sum(length(which(is.na(epOutANN$ch4_flux))))
+print(c("Rejection %:", round(noObsFilt/tot*100, digits=2)))
 ##Daily Averages, convert from umol m-2 s-1 to mg m-2 DAY-1:
-DailyCh4<-epOutSub %>%
+DailyCh4<-epOutANN %>%
   group_by(RDateTime = cut(RDateTime, breaks = "24 hour")) %>%
   summarize(meanCh4Flux = (mean(ch4_flux, na.rm=TRUE)/1000*16*60*60*24))
 DailyCh4$RDateTime<-as.POSIXct(DailyCh4$RDateTime,
@@ -69,7 +73,7 @@ ggplot(DailyCh4, aes(RDateTime, meanCh4Flux))+
   geom_boxplot()
 
 ##Monthly Averages, convert from umol m-2 s-1 to mg CH4 m-2 HOUR-1:
-MonthlyCh4<-epOutSub %>%
+MonthlyCh4<-epOutANN %>%
   group_by(RDateTime = cut(RDateTime, breaks = "month")) %>%
   summarize(meanCh4Flux = (mean(ch4_flux, na.rm=TRUE)/1000*16*60*60),
             sdCh4Flux = (sd(ch4_flux, na.rm=TRUE)/1000*16*60*60))
@@ -89,7 +93,7 @@ write.table(MonthlyCh4,
 
 #6. JOIN THE FOUR DATA STREAMS INTO ONE DATA FRAME -----
 
-ANNdata<-left_join(epOutSub, vanni30min, by="RDateTime")
+ANNdata<-left_join(epOutANN, vanni30min, by="RDateTime")
 ANNdata<-left_join(ANNdata, rbrTsub, by="RDateTime")
 ANNdata<-left_join(ANNdata, buoyT30min, by="RDateTime")
 

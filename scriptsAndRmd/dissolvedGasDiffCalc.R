@@ -4,8 +4,7 @@
 ##samples taken at each site
 ##for each unique combination of site and sample.date, average
 
-airM
-eans<-filter(actonDgJoin, sample.type=="air") %>%
+airMeans<-filter(actonDgJoin, sample.type=="air") %>%
   group_by(site, sample.date) %>%
   summarize(meanN2O.ppm = mean(n2o.ppm, na.rm=TRUE),
             sdN2O.ppm = sd(n2o.ppm, na.rm=TRUE),
@@ -136,4 +135,4 @@ write.table(actonDGoutput,
             row.names=FALSE)
 
 rm(actonDG, actonDGair, actonDGinput, actonDgJoin, airMeans, 
-   dockAmbientAir, metaData, gc.Acton, gc.all.NonGrts)
+   dockAmbientAir, gc.Acton, gc.all.NonGrts)

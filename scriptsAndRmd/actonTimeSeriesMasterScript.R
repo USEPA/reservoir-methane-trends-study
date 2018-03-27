@@ -40,10 +40,11 @@ source("scriptsAndRmd/plotCleanLgrActon.R")
 source("scriptsAndRmd/calculateChamberEmissions.R")
         #produces chamData and chamDataSub
 source("scriptsAndRmd/qcEddyPro.R") #makes epOutSub, filters data by QC parameters
+        #makes DailyEcFluxes and MonthlyCh4
 
 #remove non longer needed data frames and lists:
 rm(vanniMet, vanniMetSub, txtFilesSize, OUT, rbrT, ggaGRTS1, 
    gga.model,gga.i,ep.i, data.i.co2, data.i.ch4, data.i, 
    buoyT, adjDataDf)
 rm(ch4.ex.pred, chmVol.L.i, co2.ex.pred, gga, epList, 
-   ggaList)
+   ggaList, dupes)

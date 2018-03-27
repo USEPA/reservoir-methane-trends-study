@@ -18,8 +18,12 @@ epOutSub<-select(epOut, RDateTime, date,	time,Tau,qc_Tau,H,	qc_H,	LE,	qc_LE,
 epOutSub$qc_ch4_factor<-as.factor(epOutSub$qc_ch4_flux)
 summary(epOutSub$qc_ch4_factor)
 
+tot<-length(epOutSub$ch4_flux)
+noObs<-sum(length(which(is.na(epOutSub$ch4_flux))))
+print(c("Site Down %:", 100-noObs/tot*100))
+
 ggplot(epOutSub, aes(RDateTime, co2_flux))+
-  geom_point(alpha=0.1)+
+  geom_point(alpha=0.1)
   ylim(-50,50)
 
 ##Can filter fluxes for QAQC parameters and replace with NAs using mutate: 
@@ -34,21 +38,25 @@ epOutSub<-epOutSub %>% mutate(ch4_flux=replace(ch4_flux, qc_ch4_flux==2, NA)) %>
   mutate(H=replace(H, wind_dir>195 & wind_dir<330, NA))%>%
   mutate(LE=replace(LE, wind_dir>195 & wind_dir<330, NA))
 
-ggplot(epOutSub, aes(RDateTime, ch4_flux))+
-  geom_point(alpha=0.2)
+ggplot(epOutSub, aes(RDateTime, co2_flux))+
+  geom_line(alpha=0.2)
 
 ##Daily Averages, convert from umol m-2 s-1 to mg m-2 HOUR-1:
 DailyEcFluxes<-epOutSub %>%
   group_by(RDateTime = cut(RDateTime, breaks = "24 hour")) %>%
-  summarize(meanCh4Flux = (mean(ch4_flux, na.rm=TRUE)/1000*16*60*60),
-            meanCO2Flux = (mean(co2_flux, na.rm=TRUE)/1000*44*60*60))
+  summarize(meanCH4Flux = (mean(ch4_flux, na.rm=TRUE)/1000*16*60*60),
+            meanCO2Flux = (mean(co2_flux, na.rm=TRUE)),
+            nCH4Flux = n_distinct(ch4_flux, na.rm=TRUE),
+            nCO2Flux =  n_distinct(co2_flux, na.rm=TRUE))
 DailyEcFluxes$RDateTime<-as.POSIXct(DailyEcFluxes$RDateTime,
                                format="%Y-%m-%d",
                                tz="UTC")
+DailyEcFluxes<-DailyEcFluxes[1:534,]
 ggplot(DailyEcFluxes, aes(RDateTime, meanCO2Flux))+
-  geom_point(alpha=0.5)
+  geom_line(alpha=0.5)
  # geom_line()
-
+ggplot(DailyEcFluxes, aes(nCH4Flux))+
+  geom_histogram()
 
 ##Monthly Averages, convert from umol m-2 s-1 to mg CH4 m-2 HOUR-1:
 MonthlyCh4<-epOutSub %>%
