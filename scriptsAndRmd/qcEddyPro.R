@@ -1,11 +1,11 @@
 # FILTER AND SELECT THE EDDY PRO OUTPUT ----
 ###for a subset of time for the test set for Will:
 
-epOutSub<-epOut
+epOutSub<-filter(epOutOrder, RDateTime>"2017-01-26")
 
 
 ##Select the variables we want:
-epOutSub<-select(epOut, RDateTime, date,	time,Tau,qc_Tau,H,	qc_H,	LE,	qc_LE,
+epOutSub<-select(epOutSub, RDateTime, date,	time, daytime, Tau,qc_Tau,H,	qc_H,	LE,	qc_LE,
                  co2_flux,	qc_co2_flux,ch4_flux,	qc_ch4_flux,
                  co2_mixing_ratio,	h2o_mixing_ratio, ch4_mixing_ratio,	
                  air_temperature,	air_pressure,	air_density,	air_heat_capacity,
@@ -16,30 +16,37 @@ epOutSub<-select(epOut, RDateTime, date,	time,Tau,qc_Tau,H,	qc_H,	LE,	qc_LE,
 
 
 epOutSub$qc_ch4_factor<-as.factor(epOutSub$qc_ch4_flux)
-summary(epOutSub$qc_ch4_factor)
+#summary(epOutSub$qc_ch4_factor)
 
-tot<-length(epOutSub$ch4_flux)
-noObs<-sum(length(which(is.na(epOutSub$ch4_flux))))
-print(c("Site Down %:", 100-noObs/tot*100))
+#tot<-length(epOutSub$ch4_flux)
+#numNAs<-sum(length(which(is.na(epOutSub$ch4_flux))))
+#the coverage is 1- the number of NAs/total
+#print(c("Coverage %:", round(100-numNAs/tot*100, digits=2)))
 
-ggplot(epOutSub, aes(RDateTime, co2_flux))+
-  geom_point(alpha=0.1)
-  ylim(-50,50)
+# ggplot(epOutSub, aes(RDateTime, co2_flux))+
+#   geom_point(alpha=0.1)+
+#   ylim(-50,50)
 
 ##Can filter fluxes for QAQC parameters and replace with NAs using mutate: 
-epOutSub<-epOutSub %>% mutate(ch4_flux=replace(ch4_flux, qc_ch4_flux==2, NA)) %>%
-  mutate(co2_flux=replace(co2_flux, qc_co2_flux==2, NA))%>%
-  mutate(co2_flux=replace(co2_flux, abs(co2_flux)>20, NA))%>%
-  mutate(H=replace(H, qc_H==2, NA))%>%
-  mutate(LE=replace(LE, qc_LE==2, NA))%>%
-  mutate(ch4_flux=replace(ch4_flux, wind_dir>195 & wind_dir<330, NA))%>%
-  mutate(ch4_flux=replace(ch4_flux, abs(ch4_flux)>500, NA))%>%
-  mutate(co2_flux=replace(co2_flux, wind_dir>195 & wind_dir<330, NA))%>%
-  mutate(H=replace(H, wind_dir>195 & wind_dir<330, NA))%>%
-  mutate(LE=replace(LE, wind_dir>195 & wind_dir<330, NA))
+epOutSubFilt<-epOutSub %>% 
+  mutate(ch4_flux=replace(ch4_flux, qc_ch4_flux==2, NA),
+         co2_flux=replace(co2_flux, qc_co2_flux==2, NA),
+         co2_flux=replace(co2_flux, abs(co2_flux)>20, NA),
+         H=replace(H, qc_H==2, NA),
+         LE=replace(LE, qc_LE==2, NA),
+         ch4_flux=replace(ch4_flux, wind_dir>195 & wind_dir<330, NA),
+         ch4_flux=replace(ch4_flux, abs(ch4_flux)>500, NA),
+         co2_flux=replace(co2_flux, wind_dir>195 & wind_dir<330, NA),
+         H=replace(H, wind_dir>195 & wind_dir<330, NA),
+         LE=replace(LE, wind_dir>195 & wind_dir<330, NA))
 
-ggplot(epOutSub, aes(RDateTime, co2_flux))+
+ggplot(epOutSubFilt, aes(RDateTime, co2_flux))+
   geom_line(alpha=0.2)
+
+totFilt<-length(epOutSubFilt$ch4_flux)
+numNAsFilt<-sum(length(which(is.na(epOutSubFilt$ch4_flux))))
+#the coverage is 1- the number of NAs/total
+print(c("Coverage %:", round(100-numNAsFilt/totFilt*100, digits=2)))
 
 ##Daily Averages, convert from umol m-2 s-1 to mg m-2 HOUR-1:
 DailyEcFluxes<-epOutSub %>%

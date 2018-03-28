@@ -58,7 +58,9 @@ ggplot(epOutANN, aes(RDateTime, ch4_flux))+
   geom_point(alpha=0.2)
 
 noObsFilt<-sum(length(which(is.na(epOutANN$ch4_flux))))
+noObsFiltCO2<-sum(length(which(is.na(epOutANN$co2_flux))))
 print(c("Rejection %:", round(noObsFilt/tot*100, digits=2)))
+print(c("CO2 Rejection %:", round(noObsFiltCO2/tot*100, digits=2)))
 ##Daily Averages, convert from umol m-2 s-1 to mg m-2 DAY-1:
 DailyCh4<-epOutANN %>%
   group_by(RDateTime = cut(RDateTime, breaks = "24 hour")) %>%
