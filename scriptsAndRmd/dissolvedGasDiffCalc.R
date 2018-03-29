@@ -136,3 +136,60 @@ write.table(actonDGoutput,
 
 rm(actonDG, actonDGair, actonDGinput, actonDgJoin, airMeans, 
    dockAmbientAir, gc.Acton, gc.all.NonGrts)
+
+##############################################
+#######Calculate k_600########################
+############################################
+
+##Start with simple equation: k_600=2.07+0.215*U_10^1.7
+#take average of wind speed for mid-day winds: 10:00 - 14:00
+epOutWind<-select(epOut, date, time, RDateTime, wind_speed)
+epOutWind$time<-as.POSIXct(epOutWind$time, format("%H:%M"), tz="UTC")
+epOutWind$timeNum<-as.numeric(epOutWind$time)
+today<-as.numeric(as.POSIXct("2018-03-29", tz="UTC"))
+epOutWind$timeNum<-(epOutWind$timeNum-today)/(60*60) #now in format of hour of day
+
+epOutWind<-filter(epOutWind, timeNum>10 & timeNum<14)
+epOutWind$date<-as.Date(epOutWind$date, format = "%m/%d/%Y")
+
+dailyWind<-epOutWind %>%
+  group_by(date) %>%
+  summarize(meanWind = (mean(wind_speed, na.rm=TRUE)))
+dailyWind$meanWind10<-dailyWind$meanWind*(10/2.8)^0.1
+dailyWind$k600<-2.07+0.215*dailyWind$meanWind10^1.7
+
+ggplot(dailyWind, aes(date, k600))+
+  geom_point()
+dailyWind$sample.date<-dailyWind$date
+
+actonDGoutput<-left_join(actonDGoutput, dailyWind, by="sample.date")
+
+#Let's think about units: dissolvedGAS and satGAS are in units of mol/L [M]
+#k600 is in units of cm/hr (Cole and Caraco)
+#want fluxes in units of mg/m2/hr
+#the unit mol/L is equivalent to mmol/mL or mmol/cm^3 
+#multiply by 100^2 to convert from cm^-2 to m^-2
+#multiply by the molar mass to convert from mmol to mg
+actonDGoutput<-actonDGoutput%>%
+  mutate(ch4DGflux=deltaCH4*k600*100^2*16,
+         co2DGflux=deltaCO2*k600*100^2*44,
+         n2oDGflux=deltaN2O*k600*100^2*44)
+
+ggplot(filter(actonDGoutput, sample.depth.m==0.1), aes(sample.date, co2DGflux))+
+  geom_point(aes(color=site))
+
+##Aggregate by date and site
+actonDGfluxes<-filter(actonDGoutput, sample.depth.m==0.1) %>%
+  group_by(sample.date, site) %>%
+  summarize(meanCH4Flux = (mean(ch4DGflux, na.rm=TRUE)),
+            meanCO2Flux = (mean(co2DGflux, na.rm=TRUE)),
+            meanN2OFlux = (mean(n2oDGflux, na.rm=TRUE)),
+            sdCH4Flux = (sd(ch4DGflux, na.rm=TRUE)),
+            sdCO2Flux = (sd(co2DGflux, na.rm=TRUE)),
+            sdN2OFlux = (sd(n2oDGflux, na.rm=TRUE)))
+ggplot(actonDGfluxes, aes(sample.date, meanCO2dgFlux))+
+  geom_point(aes(color=site))+
+  geom_errorbar(aes(ymax = meanCO2dgFlux+sdCO2dgFlux, 
+                    ymin = meanCO2dgFlux-sdCO2dgFlux,
+                    color=site))
+  

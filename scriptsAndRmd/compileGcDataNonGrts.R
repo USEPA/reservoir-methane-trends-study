@@ -65,7 +65,7 @@ xtrCodes$site.visit.date<-as.character(xtrCodes$site.visit.date)
 #coerce to dataframe:
 xtrCodes<-as.data.frame(xtrCodes)
 # Melt  
-xtrCodes.m <- melt(xtrCodes, id.vars = c("site.visit.date", "site")) %>% # melt, converts exetainer code to factor
+xtrCodes.m <- reshape2::melt(xtrCodes, id.vars = c("site.visit.date", "site")) %>% # melt, converts exetainer code to factor
   mutate(value = (as.character(value))) %>%  # Must got from factor -->character, not to integer because these have the "ACT" prefix
   mutate(variable = as.character(variable)) %>% # Must got from factor -->character
   filter(!is.na(value))  # remove NAs
@@ -88,7 +88,7 @@ actonTrapJoin$Rdate<-as.Date(actonTrapJoin$site.visit.date)
 
 ggplot(actonTrapJoin, aes(Rdate, ch4.ppm/10000))+
   geom_point(aes(color=site))+
-  scale_x_date(date_breaks = "1 week", labels = date_format("%b-%d"))+
+  scale_x_date(date_breaks = "1 week", date_labels="%b-%d")+
   theme(axis.text.x=element_text(angle=60, hjust=1))+
   labs(x = "Date", y = "Trap Gas %CH4") 
 
@@ -105,7 +105,7 @@ actonTrapAgg<-actonTrapJoin %>%
 ggplot(actonTrapAgg, aes(Rdate, meanCH4/10000))+
   geom_line(aes(color=site))+
   geom_errorbar(aes(color=site, ymin=((meanCH4-sdCH4)/10000), ymax =((meanCH4+sdCH4)/10000)))+
-  scale_x_date(date_breaks = "1 week", labels = date_format("%b-%d"))+
+  scale_x_date(date_breaks = "1 week", date_labels="%b-%d")+
   theme(axis.text.x=element_text(angle=60, hjust=1))+
   labs(x = "Date", y = "Trap Gas %CH4")
 

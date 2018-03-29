@@ -184,6 +184,16 @@ ggplot(epOutOrder, aes(time, date))+
   scale_y_date(breaks=date_breaks("2 months"))+
   theme_classic()+
   scale_fill_discrete(name="CH4 Gap Attribution")
+
+#CO2
+ggplot(epOutOrder, aes(time, date))+
+  geom_tile(aes(fill= gapMapCO2, x=time, y=date))+
+  #scale_shape_manual(values=c(15,15,15,15))+
+  scale_fill_manual(values=c("#FF3333","#33CC99", "#CCCCCC", "#6699CC"))+
+  scale_x_datetime(labels=date_format("%H:%M"))+
+  scale_y_date(breaks=date_breaks("2 months"))+
+  theme_classic()+
+  scale_fill_discrete(name="CO2 Gap Attribution")
   
 scale_fill_brewer(palette="Set1")
 

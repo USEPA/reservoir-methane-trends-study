@@ -245,19 +245,30 @@ OUT <- mutate(OUT,
 plot(with(OUT,ifelse(co2.best.model == "linear", co2.lm.r2, co2.ex.r2)))  # CO2: some low ones to investigate
 plot(with(OUT,ifelse(ch4.best.model == "linear", ch4.lm.r2, ch4.ex.r2)))  # CH4:  some low ones to investigate
 
+# 3/29/2018: there aren't ex output for this run -- need to investigate further
 # If r2 of best model < 0.9, then set to NA
+# OUT <- mutate(OUT, 
+#               co2.drate.mg.h.best = ifelse((co2.lm.aic < co2.ex.aic | is.na(co2.ex.aic)) & co2.lm.r2 < 0.9, # if ex is best, but r2<0.9
+#                                                 NA, # then NA
+#                                            ifelse((co2.ex.aic < co2.lm.aic) & co2.ex.r2 < 0.9, # if lm is best, but r2<0.9
+#                                                   NA, # the NA
+#                                                   co2.drate.mg.h.best)), # otherwise assume value defined above
+#                                                   
+#               ch4.drate.mg.h.best = ifelse((ch4.lm.aic < ch4.ex.aic | is.na(ch4.ex.aic)) & ch4.lm.r2 < 0.9, # if ex is best, but r2<0.9
+#                                            NA, # then NA
+#                                            ifelse((ch4.ex.aic < ch4.lm.aic) & ch4.ex.r2 < 0.9, # if lm is best, but r2<0.9
+#                                                   NA, # the NA
+#                                                   ch4.drate.mg.h.best))) # otherwise assume value defined above
+##3/29/2018: For now, get rid of the aic comparison, and just filter by linear r2
 OUT <- mutate(OUT, 
-              co2.drate.mg.h.best = ifelse((co2.lm.aic < co2.ex.aic | is.na(co2.ex.aic)) & co2.lm.r2 < 0.9, # if ex is best, but r2<0.9
-                                                NA, # then NA
-                                           ifelse((co2.ex.aic < co2.lm.aic) & co2.ex.r2 < 0.9, # if lm is best, but r2<0.9
-                                                  NA, # the NA
-                                                  co2.drate.mg.h.best)), # otherwise assume value defined above
-                                                  
-              ch4.drate.mg.h.best = ifelse((ch4.lm.aic < ch4.ex.aic | is.na(ch4.ex.aic)) & ch4.lm.r2 < 0.9, # if ex is best, but r2<0.9
+              co2.drate.mg.h.best = ifelse(co2.lm.r2 < 0.9, # if ex is best, but r2<0.9
                                            NA, # then NA
-                                           ifelse((ch4.ex.aic < ch4.lm.aic) & ch4.ex.r2 < 0.9, # if lm is best, but r2<0.9
-                                                  NA, # the NA
-                                                  ch4.drate.mg.h.best))) # otherwise assume value defined above
+                                                  co2.drate.mg.h.best), # otherwise assume value defined above
+              
+              ch4.drate.mg.h.best = ifelse(ch4.lm.r2 < 0.9, # if ex is best, but r2<0.9
+                                           NA, # then NA
+                                                  ch4.drate.mg.h.best)) # otherwise assume value defined above
+
 
 # Inspect r2 after scrubbing r2<0.9
 plot(with(OUT[!is.na(OUT$co2.drate.mg.h.best),], 

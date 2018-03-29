@@ -52,16 +52,20 @@ print(c("Coverage %:", round(100-numNAsFilt/totFilt*100, digits=2)))
 DailyEcFluxes<-epOutSub %>%
   group_by(RDateTime = cut(RDateTime, breaks = "24 hour")) %>%
   summarize(meanCH4Flux = (mean(ch4_flux, na.rm=TRUE)/1000*16*60*60),
-            meanCO2Flux = (mean(co2_flux, na.rm=TRUE)),
+            sdCH4Flux = (sd(ch4_flux, na.rm=TRUE)/1000*16*60*60),
+            meanCO2Flux = (mean(co2_flux, na.rm=TRUE)/1000*44*60*60),
+            sdCO2Flux = (sd(co2_flux, na.rm=TRUE)/1000*44*60*60),
             nCH4Flux = n_distinct(ch4_flux, na.rm=TRUE),
             nCO2Flux =  n_distinct(co2_flux, na.rm=TRUE))
 DailyEcFluxes$RDateTime<-as.POSIXct(DailyEcFluxes$RDateTime,
                                format="%Y-%m-%d",
                                tz="UTC")
 DailyEcFluxes<-DailyEcFluxes[1:534,]
-ggplot(DailyEcFluxes, aes(RDateTime, meanCO2Flux))+
-  geom_line(alpha=0.5)
- # geom_line()
+ggplot(filter(DailyEcFluxes,RDateTime>"2017-05-01"&RDateTime<"2017-12-20"), aes(RDateTime, meanCO2Flux))+
+  geom_line(alpha=0.5)+
+  scale_x_datetime(breaks=date_breaks("2 weeks"),
+                   labels=date_format("%d %b"))
+ #geom_line()
 ggplot(DailyEcFluxes, aes(nCH4Flux))+
   geom_histogram()
 
