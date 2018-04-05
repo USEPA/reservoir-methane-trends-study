@@ -21,7 +21,7 @@ tail(rbrTsub$RDateTime)
 
 epOutANN<-epOutOrder
 #head(epOut$RDateTime)
-epOutANN<-filter(epOutANN, RDateTime>("2017-05-10 08:30:00")
+epOutANN<-filter(epOutANN, RDateTime>("2017-02-01 00:30:00")
                  & RDateTime < ("2017-11-29 12:00:00"))
 head(epOutANN$RDateTime)
 tail(epOutANN$RDateTime)

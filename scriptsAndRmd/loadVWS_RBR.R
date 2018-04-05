@@ -27,7 +27,7 @@ vanni30min<-vanniMetSub %>%
   summarize(WaterLevel = mean(WaterLevel, na.rm=TRUE),
             PAR= mean(PAR, na.rm=TRUE),
             DailyRain = max(DailyRain, na.rm=TRUE),
-            DailyWaterT=mean(WaterT, na.rm=TRUE))
+            WaterT=mean(WaterT, na.rm=TRUE))
 
 
 vanni30min$RDateTime<-as.POSIXct(vanni30min$RDateTime,
