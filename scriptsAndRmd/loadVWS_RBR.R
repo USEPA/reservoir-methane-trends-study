@@ -26,7 +26,8 @@ vanni30min<-vanniMetSub %>%
   group_by(RDateTime = cut(RDateTime, breaks = "30 min")) %>%
   summarize(WaterLevel = mean(WaterLevel, na.rm=TRUE),
             PAR= mean(PAR, na.rm=TRUE),
-            DailyRain = max(DailyRain, na.rm=TRUE))
+            DailyRain = max(DailyRain, na.rm=TRUE),
+            DailyWaterT=mean(WaterT, na.rm=TRUE))
 
 
 vanni30min$RDateTime<-as.POSIXct(vanni30min$RDateTime,
