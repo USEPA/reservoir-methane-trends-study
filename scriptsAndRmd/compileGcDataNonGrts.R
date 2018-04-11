@@ -31,9 +31,18 @@ metaDataTrap<-read_excel("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/ebullition2
                      sheet="trapData",
                      skip=0,
                      na=c("NA", ""),
-                     trim_ws=TRUE)
+                     trim_ws=TRUE,
+                     col_types=c("date", "text", "text", rep("numeric", 4), 
+                                 "text", "numeric", "numeric", "text", "date",
+                                 "date", "text"))
 #read_excel automatically formats the date as a POSIXct object, but we want it as a date
 metaDataTrap$site.visit.date<-as.Date(metaDataTrap$site.visit.date)
+metaDataTrap$trap.deply.time<-as.character(substr(metaDataTrap$trap.deply.time, 12,16))
+metaDataTrap$site.visit.dateTime<-paste(metaDataTrap$trap.deply.date, 
+                                        metaDataTrap$trap.deply.time, sep=" ")
+metaDataTrap$site.visit.dateTime<-as.POSIXct(metaDataTrap$site.visit.dateTime,
+                                             format="%Y-%m-%d %H:%M",
+                                             tz="UTC")
 #dissolved gas tab -- added Acton dock samples to this on 3/19/2018
 metaDataDG<-read_excel("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/ebullition2017/data/masterDataSheetEbullition2017.xlsx",
                      sheet="dissGasData",
@@ -86,7 +95,7 @@ actonTrapJoin<-merge(xtrCodes.m, gc.Acton, by.x="value", by.y="sample")#3/19, 72
 #site.visit.date is a character from using it in melt, create Rdate and change to a date
 actonTrapJoin$Rdate<-as.Date(actonTrapJoin$site.visit.date)
 
-ggplot(actonTrapJoin, aes(Rdate, ch4.ppm/10000))+
+ggplot(actonTrapJoin, aes(Rdate, ch4.ppm/10^4))+ #ppm/percent conversion 
   geom_point(aes(color=site))+
   scale_x_date(date_breaks = "1 week", date_labels="%b-%d")+
   theme(axis.text.x=element_text(angle=60, hjust=1))+

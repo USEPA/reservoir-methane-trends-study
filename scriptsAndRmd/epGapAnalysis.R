@@ -137,12 +137,13 @@ for(j in 1:length(epOutOrder$gapMap)){
   if(is.na(epOutOrder$ch4_flux[j])){
     epOutOrder$gapMap[j]="Site Down"
   }
-  else if(epOutOrder$wind_dir[j]>195 & epOutOrder$wind_dir[j]<330){
-    epOutOrder$gapMap[j]="Wind"
-  }
   else if(epOutOrder$qc_ch4_factor[j]=="2"){
     epOutOrder$gapMap[j]="Failed QC"
   }
+  else if(epOutOrder$wind_dir[j]>195 & epOutOrder$wind_dir[j]<330){
+    epOutOrder$gapMap[j]="Wind"
+  }
+ 
 }
 
 j=1
@@ -185,15 +186,16 @@ ggplot(epOutOrder, aes(time, date))+
   theme_classic()+
   scale_fill_discrete(name="CH4 Gap Attribution")
 
-#CO2
-ggplot(epOutOrder, aes(time, date))+
-  geom_tile(aes(fill= gapMapCO2, x=time, y=date))+
-  #scale_shape_manual(values=c(15,15,15,15))+
-  scale_fill_manual(values=c("#FF3333","#33CC99", "#CCCCCC", "#6699CC"))+
+#CH4
+ggplot(filter(epOutOrder, date>"2017-01-26"), aes(time, date))+
+  geom_tile(aes(fill= gapMap, x=time, y=date))+
+  scale_fill_manual(values=c("#FF3333","#33CC99", "#CCCCCC", "#6699CC"),
+                    name="Gap Attribution")+
   scale_x_datetime(labels=date_format("%H:%M"))+
   scale_y_date(breaks=date_breaks("2 months"))+
-  theme_classic()+
-  scale_fill_discrete(name="CO2 Gap Attribution")
+  theme_classic()
+
+  
   
 scale_fill_brewer(palette="Set1")
 

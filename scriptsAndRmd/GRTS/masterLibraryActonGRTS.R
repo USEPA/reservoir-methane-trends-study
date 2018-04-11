@@ -36,6 +36,8 @@ library(dplyr)   # For data manipulation
 
 library(chron)
 library(plotly)
+library(lubridate)
+library(zoo)
 
 
 # TRIM FUNCTION--------------------------
@@ -141,6 +143,10 @@ mass.rate <- function(X1, choice1){
   trap_co2.ppm <- ifelse(is.na(X1$trap_co2.ppm), mean(X1$trap_co2.ppm, na.rm=TRUE), X1$trap_co2.ppm)
   trap_n2o.ppm <- ifelse(is.na(X1$trap_n2o.ppm), mean(X1$trap_n2o.ppm, na.rm=TRUE), X1$trap_n2o.ppm)
   
+  #trap_ch4.ppm <-  X1$trap_ch4.ppm
+  #trap_co2.ppm <-  X1$trap_co2.ppm
+  #trap_n2o.ppm <-  X1$trap_n2o.ppm
+  
   # barometric pressure needed: n=PV/RT
   bp <- ifelse(is.na(mean(X1$BrPrssr, na.rm=TRUE)),
                1,
@@ -151,8 +157,8 @@ mass.rate <- function(X1, choice1){
                      273.15 + 20, # assume 20C if not measured
                      273.15 + X1$Tmp_C_S)
   
-  # convert 1mL to moles
-  mL.to.mmoles <- ((bp*0.001)/(0.082058 * gas.temp)) * 1000      #1mL = 0.001L; *100 to convt to mmol       
+  # convert 1mL to moles. 0.082058 is the gas constant in units of L atm mol^-1 K^-1
+  mL.to.mmoles <- ((bp*0.001)/(0.082058 * gas.temp)) * 1000     #1mL = 0.001L; *1000 to convt to mmol       
   
   # convert mmoles to mg
   if(choice1 == "ch4") {mg.gas <- mL.to.mmoles * 16 * (trap_ch4.ppm/1000000)}  #16mg/mmole
@@ -160,9 +166,9 @@ mass.rate <- function(X1, choice1){
   if(choice1 == "n2o") {mg.gas <- mL.to.mmoles * 44 * (trap_n2o.ppm/1000000)}  #44mg/mmole
   
   # calculate rate
-  mass.flux.rate <- mg.gas * X1$ebMlHrM2 #bubble rate in mg ch4-co2-n2o /day/m2
+  mass.flux.rate <- mg.gas * X1$ebMlHrM2 #bubble rate in mg ch4-co2-n2o /hr/m2 (NOT per day -- changed this comment on 4/11/2018 SW)
 
-  # return mass flux rate in mg ch4-co2-n2o /day/m2
+  # return mass flux rate in mg ch4-co2-n2o /HR/m2
   mass.flux.rate
 }
 

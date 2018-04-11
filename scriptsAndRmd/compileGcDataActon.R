@@ -10,12 +10,12 @@ library(tidyverse)
 # READ DATA-----------------
  gc.all<-read.table("L:/Lab/Lablan/GHG/GC/2017Data/gcMasterFile2017updated2018-03-15.txt",
                     col.names=c("sample", "n2o.ppm", "co2.ppm", "ch4.ppm", "flag.n2o",
-                                "flag.co2", "flag.ch4", "o2.ar.percent", "n2.perc",
+                                "flag.co2", "flag.ch4", "o2.ar.percent", "n2.perc","o2.chk",
                                 "flag.n2", "flag.o2.ar"),
                     #colClasses=c("character", rep("num", 3), rep("int", 3), rep("num", 2),
                     #             rep("logi", 2)),
                     skip=1)
- gc.all$sample<-as.character(gc.all$sample)
+ gc.all$sample<-as.character(gc.all$sample) 
 
 # gc.1 <- read_excel("L:/Lab/Lablan/GHG/GC/2017Data/17_06_29_STD_ECD_FID_UNK.xlsx", 
 #                    trim_ws=TRUE, skip=59) 
@@ -133,7 +133,7 @@ filter(xtrCodes.m, duplicated(value,fromLast = TRUE) | duplicated(value,fromLast
 xtrCodes.gas <- merge(xtrCodes.m, gc.all, by.x = "value", by.y = "sampleNum", all = TRUE)
 
 str(xtrCodes.m)  #141 observations
-str(gc.all) # 208 observations #2/6/2018: 65824 observations
+str(gc.all) # 208 observations #2/6/2018: 65824 obs; #4/11/2018: 4775 obs
 str(xtrCodes.gas) # 201 observations
 
 # Specific fixes
@@ -155,7 +155,7 @@ filter(xtrCodes.gas, is.na(Lake_Name)) %>% arrange(value)  # none
 
 # Samples in data sheets, but GC data not yet read into R.  
 filter(xtrCodes.gas, is.na(xtrCodes.gas$co2.ppm)) %>% arrange(variable, value)
-# 16312. No record of this sample being run.  Have reps
+# 12 air exetainers -- weren't run because of cross contaimination with trap gas
 
 # Take a look at values
 ggplot(filter(xtrCodes.gas, variable == "tp.xtr"), aes(siteID, n2o.ppm)) + 

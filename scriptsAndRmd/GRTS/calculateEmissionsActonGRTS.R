@@ -287,7 +287,7 @@ filter(eqAreaData, EvalStatus == "sampled", is.na(ch4.drate.mg.h.best)) %>%
 eqAreaData <- mutate(eqAreaData, 
                      ebMlHrM2 = TtTrpVl / 
                        (as.numeric(trapRtrvDtTm - trapDeplyDtTm) * 
-                          ((3.14*.28^2)))) # diameter = 22.25in=0.56m, r=.28m))
+                          ((3.14*.28^2)))) # funnel diameter = 22.25in=0.56m, r=.28m))
 
 # Mass flux rate must be calculated by Lake.  Tried to apply by group using
 # by_group, ddply, and lapply.  I couldn't figure it out, resorted to for loop

@@ -5,13 +5,13 @@ source("scriptsAndRmd/GRTS/masterLibraryActonGRTS.R")
 #load GLEON dissolved & saturated gas concentration code 
 source("scriptsAndRmd/def.calc.sdg.R")
 
-#load raw data files: GC, LGR, eddyPro:
+#load raw data files: GC, LGR, eddyPro, hobo:
 source("scriptsAndRmd/compileGcDataNonGrts.R")  
         #loads GC data from master file on the lablan, 
         #loads the dissolved gas and trap sample field data from different tabs the file
         #"ReservoirEbullitionStudy/ebullition2017/data/masterDataSheetEbullition2017.xlsx" 
-        #on the L: drive, puts them together into two dataframes called 
-        #actonDgJoin, actonTrapJoin
+        #on the L: drive, puts them together into five dataframes called 
+        #actonDgJoin, actonTrapJoin, dockAmbientAir, metaDataDCact, metaDataTrapAct
         #also calculates actonTrapAgg with aggregated mean and sd trap GHG #s
 
 source("scriptsAndRmd/GRTS/readLgrActonGRTS.R")
@@ -25,6 +25,7 @@ source("scriptsAndRmd/loadVWS_RBR.R")
         #turn 15-min VWS readings into 30-min averages,
         #adjust the level offset in the VWS dataset,
         #turn the 15-min buoy T readings into 30-min averages
+source("scriptsAndRmd/readHobo.R")#reads in all of the hobo files, from Acton and Harsha
 
 
 
@@ -41,6 +42,8 @@ source("scriptsAndRmd/calculateChamberEmissions.R")
         #produces chamData and chamDataSub
 source("scriptsAndRmd/qcEddyPro.R") #makes epOutSub, filters data by QC parameters
         #makes DailyEcFluxes and MonthlyCh4
+source("scriptsAndRmd/calculateEbEmissions.R")#calculates time series of ebullition emissions
+        #from the active trap data
 
 #remove non longer needed data frames and lists:
 rm(vanniMet, vanniMetSub, txtFilesSize, OUT, rbrT, ggaGRTS1, 
@@ -48,3 +51,4 @@ rm(vanniMet, vanniMetSub, txtFilesSize, OUT, rbrT, ggaGRTS1,
    buoyT, adjDataDf)
 rm(ch4.ex.pred, chmVol.L.i, co2.ex.pred, gga, epList, 
    ggaList, dupes)
+rm(metaDataTrap, metaDataDG)
