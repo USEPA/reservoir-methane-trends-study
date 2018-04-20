@@ -38,6 +38,7 @@ library(chron)
 library(plotly)
 library(lubridate)
 library(zoo)
+library(openair)
 
 
 # TRIM FUNCTION--------------------------

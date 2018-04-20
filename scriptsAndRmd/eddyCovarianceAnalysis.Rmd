@@ -601,7 +601,7 @@ ggplot(epOut5vs30, aes(co2_flux, meanFco2))+
 ```{r results='hide', message=FALSE, warning=FALSE, echo=FALSE}
 #distribution of 30-min CO2 fluxes
 
-ggplot(epOutCO2F1, aes(co2_flux))+
+ggplot(epOutSubFilt, aes(co2_flux))+
   geom_histogram(binwidth=0.5)+
   xlim(-25, 25)
 #dist of 5-min fluxes
@@ -899,12 +899,15 @@ ggplot(ch4eastDaily, aes(meanAP/1000, meanFch4*57.6*24))+
 #wind roses
 ```{r results='hide', message=FALSE, warning=FALSE, echo=FALSE}
 
+epOutSub$date<-epOutSub$RDateTime
+windRose(epOutSub, ws="u_rot", wd="wind_dir")
+
 windRose(epOutCH4eastSpr, ws="u_rot", wd="wind_dir")
 windRose(epOutCH4F2, ws="u_rot", wd="wind_dir")
 
 epOut$date<-epOut$RDateTime
-epOutDay<-filter(epOut, daytime==1)
-epOutNight<-filter(epOut, daytime==0)
+epOutDay<-filter(epOutSub, daytime==1)
+epOutNight<-filter(epOutSub, daytime==0)
 
 windRose(epOutDay, ws="u_rot", wd="wind_dir", ws.int=2)
 windRose(epOutNight, ws="u_rot", wd="wind_dir", ws.int=2)

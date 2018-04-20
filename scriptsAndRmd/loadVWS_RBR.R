@@ -3,7 +3,7 @@
 ##Updated 20 Feb 2018 
 ###2. LOAD VANNI WEATHER STATION ----
 myWd
-vanniMet<-read.table(paste(myWd, "/vanniWeatherStation/vws20160929_20180216_concat.csv", sep=""),
+vanniMet<-read.table(paste(myWd, "/vanniWeatherStation/vws20160929_20180410_concat.csv", sep=""),
                      sep=",",  # comma separate
                      skip=4,  # Skip first line of file.  Header info
                      colClasses = c("character", rep("numeric", 9), "character"),
@@ -33,6 +33,9 @@ vanni30min<-vanniMetSub %>%
 vanni30min$RDateTime<-as.POSIXct(vanni30min$RDateTime,
                                   format = "%Y-%m-%d %H:%M:%S",
                                   tz="UTC")
+
+ggplot(vanni30min, aes(RDateTime, WaterLevel))+
+  geom_line()
 #on April 25, 2017 between the data points of 10:45 and 11:15, the Level went from 0.472 to 0.317
 #can fix this offset by adding 0.472-0.317 = 0.155 to all points after 4/25/17 11:15
 
@@ -43,6 +46,9 @@ for(i in 1:nrow(vanni30min)){
     vanni30min$LevelAdj[i]<-vanni30min$LevelAdj[i]+0.155
   }
 }
+
+ggplot(vanni30min, aes(RDateTime, LevelAdj))+
+  geom_line()
 
 #The depth measured at site U-14 (the shallow site) ranged from 1.2-1.6 m 
 #over the measurement season.

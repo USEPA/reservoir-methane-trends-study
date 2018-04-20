@@ -85,7 +85,8 @@ tail(hoboU12$date.timeHH)
 
 #make a model time column that we'll match the hobo data to:
 #be sure to change the volumetric flux time conversion dt under #4 below
-timeframe<-seq.POSIXt(from = hoboU12$date.timeHH[4], to = hoboU14$date.timeHH[63907],by = "2 hour")
+timeframe<-seq.POSIXt(from = hoboU12$date.timeHH[4], 
+                      to = hoboU14$date.timeHH[63907],by = "2 hour")
 
 df12<-as.data.frame(timeframe)
 df12$date.timeHH<-df12$timeframe

@@ -146,7 +146,7 @@ rm(actonDG, actonDGair, actonDGinput, actonDgJoin, airMeans,
 epOutWind<-select(epOut, date, time, RDateTime, wind_speed)
 epOutWind$time<-as.POSIXct(epOutWind$time, format("%H:%M"), tz="UTC")
 epOutWind$timeNum<-as.numeric(epOutWind$time)
-today<-as.numeric(as.POSIXct("2018-03-29", tz="UTC"))
+today<-as.numeric(as.POSIXct(Sys.Date(), tz="UTC"))
 epOutWind$timeNum<-(epOutWind$timeNum-today)/(60*60) #now in format of hour of day
 
 epOutWind<-filter(epOutWind, timeNum>10 & timeNum<14)
@@ -164,6 +164,7 @@ dailyWind$sample.date<-dailyWind$date
 
 actonDGoutput<-left_join(actonDGoutput, dailyWind, by="sample.date")
 
+###Calculate Fluxes:
 #Let's think about units: dissolvedGAS and satGAS are in units of mol/L [M]
 #k600 is in units of cm/hr (Cole and Caraco)
 #want fluxes in units of mg/m2/hr
@@ -175,7 +176,7 @@ actonDGoutput<-actonDGoutput%>%
          co2DGflux=deltaCO2*k600*100^2*44,
          n2oDGflux=deltaN2O*k600*100^2*44)
 
-ggplot(filter(actonDGoutput, sample.depth.m==0.1), aes(sample.date, co2DGflux))+
+ggplot(filter(actonDGoutput, sample.depth.m==0.1 & site=="dock"), aes(sample.date, co2DGflux))+
   geom_point(aes(color=site))
 
 ##Aggregate by date and site
@@ -187,9 +188,9 @@ actonDGfluxes<-filter(actonDGoutput, sample.depth.m==0.1) %>%
             sdCH4Flux = (sd(ch4DGflux, na.rm=TRUE)),
             sdCO2Flux = (sd(co2DGflux, na.rm=TRUE)),
             sdN2OFlux = (sd(n2oDGflux, na.rm=TRUE)))
-ggplot(actonDGfluxes, aes(sample.date, meanCO2dgFlux))+
+ggplot(actonDGfluxes, aes(sample.date, meanCO2Flux))+
   geom_point(aes(color=site))+
-  geom_errorbar(aes(ymax = meanCO2dgFlux+sdCO2dgFlux, 
-                    ymin = meanCO2dgFlux-sdCO2dgFlux,
+  geom_errorbar(aes(ymax = meanCO2Flux+sdCO2Flux, 
+                    ymin = meanCO2Flux-sdCO2Flux,
                     color=site))
   
