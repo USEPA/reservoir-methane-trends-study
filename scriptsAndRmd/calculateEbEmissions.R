@@ -1,8 +1,11 @@
 ##Run this script after running actonTimeSeriesMasterScript.R
 
+#"hobo" dataframe was loaded by readhobo.R; includes  files from acton and harsha
 hoboActon<-filter(hobo, lake.name=="acton lake")
 hoboU12<-filter(hoboActon, site=="u12") #deep site
 hoboU14<-filter(hoboActon, site=="u14") #shallow site
+
+#go back to original paper to look at their approach for choosing averaging period, executing averaging. 
 
 # ggplot(hoboActon,
 #        aes(date.time, volt))+
@@ -34,9 +37,9 @@ hoboU14<-filter(hoboActon, site=="u14") #shallow site
         #large diameter: 2.5 cm 
         #small diameter: 1.5 cm (u12, deep site)
 # 4. Calculate volumetric ebullitive fluxes by dividing dVol/dt by the
-#    cross-sectional area of the funnels themselves: vol gas m-2 s-1
+#    cross-sectional area of the funnels themselves then normalize for time: vol gas m-2 hr-1
         #funnel diameter: 54 cm (0.54 m)
-# 5. Combining the vol flux with the GC gas concentration msmts.
+# 5. Combining the vol flux with the GC gas concentration msmts --> mg GAS m-2 hr-1
 # 6. Use the "mass.rate" function from the master library to convert from 
 #    volumetric flux in mL m^-2 h^-1 to to mass flux in 
 #    using the GC msmts. Need:
@@ -45,15 +48,6 @@ hoboU14<-filter(hoboActon, site=="u14") #shallow site
 #      >gas concentrations named: "trap_gas.ppm"
 #      >barometric pressure in units of atm (assuming, because default is 1)
 
-#function for making diagnostic plots:
-ggplotDiag <- function (df,x,y) {
-  
-  require(ggplot2)
-  
-  ggplot(df, aes(x = x, y = y)) + 
-    geom_line() +
-    xlim("2017-07-15", "2017-08-01")+
-    theme_bw()}
 
 ### Raw data to Volumetric Fluxes: ----
 ###1: Convert from voltage (V) to height (cm) using the calibration coefficients:
@@ -86,8 +80,9 @@ tail(hoboU12$date.timeHH)
 #make a model time column that we'll match the hobo data to:
 #be sure to change the volumetric flux time conversion dt under #4 below
 timeframe<-seq.POSIXt(from = hoboU12$date.timeHH[4], 
-                      to = hoboU14$date.timeHH[63907],by = "2 hour")
-
+                      #to = hoboU12$date.timeHH[63907],by = "2 hour")
+                      to = hoboU12$date.timeHH[63907],by = "30 min") #why is this the end???
+#head(timeframe)
 df12<-as.data.frame(timeframe)
 df12$date.timeHH<-df12$timeframe
 df12<-left_join(df12, hoboU12, by="date.timeHH")
@@ -96,6 +91,7 @@ df14<-as.data.frame(timeframe)
 df14$date.timeHH<-df14$timeframe
 df14<-left_join(df14, hoboU14, by="date.timeHH")
 
+#dH/dt, where dt is timeframe dt
 df12$dH<-c(rep(NA, 1), diff(df12$height, 1))
 df14$dH<-c(rep(NA, 1), diff(df14$height, 1))
 
@@ -112,7 +108,7 @@ summary(df14$dH)
 #        aes(date.time, dH))+
 #   geom_line()
 
-###3: Convert to volume (cm3) per time (30-min)
+###3: Convert from dHeight/dt to dVolume (cm3) per time (timeframe dt)
 df12$dVol<-df12$dH*(1.5/2)^2*pi  #small diameter tube
 df14$dVol<-df14$dH*(2.5/2)^2*pi  #large diameter tube
 # ggplot(filter(df14, date.time>"2017-07-15"&date.time<"2017-08-01"),
@@ -120,22 +116,23 @@ df14$dVol<-df14$dH*(2.5/2)^2*pi  #large diameter tube
 #   geom_line()
 
 ###4: Convert to a volumetric flux (mL/m2/hr):
-df12$volEb<-df12$dVol/2*(1/((0.54/2)^2)) #cm^3 = mL, 2 30-min/hr, funnel diam = 54 cm
-df14$volEb<-df14$dVol/2*(1/((0.54/2)^2)) #cm^3 = mL, 2 30-min/hr, funnel diam = 54 cm
-### ggplot(filter(df12, date.time>"2017-07-15"&date.time<"2017-08-01"),----
-#        aes(date.time, volEb))+
-#   geom_point(alpha=0.3)
-#   #ylim(-250, 500)
-# ggplot(filter(df14, date.time>"2017-07-15"&date.time<"2017-08-01"),
-#        aes(date.time, volEb))+
-#   geom_point(alpha=0.3)
-###   #ylim(-250, 500) ----
+funnelArea<-pi*(0.54/2)^2  #in m^2
+df12$volEb<-df12$dVol/funnelArea*2 #cm^3 = mL, funnelArea in m^2, convert from timeframe to hr 
+df14$volEb<-df14$dVol/funnelArea*2 #cm^3 = mL, funnelArea in m^2, convert from timeframe to hr 
+ ggplot(filter(df12, date.time>"2017-06-15"&date.time<"2017-10-01"),
+       aes(date.time, volEb))+
+  geom_point(alpha=0.3)
+  #ylim(-250, 500)
+ggplot(filter(df14, date.time>"2017-06-15"&date.time<"2017-10-01"),
+       aes(date.time, volEb))+
+  geom_point(alpha=0.3)
+##   #ylim(-250, 500) ----
 
 #filter the time points measuring siphon purges:
-df12Filt<-filter(df12, volEb>-250)
+df12Filt<-filter(df12, volEb>-100)         #filtering threshold of 50, small diameter funnel
 df12Filt$date<-as.Date(df12Filt$date.time)
 
-df14Filt<-filter(df14, volEb>-250)
+df14Filt<-filter(df14, volEb>-500, volEb<500)        #filtering threshold of 500, large diamter funnel
 df14Filt$date<-as.Date(df14Filt$date.time)
 
 dailyEb12<-df12Filt %>%
@@ -143,24 +140,24 @@ dailyEb12<-df12Filt %>%
   summarize(dailyVolEb = (mean(volEb, na.rm=TRUE)), 
             sdVolEb = (sd(volEb, na.rm=TRUE)))
 dailyEb12$date<-as.Date(dailyEb12$date.time)
-dailyEb12$site<-"u12"
+dailyEb12$site<-"deep"
 
 dailyEb14<-df14Filt %>%
   group_by(date.time= cut(date.time, breaks="24 hour")) %>%
   summarize(dailyVolEb = (mean(volEb, na.rm=TRUE)), 
             sdVolEb = (sd(volEb, na.rm=TRUE)))
 dailyEb14$date<-as.Date(dailyEb14$date.time)
-dailyEb14$site<-"u14"
+dailyEb14$site<-"shallow"
 
 
-ggplot(filter(dailyEb12, date>"2017-01-15"&date<"2017-12-01"),
+ggplot(filter(dailyEb12, date>"2017-05-15"&date<"2017-12-01"),
        aes(date, dailyVolEb))+
-  geom_point(alpha=0.3)
-#ylim(-0, 250)
+  geom_line(alpha=0.3)+
+  ylim(-0, 250)
 
 ggplot(filter(dailyEb14, date>"2017-01-15"&date<"2017-12-01"),
        aes(date, dailyVolEb))+
-  geom_point(alpha=0.3)
+  geom_line(alpha=0.3)
 #ylim(-0, 250)
 
 #combine so that they can be plotted in a facet plot:
@@ -206,9 +203,9 @@ dailyEbP2<-ggplot(dailyEb, aes(date, dailyVolEb))+
                    breaks=date_breaks("1 month"))
 
 
-dailyEbP1+geom_point(data=grts.df, aes(g.date, g.eb, color=g.site))+ylim(-25, 200)
+dailyEbP1+geom_point(data=grts.df, aes(g.date, g.volEb, color=g.site))+ylim(-25, 100)
 
-FilteredEbP1+geom_point(data=grts.df, aes(g.date, g.eb, color=g.site))
+FilteredEbP1+geom_point(data=grts.df, aes(g.date, g.volEb, color=g.site))
 
 #mean august eb value:
 foo<-filter(filteredEb, date.time>"2017-08-01"&date.time<"2018-08-31"&site=="u14")
@@ -240,6 +237,7 @@ actonTrapAgg12<-as.data.frame(filter(actonTrapAgg, site=="u12"))
 actonTrapAgg12<-select(actonTrapAgg12, -site)
 df12.gc<-left_join(df12Filt, actonTrapAgg12, by="date")
 
+#linear interpolation
 df14.gc<-df14.gc %>% mutate(meanCH4interp = na.approx(meanCH4, rule=2),
                             meanCO2interp = na.approx(meanCO2, rule=2),
                             meanN2Ointerp = na.approx(meanN2O, rule=2),
@@ -283,13 +281,13 @@ df12.gc<-mutate(df12.gc,
                 trap_n2o.fraction = meanN2Ointerp/10^6,
                 BrPrssr = 1)
 df14.gc<-mutate(df14.gc,
-                ebCh4mgM2h = volEb*(1/gasConst)*(BrPrssr/(Tmp_C_S+273.15))*1000/1000*trap_ch4.fraction,
-                ebCo2mgM2h = volEb*(1/gasConst)*(BrPrssr/(Tmp_C_S+273.15))*1000/1000*trap_co2.fraction,
-                ebN2omgM2h = volEb*(1/gasConst)*(BrPrssr/(Tmp_C_S+273.15))*1000/1000*trap_n2o.fraction)
+                ebCh4mgM2h = volEb*(1/gasConst)*(BrPrssr/(Tmp_C_S+273.15))*1000/1000*trap_ch4.fraction*16,
+                ebCo2mgM2h = volEb*(1/gasConst)*(BrPrssr/(Tmp_C_S+273.15))*1000/1000*trap_co2.fraction*44,
+                ebN2omgM2h = volEb*(1/gasConst)*(BrPrssr/(Tmp_C_S+273.15))*1000/1000*trap_n2o.fraction*44)
 df12.gc<-mutate(df12.gc,
-                ebCh4mgM2h = volEb*(1/gasConst)*(BrPrssr/(Tmp_C_S+273.15))*1000/1000*trap_ch4.fraction,
-                ebCo2mgM2h = volEb*(1/gasConst)*(BrPrssr/(Tmp_C_S+273.15))*1000/1000*trap_co2.fraction,
-                ebN2omgM2h = volEb*(1/gasConst)*(BrPrssr/(Tmp_C_S+273.15))*1000/1000*trap_n2o.fraction)
+                ebCh4mgM2h = volEb*(1/gasConst)*(BrPrssr/(Tmp_C_S+273.15))*1000/1000*trap_ch4.fraction*16,
+                ebCo2mgM2h = volEb*(1/gasConst)*(BrPrssr/(Tmp_C_S+273.15))*1000/1000*trap_co2.fraction*44,
+                ebN2omgM2h = volEb*(1/gasConst)*(BrPrssr/(Tmp_C_S+273.15))*1000/1000*trap_n2o.fraction*44)
 
 
 ggplot(df14.gc, aes(date.timeHH, ebCo2mgM2h))+
@@ -305,10 +303,39 @@ grts.df$g.ch4.eb<-c(5.9, 9.0, 16.3,2.56,2.54,0.41)
 massP1<-ggplot(massEbFlux, aes(date.timeHH, ebCh4mgM2h))+
   geom_point(alpha=0.2)+
   facet_grid(site~.)+
-  ylim(-5, 20)
+  ylim(-20, 200)
 massP1
 massP1+geom_point(data=grts.df, aes(g.datetime, g.ch4.eb, color=g.site))
-dailyEbP1+geom_point(data=grts.df, aes(g.date, g.eb, color=g.site))+ylim(-25, 200)
+
+
+dailyMassFlux12<-df12.gc %>%
+  group_by(date) %>%
+  summarize(dailyEbCh4mgM2h = (mean(ebCh4mgM2h, na.rm=TRUE)), 
+            sdEbCh4mgM2h = (sd(ebCh4mgM2h, na.rm=TRUE)))
+dailyMassFlux12$site<-"deep"
+dailyMassFlux12<-as.data.frame(dailyMassFlux12)
+
+dailyMassFlux14<-df14.gc %>%
+  group_by(date) %>%
+  summarize(dailyEbCh4mgM2h = (mean(ebCh4mgM2h, na.rm=TRUE)), 
+            sdEbCh4mgM2h = (sd(ebCh4mgM2h, na.rm=TRUE)))
+dailyMassFlux14$site<-"shallow"
+dailyMassFlux14<-as.data.frame(dailyMassFlux14)
+
+dailyMassEbList<-list()
+dailyMassEbList[[1]]<-dailyMassFlux14
+dailyMassEbList[[2]]<-dailyMassFlux12
+dailyMassEb<-do.call("rbind", dailyMassEbList)
+
+massP3<-ggplot(dailyMassEb, aes(date, dailyEbCh4mgM2h))+
+  geom_point(alpha=0.2)+
+  facet_grid(site~.)+
+  ylim(-20, 200)
+massP3+ylim(-20, 40)
+massP3+geom_point(data=grts.df, aes(g.date, g.ch4.eb, color=g.site))+
+  ylim(-10, 30)
+
+#dailyEbP1+geom_point(data=grts.df, aes(g.date, g.ch4.eb, color=g.site))+ylim(-25, 200)
 
 # #TRIED TO GET THIS TO WORK BUT THE VALUES CALCULATED WERE UNREASONABLY SMALL
 # the function "mass.rate" in the "masterLibraryActonGRTS.R", used for

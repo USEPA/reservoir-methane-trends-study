@@ -102,6 +102,7 @@ ANNdata<-left_join(ANNdata, buoyT30min, by="RDateTime")
 #7. CREATE SECONDARY VARIABLES: OVERLYING STATIC PRESSURE, W ----
 ANNdata$staticPress<-(ANNdata$waterPressure+ANNdata$air_pressure)/1000
 head(ANNdata$staticPress)
+summary(ANNdata$staticPress)
 ANNdata<-select(ANNdata, -qc_ch4_factor)
 
 write.table(ANNdata, 

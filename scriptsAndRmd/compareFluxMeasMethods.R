@@ -48,3 +48,26 @@ ggplot(filter(combinedFlux, method==c("chamber", "dissGas")), aes(sample.date, m
 
 ggplot(combinedFlux, aes(sample.date, meanCH4Flux))+
   geom_point(aes(color=site, shape=method))
+
+DailyEcFluxes$date<-as.Date(DailyEcFluxes$RDateTime)
+ECp1<-ggplot(DailyEcFluxes, aes(date, meanCH4Flux))+
+  geom_point(alpha=0.3)
+ECp2<-ECp1+geom_point(data=filter(dailyMassFlux14, date>"2017-07-13"), aes(date, dailyEbCh4mgM2h, color="red"))+
+  ylim(-5, 50)
+ECp2
+ECp2+geom_point(data=dailyMassFlux12, aes(date, dailyEbCh4mgM2h, color="blue"))+
+  ylim(-5, 50)
+
+ggplot(filter(dailyMassFlux12, date>"2017-07-13"), aes(date, dailyEbCh4mgM2h))+
+  geom_point()
+
+funnelVsEC<-left_join(filter(dailyMassFlux14, date>"2017-07-13"), DailyEcFluxes, by="date")
+
+ggplot(funnelVsEC, aes(dailyEbCh4mgM2h, meanCH4Flux))+
+  geom_point()+
+  geom_smooth(method="lm")
+
+
+
+
+
