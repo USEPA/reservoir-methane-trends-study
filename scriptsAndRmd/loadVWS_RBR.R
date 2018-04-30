@@ -24,40 +24,45 @@ vanniMetSub<-filter(vanniMet, RDateTime>"2016-09-29 00:45:00")
 #average 15-min readings into 30-min averages
 vanni30min<-vanniMetSub %>%
   group_by(RDateTime = cut(RDateTime, breaks = "30 min")) %>%
-  summarize(WaterLevel = mean(WaterLevel, na.rm=TRUE),
-            PAR= mean(PAR, na.rm=TRUE),
-            DailyRain = max(DailyRain, na.rm=TRUE),
-            WaterT=mean(WaterT, na.rm=TRUE))
+  summarize(waterLevel.vws = mean(WaterLevel, na.rm=TRUE),
+            par.vws= mean(PAR, na.rm=TRUE),
+            dailyRain.vws = max(DailyRain, na.rm=TRUE),
+            waterT.vws=mean(WaterT, na.rm=TRUE),
+            windDir.vws=mean(WindDir, na.rm=TRUE),
+            windSp.vws=(mean(WindSp, na.rm=TRUE)*100/60/60), #convert from km/hr to m/s
+            airT.vws=mean(AirT, na.rm=TRUE),
+            RH.vws=mean(RH, na.rm=TRUE),
+            bPress.vws=mean(Bpress, na.rm=TRUE))
 
 
 vanni30min$RDateTime<-as.POSIXct(vanni30min$RDateTime,
                                   format = "%Y-%m-%d %H:%M:%S",
                                   tz="UTC")
 
-ggplot(vanni30min, aes(RDateTime, WaterLevel))+
+ggplot(vanni30min, aes(RDateTime, waterLevel.vws))+
   geom_line()
 #on April 25, 2017 between the data points of 10:45 and 11:15, the Level went from 0.472 to 0.317
 #can fix this offset by adding 0.472-0.317 = 0.155 to all points after 4/25/17 11:15
 
-vanni30min$LevelAdj<-vanni30min$WaterLevel
+vanni30min$levelAdj.vws<-vanni30min$waterLevel.vws
 
 for(i in 1:nrow(vanni30min)){
   if(vanni30min$RDateTime[i]>"2017-04-25 10:45:00") {
-    vanni30min$LevelAdj[i]<-vanni30min$LevelAdj[i]+0.155
+    vanni30min$levelAdj.vws[i]<-vanni30min$levelAdj.vws[i]+0.155
   }
 }
 
-ggplot(vanni30min, aes(RDateTime, LevelAdj))+
+ggplot(vanni30min, aes(RDateTime, levelAdj.vws))+
   geom_line()
 
 #The depth measured at site U-14 (the shallow site) ranged from 1.2-1.6 m 
 #over the measurement season.
 #We'll approximate the flux tower footprint water depth as Level + 1 m
-vanni30min$LevelAdj<-vanni30min$LevelAdj+1
+vanni30min$levelAdj.vws<-vanni30min$levelAdj.vws+1
 ### I previously derived the total static pressure (hydrostatic + atmospheric)
 ### in the eddyCovarianceAnalysis.Rmd document
 #pressure produced by 1-m of water is 9800 Pa
-vanni30min$waterPressure<-vanni30min$LevelAdj*9800  
+vanni30min$waterPressure.vws<-vanni30min$levelAdj.vws*9800  
 
 #3. LOAD rbr thermistor ----
 rbrT<-read.table(paste(myWd, "/RBR/Acton/L1_30minRBR/RBR20170510_20171211.csv", sep=""),
