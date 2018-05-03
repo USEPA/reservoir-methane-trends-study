@@ -54,7 +54,7 @@ ggplot(meanVariance.c,
   geom_errorbar(aes(ymax = ch4.drate.mg.m2.h_UCB95Pct,
                     ymin = ch4.drate.mg.m2.h_LCB95Pct))+
   ylim(0, 15)+
-  xlim("Acton Lake 07", "Acton Lake 08")+
+ # xlim("Acton Lake 07", "Acton Lake 08")+
   labs(x="", y=expression(CH[4]~Diffusion~(mg~CH[4]~m^{-2}~hr^{-1})))
 
 ggsave('C:/R_Projects/actonFluxProject/figures/ch4DiffDotChartAGU.tiff',  # export as .tif

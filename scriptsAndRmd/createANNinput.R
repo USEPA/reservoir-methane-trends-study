@@ -97,21 +97,26 @@ df14.gcSub<-filter(df14.gc, timeframe>"2017-07-14 00:00:00",
                    timeframe<"2017-10-20 00:00:00")%>%
   select(date.timeHH, ebCh4mgM2h)
 df14.gcSub$ebCh4_shallow<-df14.gcSub$ebCh4mgM2h
-df14.gcSub<-select(df14.gcSub, -ebCh4mgM2h)
+df14.gcSub$RDateTime<-df14.gcSub$date.timeHH
+df14.gcSub<-select(df14.gcSub, -ebCh4mgM2h, -date.timeHH)
+
 
 df12.gcSub<-filter(df12.gc, timeframe>"2017-07-14 00:00:00", 
                    timeframe<"2017-10-30 00:00:00")%>%
   select(date.timeHH, ebCh4mgM2h)
 df12.gcSub$ebCh4_deep<-df12.gcSub$ebCh4mgM2h
-df12.gcSub<-select(df12.gcSub, -ebCh4mgM2h)
+df12.gcSub$RDateTime<-df12.gcSub$date.timeHH
+df12.gcSub<-select(df12.gcSub, -ebCh4mgM2h, -date.timeHH)
 
 #6. JOIN THE FIVE DATA STREAMS INTO ONE DATA FRAME -----
 
 ANNdata<-left_join(epOutANN, vanni30min, by="RDateTime")
 ANNdata<-left_join(ANNdata, rbrTsub, by="RDateTime")
 ANNdata<-left_join(ANNdata, buoyT30min, by="RDateTime")
-ANNdata<-merge(ANNdata, df14.gcSub, by.x="RDateTime", by.y="date.timeHH")
-ANNdata<-merge(ANNdata, df12.gcSub, by.x="RDateTime", by.y="date.timeHH")
+ANNdata<-left_join(ANNdata, df14.gcSub, by="RDateTime")
+ANNdata<-left_join(ANNdata, df12.gcSub, by="RDateTime")
+#ANNdata<-merge(ANNdata, df14.gcSub, by.x="RDateTime", by.y="date.timeHH")
+#ANNdata<-merge(ANNdata, df12.gcSub, by.x="RDateTime", by.y="date.timeHH")
 
 #7. CREATE SECONDARY VARIABLES: OVERLYING STATIC PRESSURE, W ----
 ANNdata$staticPress<-(ANNdata$waterPressure.vws+ANNdata$air_pressure)/1000

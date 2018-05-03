@@ -31,7 +31,7 @@ epOutSub$qc_ch4_factor<-as.factor(epOutSub$qc_ch4_flux)
 epOutSubFilt<-epOutSub %>% 
   mutate(ch4_flux=replace(ch4_flux, qc_ch4_flux==2, NA),
          co2_flux=replace(co2_flux, qc_co2_flux==2, NA),
-         co2_flux=replace(co2_flux, abs(co2_flux)>20, NA),
+         #co2_flux=replace(co2_flux, abs(co2_flux)>20, NA),
          H=replace(H, qc_H==2, NA),
          LE=replace(LE, qc_LE==2, NA),
          ch4_flux=replace(ch4_flux, wind_dir>195 & wind_dir<330, NA),
@@ -67,7 +67,19 @@ ggplot(filter(DailyEcFluxes,RDateTime>"2017-05-01"&RDateTime<"2017-12-20"), aes(
                    labels=date_format("%d %b"))
  #geom_line()
 ggplot(DailyEcFluxes, aes(nCH4Flux))+
-  geom_histogram()
+  geom_histogram(bins=48)
+
+ggplot(DailyEcFluxes, aes(RDateTime, meanCH4Flux))+
+  #geom_point(alpha=0.5)+
+  geom_pointrange(mapping=aes(x=RDateTime, y=meanCH4Flux, 
+                  ymin=meanCH4Flux-(sdCH4Flux/sqrt(nCH4Flux)),
+                  ymax=meanCH4Flux+(sdCH4Flux/sqrt(nCH4Flux))),
+                  color="grey", shape=21, fill="black", size=0.2, alpha=0.5)+
+  ylab("Daily Mean CH4 Flux (mg m-2 hr-1)")+
+  scale_x_datetime(breaks=date_breaks("6 weeks"),
+                   labels=date_format("%d %b"))+
+  theme_classic()
+
 
 ##Monthly Averages, convert from umol m-2 s-1 to mg CH4 m-2 HOUR-1:
 MonthlyCh4<-epOutSub %>%
