@@ -29,10 +29,10 @@ vanni30min<-vanniMetSub %>%
             dailyRain.vws = max(DailyRain, na.rm=TRUE),
             waterT.vws=mean(WaterT, na.rm=TRUE),
             windDir.vws=mean(WindDir, na.rm=TRUE),
-            windSp.vws=(mean(WindSp, na.rm=TRUE)*100/60/60), #convert from km/hr to m/s
+            windSp.vws=(mean(WindSp, na.rm=TRUE)*1000/60/60), #convert from km/hr to m/s
             airT.vws=mean(AirT, na.rm=TRUE),
             RH.vws=mean(RH, na.rm=TRUE),
-            bPress.vws=mean(Bpress, na.rm=TRUE))
+            bPress.vws=mean(Bpress, na.rm=TRUE)*3386.39)#convert from inHg to Pa
 
 
 vanni30min$RDateTime<-as.POSIXct(vanni30min$RDateTime,

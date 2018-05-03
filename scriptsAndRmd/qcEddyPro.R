@@ -74,10 +74,13 @@ ggplot(DailyEcFluxes, aes(RDateTime, meanCH4Flux))+
   geom_pointrange(mapping=aes(x=RDateTime, y=meanCH4Flux, 
                   ymin=meanCH4Flux-(sdCH4Flux/sqrt(nCH4Flux)),
                   ymax=meanCH4Flux+(sdCH4Flux/sqrt(nCH4Flux))),
-                  color="grey", shape=21, fill="black", size=0.2, alpha=0.5)+
+                  color="grey", shape=21, fill="black", size=0.4, alpha=0.7)+
   ylab("Daily Mean CH4 Flux (mg m-2 hr-1)")+
+  xlab("")+
   scale_x_datetime(breaks=date_breaks("6 weeks"),
-                   labels=date_format("%d %b"))+
+                   labels=date_format("%d %b %Y"))+
+  theme_classic()+
+  theme(axis.text.x=element_text(angle=45, hjust=1))
   theme_classic()
 
 

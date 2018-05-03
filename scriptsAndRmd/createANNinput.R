@@ -27,10 +27,11 @@ head(epOutANN$RDateTime)
 tail(epOutANN$RDateTime)
 
 ##Select the variables we want:
+##5/3/2018: changed air_pressure to air_p_mean -- air_pressure has a weird constant 98000 in it
 epOutANN<-select(epOutANN, RDateTime, date,	time,Tau,qc_Tau,H,	qc_H,	LE,	qc_LE,
                 co2_flux,	qc_co2_flux,ch4_flux,	qc_ch4_flux,
                 co2_mixing_ratio,	h2o_mixing_ratio, ch4_mixing_ratio,	
-                air_temperature,	air_pressure,	air_density,	air_heat_capacity,
+                air_temperature,	air_p_mean,	air_density,	air_heat_capacity,
                 ET,	water_vapor_density,	e,	es,	specific_humidity,	RH,	VPD,	Tdew,
                 u_rot,	v_rot,	w_rot,	wind_speed, max_wind_speed,	wind_dir,	ustar,	TKE,	L,	zL,	
                 bowen_ratio,	Tstar,	model,	x_peak,	x_offset,	x_10,	x_30,	x_50,	x_70,
@@ -119,18 +120,68 @@ ANNdata<-left_join(ANNdata, df12.gcSub, by="RDateTime")
 #ANNdata<-merge(ANNdata, df12.gcSub, by.x="RDateTime", by.y="date.timeHH")
 
 #7. CREATE SECONDARY VARIABLES: OVERLYING STATIC PRESSURE, W ----
-ANNdata$staticPress<-(ANNdata$waterPressure.vws+ANNdata$air_pressure)/1000
+ANNdata$staticPress<-(ANNdata$waterPressure.vws+ANNdata$air_p_mean)/1000
 head(ANNdata$staticPress)
 summary(ANNdata$staticPress)
 ANNdata<-select(ANNdata, -qc_ch4_factor)
+ANNdata$staticPress.vws<-(ANNdata$waterPressure.vws+ANNdata$bPress.vws)/1000
 
 write.table(ANNdata, 
              file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/exampleDatasetANN.csv",
              sep=",",
              row.names=FALSE)
-
 #write it to the C: drive so that it can go on Git
 write.table(ANNdata, 
             file=("C:/R_Projects/actonFluxProject/output/exampleDatasetANN.csv"),
             sep=",",
             row.names=FALSE)
+
+#####Plots showing proxy variables:
+
+####function####---
+ggplotRegression <- function (fit) {
+  
+  require(ggplot2)
+  
+  ggplot(fit$model, aes_string(x = names(fit$model)[2], y = names(fit$model)[1])) + 
+    geom_point(alpha=0.5) +
+    stat_smooth(method = "lm", col = "red") +
+    labs(title = paste("Adj R2 = ",signif(summary(fit)$adj.r.squared, 2),
+                       "Intercept =",signif(fit$coef[[1]],2 ),
+                       " Slope =",signif(fit$coef[[2]], 2),
+                       " P =",signif(summary(fit)$coef[2,4], 5)))+
+    theme_bw()}
+####---
+
+sedimentTproxy<-lm(RBRmeanT_1.6 ~ waterT.vws, data = ANNdata)
+ggplotRegression(sedimentTproxy)
+
+airPressureProxy<-lm(air_p_mean ~ bPress.vws, data=ANNdata)
+ggplotRegression(airPressureProxy)
+    ##weird line of air_pressure at 98000 fixed by using air_p_mean
+    #EC_airP<-ggplot(ANNdata, aes(RDateTime, air_pressure))+
+     # geom_point(alpha=0.5, color="red")
+    #EC_airP+geom_point(data=ANNdata, aes(RDateTime, bPress.vws))
+staticPproxy<-lm(staticPress ~ staticPress.vws, data=ANNdata)
+ggplotRegression(staticPproxy)
+
+windSpProxy<-lm(wind_speed ~ windSp.vws, data=ANNdata)
+ggplotRegression(windSpProxy)
+    #R2 = 0.65
+windSpProxy2<-lm(max_wind_speed ~ windSp.vws, data=ANNdata)
+ggplotRegression(windSpProxy2)
+    #R2 = 0.64
+uStarProxy<-lm(ustar ~ windSp.vws, data=ANNdata)
+ggplotRegression(uStarProxy)
+    #R2 = 0.45
+uStarProxy2<-lm(ustar ~ wind_speed, data=ANNdata)
+uStarProxy3<-lm(ustar ~ max_wind_speed, data = ANNdata)
+uStarProxy4<-lm(ustar ~ (max_wind_speed-wind_speed), data = ANNdata)
+ggplotRegression(uStarProxy2)
+    #R2 = 0.45
+ggplotRegression(uStarProxy3)
+    #R2 = 0.76
+ggplotRegression(uStarProxy4)
+    #R2 = 0.76
+airTProxy<-lm(air_temperature ~ airT.vws, data=ANNdata)
+ggplotRegression(airTProxy)
