@@ -302,13 +302,17 @@ custom <<- function(x) {x/(1+exp(-2*k*x))}
 
 ## ANN
 set.seed(9876)
-# n <- names(trainDat)
-# f <- as.formula(paste("ch4_flux ~", paste(n[!n %in% "ch4_flux"], collapse = " + ")))
-# nn <- neuralnet(f, data = trainDat, hidden=10, act.fct = "logistic", linear.output=T)
+ n <- names(trainDat)
+ f <- as.formula(paste("ch4_flux ~", paste(n[!n %in% "ch4_flux"], collapse = " + ")))
+nn <- neuralnet(f, data = trainDat, hidden=8, act.fct = "logistic", linear.output=T)
+plot(nn)
 # linear.output specifies that we're doing 'regression', not 'classification'
 trainSet <- subset(trainDat, !is.na(ch4_flux))
 annMod <- nnet::nnet(ch4_flux ~ ., data = trainSet, size = 8,
                      maxit = 10000, entropy = TRUE)
+          #size = layers
+          #maxit = maximum number of iterations
+          
 annVarImp <- varImp(annMod)
 idx <- order(annVarImp$Overall, decreasing = TRUE)
 annVarImp <- data.frame("Variable" = rownames(annVarImp)[idx],
@@ -316,8 +320,9 @@ annVarImp <- data.frame("Variable" = rownames(annVarImp)[idx],
 ## Plot
 ggplot(annVarImp, aes(x = reorder(Variable, Importance), y = Importance)) + 
   geom_bar(stat = "identity", width = 0.5) + coord_flip() +
-  xlab("Importance") + ylab("Variable") + 
-  ggtitle("Variable Importance from Neural Network")
+  xlab("Variable") + ylab("Importance") + 
+  ggtitle("Variable Importance from Neural Network")+
+  theme_classic()
 
 
 ## Predictions for testing data
@@ -342,12 +347,26 @@ p <- ggplot(d, aes(x = Flux, y = Preds)) + geom_point() +
                 "R^2 =", round(r2ANN, 2),  sep=" "))
 p
 
+#in units of mg CH4 m-2 hr-1
+g <- ggplot(d, aes(x = Flux*60*60*16/1000, y = Preds*60*60*16/1000)) + 
+  geom_point(alpha=0.3) + 
+  geom_abline(slope = 1, intercept = 0, colour = "red") + 
+  xlim(lms*60*60*16/1000) + ylim(lms*60*60*16/1000) + 
+  xlab(expression(Measured~CH[4]~Flux~(mg~CH[4]~m^{-2}~hr^{-1}))) +
+  # ylab(expression(CH[4]~formation~rate~(mu*mol~'*'~day^{-1}))) +
+  ylab(expression(Predicted~CH[4]~Flux~(mg~CH[4]~m^{-2}~hr^{-1}))) +
+  ggtitle(paste("Neural Network Predictions - Testing Set", "\n",
+                "R^2 =", round(r2ANN, 2),  sep=" "))+
+  theme_classic()
+g
 
 #### Predict at all time steps with an NA.
 ch4ANN <- c(NA,predict(annMod, newdata = scaledDat[,annCols[-1]]) * 
                       (maxs[1] - mins[1]) + mins[1])
 fluxDat$ch4_preds <- ch4ANN
 write.csv(fluxDat, "output/FluxDataWithFits.csv", row.names = FALSE)
+
+
 
 
 
