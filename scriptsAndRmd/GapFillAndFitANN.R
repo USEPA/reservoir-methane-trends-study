@@ -263,16 +263,16 @@ scaledDat <- as.data.frame(scale(annDat, center = mins, scale = maxs - mins))
 summary(scaledDat)
 
 
-## K-means clustering of data points, for training/testing partition
+## K-means clustering of data points, for training/testing/validation sets
 set.seed(4321)
 k <- 10
 kClusters <- kmeans(scaledDat[,2:ncol(scaledDat)], centers = k)
 df <- data.frame("Index" = 1:nrow(scaledDat),
                  "Cluster" = kClusters$cluster)
 
-## Proportion to use for training
+## Do training set first
 set.seed(1111)
-trainProp <- 0.75
+trainProp <- 0.5
 sizeClust <- as.vector(table(df$Cluster))
 nSampsClust <- ceiling(trainProp*sizeClust)
 trainList <- dlply(df, .(Cluster), function(x){
@@ -282,7 +282,22 @@ trainList <- dlply(df, .(Cluster), function(x){
 })
 trainInds <- unlist(trainList)
 trainDat <- scaledDat[trainInds,]
-testDat <- scaledDat[-trainInds,]
+## Same routine for testing set
+set.seed(2222)
+testProp <- 0.5 # We're taking half of what's left, so 25% of the total.
+# Take out the 'training' indices and sample from what's left.
+dfTest <- df[-trainInds,]
+sizeClust <- as.vector(table(dfTest$Cluster))
+nSampsClust <- ceiling(testProp*sizeClust)
+testList <- dlply(dfTest, .(Cluster), function(x){
+  # x <- subset(df, Cluster == 1)
+  sampInd <- unique(x$Cluster)
+  sample(x$Index, nSampsClust[sampInd], replace = FALSE)
+})
+testInds <- unlist(testList)
+testDat <- scaledDat[testInds,]
+## Validation data is everything left.
+validationDat <- scaledDat[-c(trainInds,testInds),]
 
 
 ## Testing activation functions and fitting algorithm.
@@ -297,45 +312,95 @@ testDat <- scaledDat[-trainInds,]
 ## Several data science sources give the RELu function as 'better' -- but it's not 
 ## differentiable for the regression cases. So the softplus function is used, which
 ## is a close differentiable approximation.
-softplus <<- function(x) {log(1+exp(x))}
-custom <<- function(x) {x/(1+exp(-2*k*x))}
+# softplus <<- function(x) {log(1+exp(x))}
+# custom <<- function(x) {x/(1+exp(-2*k*x))}
 
 ## ANN
-set.seed(9876)
- n <- names(trainDat)
- f <- as.formula(paste("ch4_flux ~", paste(n[!n %in% "ch4_flux"], collapse = " + ")))
-nn <- neuralnet(f, data = trainDat, hidden=8, act.fct = "logistic", linear.output=T)
-plot(nn)
+## If fittinf with 'neuralnet', use the following few lines.
+# set.seed(9876)
+# n <- names(trainDat)
+# f <- as.formula(paste("ch4_flux ~", paste(n[!n %in% "ch4_flux"], collapse = " + ")))
+# nn <- neuralnet(f, data = trainDat, hidden=8, act.fct = "logistic", linear.output=T)
+# plot(nn)
 # linear.output specifies that we're doing 'regression', not 'classification'
+
+
+## Set up a simulation with varying hidden layers and seeds.
+seeds <- 101:150
+layers <- 5:20
 trainSet <- subset(trainDat, !is.na(ch4_flux))
-annMod <- nnet::nnet(ch4_flux ~ ., data = trainSet, size = 8,
-                     maxit = 10000, entropy = TRUE)
-          #size = layers
-          #maxit = maximum number of iterations
-          
-annVarImp <- varImp(annMod)
-idx <- order(annVarImp$Overall, decreasing = TRUE)
-annVarImp <- data.frame("Variable" = rownames(annVarImp)[idx],
-                        "Importance" = annVarImp$Overall[idx])
-## Plot
-ggplot(annVarImp, aes(x = reorder(Variable, Importance), y = Importance)) + 
-  geom_bar(stat = "identity", width = 0.5) + coord_flip() +
-  xlab("Variable") + ylab("Importance") + 
-  ggtitle("Variable Importance from Neural Network")+
-  theme_classic()
-
-
-## Predictions for testing data
 testSet <- subset(testDat, !is.na(ch4_flux))
-predsANN <- predict(annMod, newdata = testSet[,annCols[-1]]) * 
-  (maxs[1] - mins[1]) + mins[1]
+validSet <- subset(validationDat, !is.na(ch4_flux))
 testFlux <- testSet$ch4_flux *(maxs[1] - mins[1]) + mins[1]
-r2ANN <- 1 - (sum((testFlux-predsANN )^2)/sum((testFlux-mean(testFlux))^2))
-print(r2ANN)
+fitANN <- function(s,lyr){
+  # s <- seeds[1]; lyr <- layers[1]
+  set.seed(s);
+  # Model
+  tmpMod <- nnet::nnet(ch4_flux ~ ., data = trainSet, size = lyr,
+                       maxit = 10000, entropy = TRUE)
+  # Variable importance
+  tmpVarImp <- varImp(tmpMod)
+  idx <- order(tmpVarImp$Overall, decreasing = TRUE)
+  varImp <- data.frame("Variable" = rownames(tmpVarImp)[idx],
+                          "Importance" = tmpVarImp$Overall[idx])
+  # R^2
+  tmpPreds <- predict(tmpMod, newdata = testSet[,annCols[-1]]) * 
+    (maxs[1] - mins[1]) + mins[1]
+  tmpR2 <- 1 - (sum((testFlux-tmpPreds )^2)/sum((testFlux-mean(testFlux))^2))
+  list("seed"=s, "layers"=lyr,
+       "ann"=tmpMod, "varimp"=varImp, "r2"=tmpR2)
+}
 
-## Plot test data vs. fits
-d <- data.frame("Flux" = testFlux,
-                "Preds" = predsANN)
+fitModels <- FALSE
+if(fitModels){
+  ## Make prediction grid, use apply fxn
+  annGrid <- expand.grid(seeds,layers)
+  ptm <- proc.time()
+  simList <- apply(annGrid,1, function(x){
+    fitANN(x[1],x[2])
+  })
+  proc.time() - ptm # 2762 seconds --> 45 minutes
+  save(simList, file = "output/annSimulationList.RData")
+}else {
+  load("output/annSimulationList.RData")
+}
+
+
+## Look at the simList object and pick out the 'best' models
+## Look at the R^2 values first
+r2Sims <- sapply(simList, function(x){ x$r2 })
+summary(r2Sims)
+sum(r2Sims>= 0.5)/length(r2Sims) # 20% are higher than 0.5.
+# Find the highest 100 R2 values
+minR2 <- sort(r2Sims, decreasing = TRUE)[100]
+# Subset the simList object to only include the highest 100 R2 values.
+simKeep <- sapply(simList, function(x){ x$r2 >= minR2 } )
+bestANNs <- simList[simKeep]
+
+## Get R^2 for each of the 'best' ANNs from validation data set.
+validFlux <- validSet$ch4_flux * (maxs[1] - mins[1]) + mins[1]
+validRuns <- lapply(bestANNs, function(x){
+  # x <- bestANNs[[1]]
+  tmpPreds <- predict(x$ann, newdata = validSet[,annCols[-1]]) * 
+    (maxs[1] - mins[1]) + mins[1]
+  tmpR2 <- 1 - (sum((validFlux-tmpPreds )^2)/sum((validFlux-mean(validFlux))^2))
+  list("preds" = tmpPreds, "r2" = tmpR2)
+})
+validPreds <- do.call("cbind",lapply(validRuns, function(x){ x$preds }))
+## Median predictions
+validMedians <- apply(validPreds, 1, median)
+## Overall R^2 value for the median predictions
+medR2 <- 1 - (sum((validFlux-validMedians)^2)/sum((validFlux-mean(validFlux))^2))
+
+
+## Grab variable importance from ANN ensemble
+impVars <- do.call(rbind,lapply(bestANNs, function(x){ x$varimp}))
+impVarsMedians <- ddply(impVars, .(Variable), summarise, 
+                   "MedianImportance" = median(Importance))
+
+## Plot validation data vs. median fit
+d <- data.frame("Flux" = validFlux,
+                "Preds" = validMedians)
 lms <- c(-1,1.75)
 p <- ggplot(d, aes(x = Flux, y = Preds)) + geom_point() + 
   geom_abline(slope = 1, intercept = 0, colour = "red") + 
@@ -343,9 +408,18 @@ p <- ggplot(d, aes(x = Flux, y = Preds)) + geom_point() +
   xlab(expression(Measured~CH[4]~Flux~(mu*mol~'*'~m^{-2}~s^{-1}))) +
   # ylab(expression(CH[4]~formation~rate~(mu*mol~'*'~day^{-1}))) +
   ylab(expression(Predicted~CH[4]~Flux~(mu*mol~'*'~m^{-2}~s^{-1}))) +
-  ggtitle(paste("Neural Network Predictions - Testing Set", "\n",
-                "R^2 =", round(r2ANN, 2),  sep=" "))
+  ggtitle(paste("Neural Network Predictions - Validation Set", "\n",
+                "R^2 =", round(medR2, 2),  sep=" "))
 p
+
+
+## Plot
+ggplot(impVarsMedians, aes(x = reorder(Variable, MedianImportance), y = MedianImportance)) + 
+  geom_bar(stat = "identity", width = 0.5) + coord_flip() +
+  xlab("Variable") + ylab("Importance") + 
+  ggtitle("Median Variable Importance from Neural Network")+
+  theme_classic()
+
 
 #in units of mg CH4 m-2 hr-1
 g <- ggplot(d, aes(x = Flux*60*60*16/1000, y = Preds*60*60*16/1000)) + 
@@ -355,14 +429,24 @@ g <- ggplot(d, aes(x = Flux*60*60*16/1000, y = Preds*60*60*16/1000)) +
   xlab(expression(Measured~CH[4]~Flux~(mg~CH[4]~m^{-2}~hr^{-1}))) +
   # ylab(expression(CH[4]~formation~rate~(mu*mol~'*'~day^{-1}))) +
   ylab(expression(Predicted~CH[4]~Flux~(mg~CH[4]~m^{-2}~hr^{-1}))) +
-  ggtitle(paste("Neural Network Predictions - Testing Set", "\n",
-                "R^2 =", round(r2ANN, 2),  sep=" "))+
+  ggtitle(paste("Neural Network Predictions - Validation Set", "\n",
+                "R^2 =", round(medR2, 2),  sep=" "))+
   theme_classic()
 g
 
+
 #### Predict at all time steps with an NA.
-ch4ANN <- c(NA,predict(annMod, newdata = scaledDat[,annCols[-1]]) * 
-                      (maxs[1] - mins[1]) + mins[1])
+ch4ANNList <- lapply(bestANNs, function(x){
+  # x <- bestANNs[[1]]
+  tmpPreds <- predict(x$ann, newdata = scaledDat[,annCols[-1]]) * 
+    (maxs[1] - mins[1]) + mins[1]
+})
+## Median predictions
+ch4ANNDf <- do.call("cbind", ch4ANNList)
+ch4ANNFits <- c(NA, apply(ch4ANNDf, 1, median))
+ch4ANN <- ifelse(is.na(fluxDat$ch4_flux), 
+                 ch4ANNFits,
+                 fluxDat$ch4_flux)
 fluxDat$ch4_preds <- ch4ANN
 write.csv(fluxDat, "output/FluxDataWithFits.csv", row.names = FALSE)
 
