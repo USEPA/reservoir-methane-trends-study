@@ -361,21 +361,24 @@ if(fitModels){
   })
   proc.time() - ptm # 2762 seconds --> 45 minutes
   save(simList, file = "output/annSimulationList.RData")
-}else {
-  load("output/annSimulationList.RData")
 }
+# load("output/annSimulationList.RData")
 
 
-## Look at the simList object and pick out the 'best' models
-## Look at the R^2 values first
-r2Sims <- sapply(simList, function(x){ x$r2 })
-summary(r2Sims)
-sum(r2Sims>= 0.5)/length(r2Sims) # 20% are higher than 0.5.
-# Find the highest 100 R2 values
-minR2 <- sort(r2Sims, decreasing = TRUE)[100]
-# Subset the simList object to only include the highest 100 R2 values.
-simKeep <- sapply(simList, function(x){ x$r2 >= minR2 } )
-bestANNs <- simList[simKeep]
+# 
+# ## Look at the simList object and pick out the 'best' models
+# ## Look at the R^2 values first
+# r2Sims <- sapply(simList, function(x){ x$r2 })
+# summary(r2Sims)
+# sum(r2Sims>= 0.5)/length(r2Sims) # 20% are higher than 0.5.
+# # Find the highest 100 R2 values
+# minR2 <- sort(r2Sims, decreasing = TRUE)[100]
+# # Subset the simList object to only include the highest 100 R2 values.
+# simKeep <- sapply(simList, function(x){ x$r2 >= minR2 } )
+# bestANNs <- simList[simKeep]
+# save(bestANNs, file = "output/BestANNs.RData")
+load("output/BestANNs.RData")
+
 
 ## Get R^2 for each of the 'best' ANNs from validation data set.
 validFlux <- validSet$ch4_flux * (maxs[1] - mins[1]) + mins[1]
