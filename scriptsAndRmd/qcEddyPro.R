@@ -5,8 +5,8 @@ epOutSub<-filter(epOutOrder, RDateTime>"2017-01-26")
 
 
 ##Select the variables we want:
-epOutSub<-select(epOutSub, RDateTime, date,	time, daytime, Tau,qc_Tau,H,	qc_H,	LE,	qc_LE,
-                 co2_flux,	qc_co2_flux,ch4_flux,	qc_ch4_flux,
+epOutSub<-select(epOutSub, RDateTime, date,	time, daytime, Tau,qc_Tau,H,	qc_H,	rand_err_H, LE,	qc_LE, rand_err_LE,
+                 co2_flux,	qc_co2_flux, rand_err_co2_flux, ch4_flux,	qc_ch4_flux, rand_err_ch4_flux,
                  co2_mixing_ratio,	h2o_mixing_ratio, ch4_mixing_ratio,	
                  air_temperature,	air_pressure,	air_density,	air_heat_capacity,
                  ET,	water_vapor_density,	e,	es,	specific_humidity,	RH,	VPD,	Tdew,
@@ -16,6 +16,7 @@ epOutSub<-select(epOutSub, RDateTime, date,	time, daytime, Tau,qc_Tau,H,	qc_H,	L
 
 
 epOutSub$qc_ch4_factor<-as.factor(epOutSub$qc_ch4_flux)
+
 #summary(epOutSub$qc_ch4_factor)
 
 #tot<-length(epOutSub$ch4_flux)
@@ -32,16 +33,24 @@ epOutSubFilt<-epOutSub %>%
   mutate(ch4_flux=replace(ch4_flux, qc_ch4_flux==2, NA),
          co2_flux=replace(co2_flux, qc_co2_flux==2, NA),
          #co2_flux=replace(co2_flux, abs(co2_flux)>20, NA),
+         rand_err_ch4_flux=replace(rand_err_ch4_flux, qc_ch4_flux==2, NA),
+         rand_err_co2_flux=replace(rand_err_co2_flux, qc_co2_flux==2, NA),
          H=replace(H, qc_H==2, NA),
+         rand_err_H=replace(rand_err_H, qc_H==2 | wind_dir>195 & wind_dir<330, NA),
          LE=replace(LE, qc_LE==2, NA),
+         rand_err_LE=replace(rand_err_LE, qc_LE==2 | wind_dir>195 & wind_dir<330, NA),
          ch4_flux=replace(ch4_flux, wind_dir>195 & wind_dir<330, NA),
          ch4_flux=replace(ch4_flux, abs(ch4_flux)>500, NA),
+         rand_err_ch4_flux=replace(rand_err_ch4_flux, wind_dir>195 & wind_dir<330, NA),
+         rand_err_ch4_flux=replace(rand_err_ch4_flux, abs(ch4_flux)>500, NA),
          co2_flux=replace(co2_flux, wind_dir>195 & wind_dir<330, NA),
          H=replace(H, wind_dir>195 & wind_dir<330, NA),
          LE=replace(LE, wind_dir>195 & wind_dir<330, NA))
 
-ggplot(epOutSubFilt, aes(RDateTime, co2_flux))+
-  geom_line(alpha=0.2)
+ggplot(epOutSubFilt, aes(RDateTime, ch4_flux))+
+  geom_point(alpha=0.2)
+
+
 
 totFilt<-length(epOutSubFilt$ch4_flux)
 numNAsFilt<-sum(length(which(is.na(epOutSubFilt$ch4_flux))))
@@ -49,17 +58,17 @@ numNAsFilt<-sum(length(which(is.na(epOutSubFilt$ch4_flux))))
 print(c("Coverage %:", round(100-numNAsFilt/totFilt*100, digits=2)))
 
 ##Daily Averages, convert from umol m-2 s-1 to mg m-2 HOUR-1:
-DailyEcFluxes<-epOutSub %>%
+DailyEcFluxes<-epOutSubFilt %>%
   group_by(RDateTime = cut(RDateTime, breaks = "24 hour")) %>%
   summarize(meanCH4Flux = (mean(ch4_flux, na.rm=TRUE)/1000*16*60*60),
             sdCH4Flux = (sd(ch4_flux, na.rm=TRUE)/1000*16*60*60),
+            randErrCh4Prop = sqrt(sum((rand_err_ch4_flux/1000*16*60*60)^2, 
+                                      na.rm=TRUE)),
             meanCO2Flux = (mean(co2_flux, na.rm=TRUE)/1000*44*60*60),
             sdCO2Flux = (sd(co2_flux, na.rm=TRUE)/1000*44*60*60),
             nCH4Flux = n_distinct(ch4_flux, na.rm=TRUE),
             nCO2Flux =  n_distinct(co2_flux, na.rm=TRUE))
-DailyEcFluxes$RDateTime<-as.POSIXct(DailyEcFluxes$RDateTime,
-                               format="%Y-%m-%d",
-                               tz="UTC")
+DailyEcFluxes$RDateTime<-as.Date(DailyEcFluxes$RDateTime)
 
 
 numNAsDaily<-sum(length(which(is.na(DailyEcFluxes$meanCH4Flux))))
@@ -75,27 +84,60 @@ ggplot(filter(DailyEcFluxes,RDateTime>"2017-05-01"&RDateTime<"2017-12-20"), aes(
 ggplot(DailyEcFluxes, aes(nCH4Flux))+
   geom_histogram(bins=48)
 
-ggplot(DailyEcFluxes, aes(RDateTime, meanCH4Flux))+
+daily_hr<-ggplot(DailyEcFluxes, aes(RDateTime, meanCH4Flux))+
   #geom_point(alpha=0.5)+
   geom_pointrange(mapping=aes(x=RDateTime, y=meanCH4Flux, 
-                  ymin=meanCH4Flux-(sdCH4Flux/sqrt(nCH4Flux)),
-                  ymax=meanCH4Flux+(sdCH4Flux/sqrt(nCH4Flux))),
+                  ymin=(meanCH4Flux-(randErrCh4Prop/sqrt(nCH4Flux))),
+                  ymax=(meanCH4Flux+(randErrCh4Prop/sqrt(nCH4Flux)))),
                   color="grey", shape=21, fill="black", size=0.4, alpha=0.7)+
   ylab("Daily Mean CH4 Flux (mg m-2 hr-1)")+
   xlab("")+
-  scale_x_datetime(breaks=date_breaks("6 weeks"),
+  scale_x_date(breaks=date_breaks("6 weeks"),
                    labels=date_format("%d %b %Y"))+
   theme_classic()+
   theme(axis.text.x=element_text(angle=45, hjust=1))
-  theme_classic()
+
+daily_d<-ggplot(DailyEcFluxes, aes(RDateTime, meanCH4Flux))+
+  #geom_point(alpha=0.5)+
+  geom_pointrange(mapping=aes(x=RDateTime, y=meanCH4Flux*24, 
+                              ymin=(meanCH4Flux*24-(randErrCh4Prop/sqrt(nCH4Flux))*24),
+                              ymax=(meanCH4Flux*24+(randErrCh4Prop/sqrt(nCH4Flux))*24)),
+                  color="grey", shape=21, fill="black", size=0.4, alpha=0.7)+
+  ylab("Daily Mean CH4 Flux (mg m-2 d-1)")+
+  xlab("")+
+  scale_x_date(breaks=date_breaks("6 weeks"),
+               labels=date_format("%d %b %Y"))+
+  theme_classic()+
+  theme(axis.text.x=element_text(angle=45, hjust=1))
+
 
 #Cumulative EC CH4 rough estimate:
 
 cumuCH4timeframe<-filter(DailyEcFluxes, RDateTime>"2017-02-01 00:00", 
                 RDateTime<"2018-02-01 00:00")
 
+daily_d<-ggplot(cumuCH4timeframe, aes(RDateTime, meanCH4Flux))+
+  #geom_point(alpha=0.5)+
+  geom_pointrange(mapping=aes(x=RDateTime, y=meanCH4Flux*24, 
+                              ymin=(meanCH4Flux*24-(randErrCh4Prop/sqrt(nCH4Flux))*24),
+                              ymax=(meanCH4Flux*24+(randErrCh4Prop/sqrt(nCH4Flux))*24)),
+                  color="grey", shape=21, fill="black", size=0.4, alpha=0.7)+
+  ylab("Daily Mean CH4 Flux (mg m-2 d-1)")+
+  xlab("")+
+  scale_x_date(breaks=date_breaks("6 weeks"),
+               labels=date_format("%d %b %Y"))+
+  theme_classic()+
+  theme(axis.text.x=element_text(angle=45, hjust=1))
+
 cumuCH4mgm2d<-mean(cumuCH4timeframe$meanCH4Flux, na.rm=TRUE)*24
-  
+numNAsDaily<-sum(length(which(is.na(cumuCH4timeframe$meanCH4Flux))))
+cumuCH4timeframe$ch4mgm2d<-cumuCH4timeframe$meanCH4Flux*24
+
+cumulativeCH4Flux<-sum(DailyEcFluxes$ch4mgm2d, na.rm=TRUE)
+cumulativeCH4FluxErr<-sqrt(sum((DailyEcFluxes$randErrCh4Prop*24)^2, na.rm=TRUE))/sqrt(sum(DailyEcFluxes$nCH4Flux, na.rm=TRUE))
+
+cumuCH4timeframe$cumuCH4<-  
+
 #Cumulative EC CH4 Fluxes based on daily fluxes, with uncertainty range 
 #based on SE of daily average flux
   

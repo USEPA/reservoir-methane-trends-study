@@ -29,7 +29,7 @@ tail(epOutANN$RDateTime)
 ##Select the variables we want:
 ##5/3/2018: changed air_pressure to air_p_mean -- air_pressure has a weird constant 98000 in it
 epOutANN<-select(epOutANN, RDateTime, date,	time,Tau,qc_Tau,H,	qc_H,	LE,	qc_LE,
-                co2_flux,	qc_co2_flux,ch4_flux,	qc_ch4_flux,
+                co2_flux,	qc_co2_flux,ch4_flux,	qc_ch4_flux, rand_err_ch4_flux, rand_err_co2_flux,
                 co2_mixing_ratio,	h2o_mixing_ratio, ch4_mixing_ratio,	
                 air_temperature,	air_p_mean,	air_density,	air_heat_capacity,
                 ET,	water_vapor_density,	e,	es,	specific_humidity,	RH,	VPD,	Tdew,
@@ -114,7 +114,7 @@ df12.gcSub<-select(df12.gcSub, -ebCh4mgM2h, -date.timeHH)
 ANNdata<-left_join(epOutANN, vanni30min, by="RDateTime")
 ANNdata<-left_join(ANNdata, rbrTsub, by="RDateTime")
 ANNdata<-left_join(ANNdata, buoyT30min, by="RDateTime")
-ANNdata<-left_join(ANNdata, df14.gcSub, by="RDateTime")
+ANNdata2<-left_join(ANNdata, df14.gcSub, by="RDateTime")
 ANNdata<-left_join(ANNdata, df12.gcSub, by="RDateTime")
 #ANNdata<-merge(ANNdata, df14.gcSub, by.x="RDateTime", by.y="date.timeHH")
 #ANNdata<-merge(ANNdata, df12.gcSub, by.x="RDateTime", by.y="date.timeHH")
