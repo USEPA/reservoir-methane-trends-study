@@ -6,6 +6,7 @@
 # install.packages("neuralnet", dependencies = TRUE)
 library(neuralnet); library(ggplot2); library(suncalc); 
 library(plyr); library(imputeTS); library(caret); library(nnet)
+library(dplyr)
 
 
 ## Load data
@@ -110,7 +111,7 @@ fuzzyBounds <- ddply(sunTimes, .(date), function(x){
                     "Noon"=tmpTms[noonInd],
                     "Sunset"=tmpTms[sunsetInd]))
 })
-## Melt
+## Melt -- sarah changed "sunlight" to "sunTimes"
 meltFuzzyBounds <- reshape2::melt(fuzzyBounds, id.vars = 1, variable.name = "sunlight",
                value.name = "datetime")[,c("datetime","sunlight")]
 ## Merge
@@ -251,7 +252,7 @@ fluxDat$FilledStaticPressChg <- c(NA, diff(fluxDat$FilledStaticPress))
 plotGaps(fluxDat, "ch4_flux")
 sum(is.na(fluxDat$ch4_flux)) / nrow(fluxDat) # 75% missing!
 ## Data prep
-annCols <- c("ch4_flux","FilledSedT", "fuzzyRAD", "FilledAirT", "FilledWindSpeed", 
+annCols <- c("ch4_flux","FilledSedT",  "FilledAirT", "FilledWindSpeed", "fuzzyRAD",
              "FilledStaticPress", "FilledStaticPressChg")
              # , "ebCh4_shallow",
              # "ebCh4_deep")
@@ -426,9 +427,9 @@ ggplot(impVarsMedians, aes(x = reorder(Variable, MedianImportance), y = MedianIm
 
 #in units of mg CH4 m-2 hr-1
 g <- ggplot(d, aes(x = Flux*60*60*16/1000, y = Preds*60*60*16/1000)) + 
-  geom_point(alpha=0.3) + 
+  geom_point(alpha=0.2) + 
   geom_abline(slope = 1, intercept = 0, colour = "red") + 
-  xlim(lms*60*60*16/1000) + ylim(lms*60*60*16/1000) + 
+  xlim(-25, 60) + ylim(-25, 60) + 
   xlab(expression(Measured~CH[4]~Flux~(mg~CH[4]~m^{-2}~hr^{-1}))) +
   # ylab(expression(CH[4]~formation~rate~(mu*mol~'*'~day^{-1}))) +
   ylab(expression(Predicted~CH[4]~Flux~(mg~CH[4]~m^{-2}~hr^{-1}))) +
@@ -453,8 +454,31 @@ ch4ANN <- ifelse(is.na(fluxDat$ch4_flux),
 fluxDat$ch4_preds <- ch4ANN
 write.csv(fluxDat, "output/FluxDataWithFits.csv", row.names = FALSE)
 
+ggplot(fluxDat, aes(datetime, ch4_preds))+
+  geom_line(alpha=0.5)+
+  geom_point(data=fluxDat, aes(datetime, ch4_flux), color="red", alpha=0.1)+
+  ylim(-1, 2)
+ggplot(fluxDat, aes(datetime, ch4_flux))+
+  geom_point(alpha=0.1)
 
+DailyANN<-fluxDat%>%
+  group_by(date) %>%
+  summarize(meanCH4Flux = (mean(ch4_flux, na.rm=TRUE)/1000*16*60*60),
+            cumuCH4Flux= sum(ch4_flux, na.rm=TRUE)/1000*16*60*30,  #converting each observation to units of mg m-2 30 min-1, then add up all observations. If we have all 48 observations over the day, that sums to mg m-2 d-1 
+            meanANN = mean(ch4_preds, na.rm=TRUE)/1000*16*60*60,
+            cumuANN = sum(ch4_preds, na.rm=TRUE)/1000*16*60*30)
 
+ggplot(DailyANN, aes(date, meanCH4Flux))+
+  geom_point(alpha=0.3)+
+  geom_line(data=DailyANN, aes(date, meanANN), color="red")+
+  ylab(expression(Daily~Mean~CH[4]~Flux~(mg~CH[4]~m^{-2}~hr^{-1})))+
+  xlab("")+
+  theme_classic()
+
+sum(DailyANN$meanCH4Flux, na.rm=TRUE)*24*365/245
+sum(DailyANN$cumuANN, na.rm=TRUE)*365/302
+
+DailyEcFluxes$RDateTime<-as.Date(DailyEcFluxes$RDateTime)
 
 
 # ####### Not used
