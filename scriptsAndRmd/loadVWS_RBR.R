@@ -84,8 +84,16 @@ rbrTsub<-select(rbrT, RDateTime, RBRmeanT_0.1, RBRmeanT_0.25,
                 RBRmeanT_0.5,RBRmeanT_0.75,RBRmeanT_1,
                 RBRmeanT_1.25,RBRmeanT_1.6)
 
+rbrDaily<-rbrTsub%>%
+  group_by(RDateTime = cut(RDateTime, breaks = "24 hour"))%>%
+           summarize(rbrMeanT_1.6 = mean(RBRmeanT_1.6, na.rm=TRUE))
+  rbrDaily$date<-as.Date(rbrDaily$RDateTime,
+                                    format="%Y-%m-%d %H:%M:%S",
+                                    tz="UTC")
+           
 
-#4. LOAD VANNI BOUY TMPR DATA ----
+
+#4. LOAD VANNI BUOY TMPR DATA ----
 
 buoyT<-read.table(paste(myWd, "/vanniBuoyTmpr.csv", sep=""),
                   sep=",",  # comma separate
@@ -93,10 +101,10 @@ buoyT<-read.table(paste(myWd, "/vanniBuoyTmpr.csv", sep=""),
                   colClasses = c("character", rep("numeric", 11)),
                   as.is=TRUE, # Prevent conversion to factor
                   header=FALSE, # don't import column names
-                  col.names = c("datetimeW", "bouyMeanT_0.1", "bouyMeanT_01",
-                                "bouyMeanT_02", "bouyMeanT_03","bouyMeanT_04",
-                                "bouyMeanT_05","bouyMeanT_06","bouyMeanT_07",
-                                "bouyMeanT_08","bouyMeanT_09","bouyMeanT_10"),
+                  col.names = c("datetimeW", "buoyMeanT_0.1", "buoyMeanT_01",
+                                "buoyMeanT_02", "buoyMeanT_03","buoyMeanT_04",
+                                "buoyMeanT_05","buoyMeanT_06","buoyMeanT_07",
+                                "buoyMeanT_08","buoyMeanT_09","buoyMeanT_10"),
                   na.strings = "NA",
                   fill=TRUE)
 buoyT$RDateTime<-as.POSIXct(buoyT$datetimeW,
@@ -107,26 +115,58 @@ buoyT$RDateTime<-as.POSIXct(buoyT$datetimeW,
 #tail(buoyTSub$RDateTime)
 buoyT30min<-buoyT %>%
   group_by(RDateTime = cut(RDateTime, breaks = "30 min")) %>%
-  summarize(bouyMeanT_0.1 = mean(bouyMeanT_0.1, na.rm=TRUE),
-            bouyMeanT_01 = mean(bouyMeanT_01, na.rm=TRUE),
-            bouyMeanT_02 = mean(bouyMeanT_02, na.rm=TRUE),
-            bouyMeanT_03 = mean(bouyMeanT_03, na.rm=TRUE),
-            bouyMeanT_04 = mean(bouyMeanT_04, na.rm=TRUE),
-            bouyMeanT_05 = mean(bouyMeanT_05, na.rm=TRUE),
-            bouyMeanT_06 = mean(bouyMeanT_06, na.rm=TRUE),
-            bouyMeanT_07 = mean(bouyMeanT_07, na.rm=TRUE),
-            bouyMeanT_08 = mean(bouyMeanT_08, na.rm=TRUE),
-            bouyMeanT_09 = mean(bouyMeanT_09, na.rm=TRUE),
-            bouyMeanT_10 = mean(bouyMeanT_10, na.rm=TRUE))
+  summarize(buoyMeanT_0.1 = mean(buoyMeanT_0.1, na.rm=TRUE),
+            buoyMeanT_01 = mean(buoyMeanT_01, na.rm=TRUE),
+            buoyMeanT_02 = mean(buoyMeanT_02, na.rm=TRUE),
+            buoyMeanT_03 = mean(buoyMeanT_03, na.rm=TRUE),
+            buoyMeanT_04 = mean(buoyMeanT_04, na.rm=TRUE),
+            buoyMeanT_05 = mean(buoyMeanT_05, na.rm=TRUE),
+            buoyMeanT_06 = mean(buoyMeanT_06, na.rm=TRUE),
+            buoyMeanT_07 = mean(buoyMeanT_07, na.rm=TRUE),
+            buoyMeanT_08 = mean(buoyMeanT_08, na.rm=TRUE),
+            buoyMeanT_09 = mean(buoyMeanT_09, na.rm=TRUE),
+            buoyMeanT_10 = mean(buoyMeanT_10, na.rm=TRUE))
 buoyT30min$RDateTime<-as.POSIXct(buoyT30min$RDateTime,
                             format="%Y-%m-%d %H:%M:%S",
                             tz="UTC")
 
+buoyTdaily<-buoyT %>%
+  group_by(RDateTime = cut(RDateTime, breaks = "24 hour")) %>%
+  summarize(buoyMeanT_0.1 = mean(buoyMeanT_0.1, na.rm=TRUE),
+            buoyMeanT_01 = mean(buoyMeanT_01, na.rm=TRUE),
+            buoyMeanT_02 = mean(buoyMeanT_02, na.rm=TRUE),
+            buoyMeanT_03 = mean(buoyMeanT_03, na.rm=TRUE),
+            buoyMeanT_04 = mean(buoyMeanT_04, na.rm=TRUE),
+            buoyMeanT_05 = mean(buoyMeanT_05, na.rm=TRUE),
+            buoyMeanT_06 = mean(buoyMeanT_06, na.rm=TRUE),
+            buoyMeanT_07 = mean(buoyMeanT_07, na.rm=TRUE),
+            buoyMeanT_08 = mean(buoyMeanT_08, na.rm=TRUE),
+            buoyMeanT_09 = mean(buoyMeanT_09, na.rm=TRUE),
+            buoyMeanT_10 = mean(buoyMeanT_10, na.rm=TRUE))
+buoyTdaily$date<-as.Date(buoyTdaily$RDateTime,
+                                 format="%Y-%m-%d %H:%M:%S",
+                                 tz="UTC")
 
 
+#The Vanni buoy had power problems and the data set ends on 9/18/2017
+#Let's add the measurements from the deepest sonde readings to the dataset:
 
-
- 
-
-
-
+sondeDate<-c("5/10/2017",	"5/10/2017",	"5/26/2017", "5/26/2017",
+            "5/26/2017",	"6/9/2017",	"6/9/2017",	"6/26/2017",
+            "6/26/2017",	"7/10/2017",	"7/10/2017",	"7/14/2017",	"7/14/2017",
+            "7/26/2017",	"8/9/2017",	"8/9/2017",	"8/24/2017",	"8/24/2017",
+            "8/31/2017",	"9/15/2017",	"9/21/2017",	"10/4/2017",
+            "10/20/2017",	"10/31/2017", "11/14/2017",	"12/11/2017")
+sondeDepth<-c(6.49,	7.6, 6.4,	7.01,	7.65,	7, 8,	7.1, 7,
+              7,	8,	7,	8,	7,	7,	8,	7,	8,	7,	7,	7,	7,
+              7,	7,	7,	7)
+sondeTmpr<-c(11.6,	11.59,	13.59,	13.21,	12.63,	14.23,	13.57,
+             14.24,	14.55,	16.6,	15.66,	17,	16.17,	17.69,	17.71,
+             16.7,	18.76,	17.55,	18.7,	20,	19.84,	18.85,	17.86,
+             11.6,	8.83,	3.76)
+U12sonde<-data.frame(sondeDate, sondeDepth, sondeTmpr)
+U12sonde$date<-as.Date(U12sonde$sondeDate,
+                             format="%m/%d/%Y")
+U12sonde<-U12sonde[c(2,5,7,9,11,13,14,16,18,19:26), ]
+ggplot(U12sonde, aes(date, sondeTmpr))+
+  geom_point()

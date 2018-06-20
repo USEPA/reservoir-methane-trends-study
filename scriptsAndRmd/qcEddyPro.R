@@ -30,7 +30,7 @@ epOutSub$qc_ch4_factor<-as.factor(epOutSub$qc_ch4_flux)
 
 ##Can filter fluxes for QAQC parameters and replace with NAs using mutate: 
 epOutSubFilt<-epOutSub %>% 
-  # mutate(ch4_flux=replace(ch4_flux, qc_ch4_flux==2, NA),
+   mutate(ch4_flux=replace(ch4_flux, qc_ch4_flux==2, NA),
          co2_flux=replace(co2_flux, qc_co2_flux==2, NA),
          #co2_flux=replace(co2_flux, abs(co2_flux)>20, NA),
          rand_err_ch4_flux=replace(rand_err_ch4_flux, qc_ch4_flux==2, NA),

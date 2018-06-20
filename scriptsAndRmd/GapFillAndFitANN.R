@@ -4,9 +4,10 @@
 
 ## Libraries
 # install.packages("neuralnet", dependencies = TRUE)
+library(reshape2)
 library(neuralnet); library(ggplot2); library(suncalc); 
 library(plyr); library(imputeTS); library(caret); library(nnet)
-library(dplyr)
+library(dplyr); library(zoo)
 
 
 ## Load data
@@ -142,18 +143,18 @@ sum(is.na(fluxDat$fuzzyRAD)) # 0
 
 
 ######## Air Temperature Gap-Filling
-plotGaps(fluxDat, "air_temperature")
+#plotGaps(fluxDat, "air_temperature")
 sum(is.na(fluxDat$air_temperature))
 ## Use Miami-WS air temp, which is way more complete
 sum(is.na(fluxDat$airT.vws))
 ## Note: the airT.vws data are in degrees-C, air_temperature is Kelvin.
 ## Doesn't really matter - it will get picked up in the model.
 ## Quick plot
-ggplot(fluxDat, aes(x = airT.vws, y = air_temperature)) + geom_point() +
-  geom_smooth(method="lm")
+#ggplot(fluxDat, aes(x = airT.vws, y = air_temperature)) + geom_point() +
+#  geom_smooth(method="lm")
 ## The fit looks quite good.
 airTLM <- lm(air_temperature ~ airT.vws, data = fluxDat)
-summary(airTLM) # Very good r2
+summary(airTLM) # Very good r2 -- 0.9962
 ## Use Miami air temp to fill in eddy cov tower air temp
 airPreds <- predict(airTLM, 
                     newdata = data.frame("airT.vws"=fluxDat$airT.vws))
@@ -196,8 +197,8 @@ windLM <- lm(wind_speed ~ windSp.vws, data = fluxDat)
 ## What is wind direction matters too?
 windSpDirLM <- lm(wind_speed ~ windSp.vws + sin(pi * windDir.vws/180) +
                cos(pi * windDir.vws/180), data = fluxDat)
-summary(windLM) # OK R^2, not great
-summary(windSpDirLM) # Slightly better
+summary(windLM) # OK R^2, not great -- 0.65
+summary(windSpDirLM) # Slightly better -- 0.70
 windPreds1 <- predict(windLM, newdata = data.frame("windSp.vws" = fluxDat$windSp.vws))
 windPreds2 <- predict(windSpDirLM, newdata = data.frame("windSp.vws" = fluxDat$windSp.vws,
                                                         "windDir.vws" = fluxDat$windDir.vws))
@@ -223,11 +224,11 @@ sum(is.na(fluxDat$FilledWindSpeed)) # 0
 sum(is.na(fluxDat$staticPress))
 sum(is.na(fluxDat$staticPress.vws))
 ## Quick plot
-ggplot(fluxDat, aes(x = staticPress.vws, y = staticPress)) + geom_point() +
-  geom_smooth(method="lm")
+#ggplot(fluxDat, aes(x = staticPress.vws, y = staticPress)) + geom_point() +
+#  geom_smooth(method="lm")
 ## Looks like a fantastic fit.
 statPressLM <- lm(staticPress ~ staticPress.vws, data = fluxDat)
-summary(statPressLM) # Great R^2
+summary(statPressLM) # Great R^2 -- 0.99
 ## Use Miami static pressure to fill in eddy cov tower static pressure
 spPreds <- predict(statPressLM, 
                     newdata = data.frame("staticPress.vws"=fluxDat$staticPress.vws))
@@ -244,6 +245,43 @@ sum(is.na(fluxDat$FilledStaticPress)) # 0
 ## This is just the 1-lag difference from the static pressure
 ## column
 fluxDat$FilledStaticPressChg <- c(NA, diff(fluxDat$FilledStaticPress))
+
+
+######################################
+#####S. Waldo Additions 6/20/18#######
+##### gap-filling active trap data ###
+######################################
+
+sum(is.na(fluxDat$ebCh4_deep)) #8655
+sum(is.na(fluxDat$ebCh4_shallow)) #8949
+
+range(fluxDat$ebCh4_deep, na.rm=TRUE)
+plotGaps(fluxDat, "ebCh4_deep")
+plotGaps(fluxDat, "ebCh4_shallow")
+
+ggplot(filter(fluxDatEb, datetime>"2017-05-01 00:00:00" & datetime<"2017-10-10 00:00:00"),
+       aes(datetime, ebCh4_deep))+
+         geom_line(alpha=0.3)+
+  geom_line(aes(datetime, ebCh4_shallow, color="red"), alpha=0.7)
+
+#make a new fluxDat data frame with just the ebullition time periods
+fluxDatEb<-filter(fluxDat, datetime>"2017-05-10 15:00:00", datetime<"2017-10-05 00:00:00")
+fluxDatEb<-filter(fluxDatEb, datetime<"2017-06-26 13:00:00" | datetime>"2017-07-14 14:00:00")
+plotGaps(fluxDatEb, "ebCh4_deep")
+plotGaps(fluxDatEb, "ebCh4_shallow")
+sum(is.na(fluxDatEb$ebCh4_deep)) #1526
+sum(is.na(fluxDatEb$ebCh4_shallow)) #686
+
+#gap fill small gaps via linear interpolation
+
+fluxDatEb<-fluxDatEb %>%mutate(ebCh4_deepGf = zoo::na.approx(ebCh4_deep, rule=2),
+                               ebCh4_shalGf = zoo::na.approx(ebCh4_shallow, rule=2))
+plotGaps(fluxDatEb, "ebCh4_deepGf")
+plotGaps(fluxDatEb, "ebCh4_shalGf")                             
+ggplot(filter(fluxDatEb, datetime>"2017-05-01 00:00:00" & datetime<"2017-10-10 00:00:00"),
+       aes(datetime, ebCh4_deepGf))+
+  geom_line(alpha=0.3)+
+  geom_line(aes(datetime, ebCh4_shalGf, color="red"), alpha=0.7)
 
 
 #######################################

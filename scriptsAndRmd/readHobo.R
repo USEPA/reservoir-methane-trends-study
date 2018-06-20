@@ -1,25 +1,36 @@
 # READ HOBO FILES FROM USACE AND PEGASUS MONITORING AT ACTON, DILLON,
 # PIEDMONT, AND HARSHA LAKES
 
+hoboWD<-"L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/ebullition2017/data/HOBO/"
 
 
-txtFiles <- list.files("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/ebullition2017/data/HOBO", 
+txtFiles <- list.files(hoboWD, 
                        pattern="*.csv$", recursive = TRUE) # $ matches end of string, excludes '...txt.zip' file
   #4/9/18: there was a problem with the trap.10.20.2017.al.u12.csv file -- it was not 
   #saved with the proper format, and could not be loaded with this code. I manipulated
   #the format of that file to match the others. 
 
+txtFiles[1:4]
+
+#txtFiles<-txtFiles[txtFiles != "Acton Lake/U12/u12_csv/trap.05.26.2017.al.u12.csv"]
+
 hoboList <- list()  # Empty list to hold results
 
 for (i in 1:length(txtFiles)) {  # loop to read and format each file
-  hobo.i <- read.table(paste("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/ebullition2017/data/HOBO/", 
+  hobo.i <- read.table(paste(hoboWD, 
                             txtFiles[i], sep=""),
                       sep=",",  # comma separate
                       skip=1,  # Skip first line of file.  Header info
                       as.is=TRUE, # Prevent conversion to factor
                       header=TRUE, # Import column names
                       fill=TRUE)  # Needed to deal with empty cells in last column
-
+  #6/12/18 SW
+  # #we don't want to include all of the file "Acton Lake/U12/u12_csv/trap.05.26.2017.al.u12.csv" 
+  # #because this was collected when the funnel trap was adrift -- not good data  
+  if(txtFiles[i] == "Acton Lake/U12/u12_csv/trap.05.26.2017.al.u12.csv"){
+    hobo.i<-filter(hobo.i, X.<4000 )
+  }
+  
   # FORMAT DATA
   # Extract unique ID.  This approach is verbose, but straightforard and accomodates 
   # variation in file name format.  Will need to expand when USACE data are added
@@ -66,5 +77,7 @@ for (i in 1:length(txtFiles)) {  # loop to read and format each file
     hoboList[[i]] <- hobo.i  # dump in list
 }  # End of loop
 
+
 # Merge files
 hobo <- do.call("rbind", hoboList)  # Coerces list into dataframe.
+

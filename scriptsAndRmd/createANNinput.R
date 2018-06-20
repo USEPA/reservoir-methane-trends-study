@@ -72,49 +72,48 @@ DailyCh4$RDateTime<-as.POSIXct(DailyCh4$RDateTime,
 ggplot(DailyCh4, aes(RDateTime, meanCh4Flux))+
   #geom_point(alpha=0.5)
   geom_line()
-ggplot(DailyCh4, aes(RDateTime, meanCh4Flux))+
-  geom_boxplot()
 
-##Monthly Averages, convert from umol m-2 s-1 to mg CH4 m-2 HOUR-1:
-MonthlyCh4<-epOutANN %>%
-  group_by(RDateTime = cut(RDateTime, breaks = "month")) %>%
-  summarize(meanCh4Flux = (mean(ch4_flux, na.rm=TRUE)/1000*16*60*60),
-            sdCh4Flux = (sd(ch4_flux, na.rm=TRUE)/1000*16*60*60))
-MonthlyCh4$RDateTime<-as.POSIXct(MonthlyCh4$RDateTime,
-                               format="%Y-%m-%d",
-                               tz="UTC")
 
-ggplot(MonthlyCh4, aes(RDateTime, meanCh4Flux))+
-  geom_point()
-
-write.table(MonthlyCh4,
-            file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/actonMonthlyCH4.csv",
-            sep=",",
-            row.names=FALSE)
+# ##Monthly Averages, convert from umol m-2 s-1 to mg CH4 m-2 HOUR-1:
+# MonthlyCh4<-epOutANN %>%
+#   group_by(RDateTime = cut(RDateTime, breaks = "month")) %>%
+#   summarize(meanCh4Flux = (mean(ch4_flux, na.rm=TRUE)/1000*16*60*60),
+#             sdCh4Flux = (sd(ch4_flux, na.rm=TRUE)/1000*16*60*60))
+# MonthlyCh4$RDateTime<-as.POSIXct(MonthlyCh4$RDateTime,
+#                                format="%Y-%m-%d",
+#                                tz="UTC")
+# 
+# ggplot(MonthlyCh4, aes(RDateTime, meanCh4Flux))+
+#   geom_point()
+# 
+# write.table(MonthlyCh4,
+#             file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/actonMonthlyCH4.csv",
+#             sep=",",
+#             row.names=FALSE)
 
 #ebullition data from active traps: 
 #df14.gc (shallow) and df12.gc (deep) are the 30-min mass-flux data frames
-df14.gcSub<-filter(df14.gc, timeframe>"2017-07-14 00:00:00", 
-                   timeframe<"2017-10-20 00:00:00")%>%
-  select(date.timeHH, ebCh4mgM2h)
-df14.gcSub$ebCh4_shallow<-df14.gcSub$ebCh4mgM2h
-df14.gcSub$RDateTime<-df14.gcSub$date.timeHH
-df14.gcSub<-select(df14.gcSub, -ebCh4mgM2h, -date.timeHH)
+#df14.gcSub<-filter(df14.gc, timeframe>"2017-07-14 00:00:00", 
+#                   timeframe<"2017-10-20 00:00:00")%>%
+#  select(date.timeHH, ebCh4mgM2h)
+df14.gc$ebCh4_shallow<-df14.gc$ebCh4mgM2h
+df14.gc$RDateTime<-df14.gc$date.timeHH
+df14.gcSub<-select(df14.gc, RDateTime, ebCh4_shallow)
 
 
-df12.gcSub<-filter(df12.gc, timeframe>"2017-07-14 00:00:00", 
-                   timeframe<"2017-10-30 00:00:00")%>%
-  select(date.timeHH, ebCh4mgM2h)
-df12.gcSub$ebCh4_deep<-df12.gcSub$ebCh4mgM2h
-df12.gcSub$RDateTime<-df12.gcSub$date.timeHH
-df12.gcSub<-select(df12.gcSub, -ebCh4mgM2h, -date.timeHH)
+#df12.gcSub<-filter(df12.gc, timeframe>"2017-07-14 00:00:00", 
+#                   timeframe<"2017-10-30 00:00:00")%>%
+#  select(date.timeHH, ebCh4mgM2h)
+df12.gc$ebCh4_deep<-df12.gc$ebCh4mgM2h
+df12.gc$RDateTime<-df12.gc$date.timeHH
+df12.gcSub<-select(df12.gc, RDateTime, ebCh4_deep)
 
 #6. JOIN THE FIVE DATA STREAMS INTO ONE DATA FRAME -----
 
 ANNdata<-left_join(epOutANN, vanni30min, by="RDateTime")
 ANNdata<-left_join(ANNdata, rbrTsub, by="RDateTime")
 ANNdata<-left_join(ANNdata, buoyT30min, by="RDateTime")
-ANNdata2<-left_join(ANNdata, df14.gcSub, by="RDateTime")
+ANNdata<-left_join(ANNdata, df14.gcSub, by="RDateTime")
 ANNdata<-left_join(ANNdata, df12.gcSub, by="RDateTime")
 #ANNdata<-merge(ANNdata, df14.gcSub, by.x="RDateTime", by.y="date.timeHH")
 #ANNdata<-merge(ANNdata, df12.gcSub, by.x="RDateTime", by.y="date.timeHH")
@@ -185,3 +184,6 @@ ggplotRegression(uStarProxy4)
     #R2 = 0.76
 airTProxy<-lm(air_temperature ~ airT.vws, data=ANNdata)
 ggplotRegression(airTProxy)
+
+ggplot(ANNdata, aes(ebCh4_shallow, ch4_flux))+
+  geom_point(alpha=0.2)
