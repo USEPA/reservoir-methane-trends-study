@@ -519,8 +519,12 @@ summary(lmAvgTrap)   #R2 = 0.04
 ggplot(fluxDatEb, aes(ebCh4_mean, ch4_flux*60*60*16/1000))+
   geom_point(alpha=0.1)+
   stat_smooth(method="lm")
-
-
+#linear regression: EC flux vs. wind speed:
+lmWS<-lm(ch4_flux ~ FilledWindSpeed, data=fluxDatEb)
+summary(lmWS)   #R2 = 0.03
+ggplot(fluxDatEb, aes(FilledWindSpeed, ch4_flux*60*60*16/1000))+
+  geom_point(alpha=0.1)+
+  stat_smooth(method="lm")
 
 DailyANN<-fluxDatEb%>%
   group_by(date) %>%

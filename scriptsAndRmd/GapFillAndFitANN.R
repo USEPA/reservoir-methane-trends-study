@@ -42,6 +42,7 @@ fluxDat <- subset(fluxDat, !duplicated(datetime))
 
 ## Function to look at how many 30-minute gaps exist per day
 plotGaps <- function(d, resp){
+  
   # d <- fluxDat; resp = "RBRmeanT_1.6"
   dayGaps <- ddply(d, .(date), function(x){
     # x <- subset(fluxDat, date == "2017-02-01")

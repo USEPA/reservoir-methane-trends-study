@@ -41,7 +41,7 @@ library(dplyr)   # For data manipulation
  library(ggplot2) # load from masterLibrary
  library(scales)  # load from masterLibrary
 library(stringr)
-
+library(mefa)
 
 
 # READ DATA-----------------
@@ -49,10 +49,10 @@ library(stringr)
 csvDir<-"L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/L1eddyproOut/eddypro_binned_cospectra"
 csvFilesAll<-list.files(csvDir)
 csvFiles2018<-csvFilesAll[80029:82224]
-str(csvFiles2018) #2196 files
-test<-paste(csvDir, csvFiles2018, sep="/")
-csvFiles2018<-csvFiles2018[file.info(test)$size>10000] #cull empty/incomplete files from time periods with no results
-str(csvFiles2018) #2167 files
+#str(csvFiles2018) #2196 files
+#test<-paste(csvDir, csvFiles2018, sep="/")
+#csvFiles2018<-csvFiles2018[file.info(test)$size>1] #cull empty/incomplete files from time periods with no results
+#str(csvFiles2018) #2190 files
 # csvFiles08 <- list.files("C:/R_Projects/EC/eddyproout/eddypro_binned_cospectra/201708", 
 #                        pattern="*.csv$", recursive = TRUE) # $ matches end of string, excludes '...txt.zip' file
 
@@ -82,14 +82,22 @@ for (i in 1:length(csvFiles2018)) {  # loop to read and format each file
   cospectra2018List[[i]] <- cospectra2018.i  # dump in list
 }  # End of loop, < 1 minute
 
-# Merge all of the loaded cospectra files
-cospectra2018 <- do.call("rbind", cospectra2018List)  # Coerces list into dataframe.
+#check for list elements <50 long
+foo<-lapply(X = cospectra2018List, function(x) {length(x[,1])})
+foo1 <- unlist(foo)
+bash<-which(foo1 != 50) #1676, 2054
+cospectra2018List2<-cospectra2018List[-bash]
+csvFiles2018.2<-csvFiles2018[-bash]
 
+
+# Merge all of the loaded cospectra files
+cospectra2018 <- do.call("rbind", cospectra2018List2)  # Coerces list into dataframe.
+str(cospectra2018)
 
 ####MAKING DATE AND TIME LIST FROM FILE NAME LIST ----
 #Need to add date and time to cospectra files. Could extract it from file names, which
 # are in the csvFiles list. 
-csvFiles2018DF<-data.frame(csvFiles2018, nrow=length(csvFiles2018))
+csvFiles2018DF<-data.frame(csvFiles2018.2, nrow=length(csvFiles2018.2))
  # str(csvFilesDF)
   #summary(csvFilesDF)
 #the date and time are the first part of the file name, the first 13 characters
@@ -109,10 +117,10 @@ dateTimeListR <- as.POSIXct(dateTimeList,
 # expand that out into a column that has each timestamp 50x (460x50 = 23000)
 # then use cbind to merge it with the cospectra dataframe
 
-library(mefa)
+#library(mefa)
 dateTimeListRep<-rep(dateTimeListR, each=50)
-  summary(dateTimeListRep)  
-  str(dateTimeListRep)
+  # summary(dateTimeListRep)  
+  # str(dateTimeListRep)
   
 RDateTime<-dateTimeListRep  
 cospectraDates<-cbind(cospectra2018, RDateTime)
@@ -121,86 +129,63 @@ cospectraDates<-cbind(cospectra2018, RDateTime)
   
   
 #######LOAD IN EDDYPRO OUTPUT------
-epFiles <- list.files("C:/R_Projects/EC/eddyproout/fullOutput/", 
-                      pattern="*.csv$", recursive = TRUE) 
-epFiles
-epList <- list()  # Empty list to hold results
-
-##header   
-epHeader<- c("filename",	"date",	"time",	"DOY",	"daytime",	"file_records",	"used_records",
-"Tau",	"qc_Tau",	"rand_err_Tau",	"H",	"qc_H",	"rand_err_H",	"LE",	"qc_LE",	"rand_err_LE",
-"co2_flux",	"qc_co2_flux",	"rand_err_co2_flux",	"h2o_flux",	"qc_h2o_flux",	
-"rand_err_h2o_flux",	"ch4_flux",	"qc_ch4_flux",	"rand_err_ch4_flux",	"H_strg",	"LE_strg",
-"co2_strg",	"h2o_strg",	"ch4_strg",	"co2_vadv",	"h2o_vadv",	"ch4_vadv",	
-"co2_molar_density",	"co2_mole_fraction",	"co2_mixing_ratio",	"co2_time_lag",
-"co2_def_timelag",	"h2o_molar_density",	"h2o_mole_fraction",	"h2o_mixing_ratio",
-"h2o_time_lag",	"h2o_def_timelag",	"ch4_molar_density",	"ch4_mole_fraction",
-"ch4_mixing_ratio",	"ch4_time_lag",	"ch4_def_timelag",	"sonic_temperature",
-"air_temperature",	"air_pressure",	"air_density",	"air_heat_capacity",	"air_molar_volume",
-"ET",	"water_vapor_density",	"e",	"es",	"specific_humidity",	"RH",	"VPD",	"Tdew",
-"u_unrot",	"v_unrot",	"w_unrot",	"u_rot",	"v_rot",	"w_rot",	"wind_speed",
-"max_wind_speed",	"wind_dir",	"yaw",	"pitch",	"roll",	"ustar",	"TKE",	"L",	"zL",	
-"bowen_ratio",	"Tstar",	"model",	"x_peak",	"x_offset",	"x_10",	"x_30",	"x_50",	"x_70",
-"x_90",	"un_Tau",	"Tau_scf",	"un_H",	"H_scf",	"un_LE",	"LE_scf",	"un_co2_flux",	"co2_scf",
-"un_h2o_flux",	"h2o_scf",	"un_ch4_flux",	"ch4_scf",	"spikes_hf",	"amplitude_resolution_hf",
-"drop_out_hf",	"absolute_limits_hf",	"skewness_kurtosis_hf",	"skewness_kurtosis_sf",
-"discontinuities_hf",	"discontinuities_sf",	"timelag_hf",	"timelag_sf",	"attack_angle_hf",
-"non_steady_wind_hf",	"u_spikes",	"v_spikes",	"w_spikes",	"ts_spikes",	"co2_spikes",
-"h2o_spikes",	"ch4_spikes",	"chopper_LI7500",	"detector_LI7500",	"pll_LI7500",	"sync_LI7500",
-"not_ready_LI7700",	"no_signal_LI7700",	"re_unlocked_LI7700",	"bad_temp_LI7700",	
-"laser_temp_unregulated_LI7700",	"block_temp_unregulated_LI7700",	"motor_spinning_LI7700",
-"pump_on_LI7700",	"top_heater_on_LI7700",	"bottom_heater_on_LI7700",	"calibrating_LI7700",
-"motor_failure_LI7700",	"bad_aux_tc1_LI7700",	"bad_aux_tc2_LI7700",	"bad_aux_tc3_LI7700",
-'box_connected_LI7700',	"mean_value_RSSI_LI7500",	"u_var",	"v_var",	"w_var",	"ts_var",
-"co2_var",	"h2o_var",	"ch4_var",	"wts_cov",	"wco2_cov",	"wh2o_cov",	"wch4_cov",
-"air_t_mean",	"air_p_mean",	"co2_mean",	"h2o_mean",	"dew_point_mean",	"co2_signal_strength_7500_mean",
-"ch4_mean",	"rssi_77_mean",	"ch4_tc_1_mean",	"ch4_tc_2_mean",	"ch4_tc_3_mean")
-  
-#back to reality
-
-epOut<-read.table("C:/R_Projects/EC/eddyproout/fullOutput/continuous/eddypro_2017june27oct31_dynamicIH_full_output_2017-11-28T161747_adv.csv",
-           sep=",",  # comma separate
-           skip=3,  # Skip first line of file.  Header info
-           colClasses = c(rep("character", 3), rep("numeric", 159)),
-           as.is=TRUE, # Prevent conversion to factor
-           header=FALSE, # don't import column names
-           col.names = epHeader,
-           na.strings = "NaN",
-           fill=TRUE)
-
-epOut$RDateTime <- as.POSIXct(paste(epOut$date, epOut$time,sep=""),
-                             format="%Y-%m-%d%H:%M",
-                             tz = "UTC")  # POSIXct
-epOutSub <- select(epOut, RDateTime, wind_dir, ustar, zL, w_var, co2_flux, ch4_flux, ch4_var, Tau) 
-
-for (i in 1:length(epFiles)) {  # loop to read and format each file
-    ep.i <- read.table(paste("C:/R_Projects/EC/eddyproout/fullOutput/", 
-                                    epFiles[i], sep=""),
-                              sep=",",  # comma separate
-                              skip=3,  # Skip first line of file.  Header info
-                              colClasses = c(rep("character", 3), rep("numeric", 159)),
-                              as.is=TRUE, # Prevent conversion to factor
-                              header=FALSE, # don't import column names
-                              col.names = epHeader,
-                              na.strings = "NaN",
-                              fill=TRUE)  # Needed to deal with empty cells in last column
-  #format date and time
-    ep.i$RDateTime <- as.POSIXct(paste(ep.i$date, ep.i$time,sep=""),
-                                  format="%Y-%m-%d%H:%M",
-                                  tz = "UTC")  # POSIXct
- #select what we want: wind direction, ch4 flux, time of day, stability parameters, footprint, 
-    ep.i <- select(ep.i, RDateTime, wind_dir, ustar, zL, w_var)  # select minimal columns of interest
-      #select(ep.i, RDateTime, ch4_flux, wind_speed, wind_dir, ustar, TKE, L, zL, x_70, w_var)  # select columns of interest
-    
-    epList[[i]] <- ep.i  # dump in list
-}  # End of loop, < 1 minute
-
-epOut <- do.call("rbind", epList)  # Coerces list into dataframe.
-
-  #cospectraFilt<- filter(cospectra,  )
+# epFiles <- list.files("C:/R_Projects/EC/eddyproout/fullOutput/", 
+#                       pattern="*.csv$", recursive = TRUE) 
+# epFiles
+# epList <- list()  # Empty list to hold results
+# 
+# ##header   
+# epHeader<- c("filename",	"date",	"time",	"DOY",	"daytime",	"file_records",	"used_records",
+# "Tau",	"qc_Tau",	"rand_err_Tau",	"H",	"qc_H",	"rand_err_H",	"LE",	"qc_LE",	"rand_err_LE",
+# "co2_flux",	"qc_co2_flux",	"rand_err_co2_flux",	"h2o_flux",	"qc_h2o_flux",	
+# "rand_err_h2o_flux",	"ch4_flux",	"qc_ch4_flux",	"rand_err_ch4_flux",	"H_strg",	"LE_strg",
+# "co2_strg",	"h2o_strg",	"ch4_strg",	"co2_vadv",	"h2o_vadv",	"ch4_vadv",	
+# "co2_molar_density",	"co2_mole_fraction",	"co2_mixing_ratio",	"co2_time_lag",
+# "co2_def_timelag",	"h2o_molar_density",	"h2o_mole_fraction",	"h2o_mixing_ratio",
+# "h2o_time_lag",	"h2o_def_timelag",	"ch4_molar_density",	"ch4_mole_fraction",
+# "ch4_mixing_ratio",	"ch4_time_lag",	"ch4_def_timelag",	"sonic_temperature",
+# "air_temperature",	"air_pressure",	"air_density",	"air_heat_capacity",	"air_molar_volume",
+# "ET",	"water_vapor_density",	"e",	"es",	"specific_humidity",	"RH",	"VPD",	"Tdew",
+# "u_unrot",	"v_unrot",	"w_unrot",	"u_rot",	"v_rot",	"w_rot",	"wind_speed",
+# "max_wind_speed",	"wind_dir",	"yaw",	"pitch",	"roll",	"ustar",	"TKE",	"L",	"zL",	
+# "bowen_ratio",	"Tstar",	"model",	"x_peak",	"x_offset",	"x_10",	"x_30",	"x_50",	"x_70",
+# "x_90",	"un_Tau",	"Tau_scf",	"un_H",	"H_scf",	"un_LE",	"LE_scf",	"un_co2_flux",	"co2_scf",
+# "un_h2o_flux",	"h2o_scf",	"un_ch4_flux",	"ch4_scf",	"spikes_hf",	"amplitude_resolution_hf",
+# "drop_out_hf",	"absolute_limits_hf",	"skewness_kurtosis_hf",	"skewness_kurtosis_sf",
+# "discontinuities_hf",	"discontinuities_sf",	"timelag_hf",	"timelag_sf",	"attack_angle_hf",
+# "non_steady_wind_hf",	"u_spikes",	"v_spikes",	"w_spikes",	"ts_spikes",	"co2_spikes",
+# "h2o_spikes",	"ch4_spikes",	"chopper_LI7500",	"detector_LI7500",	"pll_LI7500",	"sync_LI7500",
+# "not_ready_LI7700",	"no_signal_LI7700",	"re_unlocked_LI7700",	"bad_temp_LI7700",	
+# "laser_temp_unregulated_LI7700",	"block_temp_unregulated_LI7700",	"motor_spinning_LI7700",
+# "pump_on_LI7700",	"top_heater_on_LI7700",	"bottom_heater_on_LI7700",	"calibrating_LI7700",
+# "motor_failure_LI7700",	"bad_aux_tc1_LI7700",	"bad_aux_tc2_LI7700",	"bad_aux_tc3_LI7700",
+# 'box_connected_LI7700',	"mean_value_RSSI_LI7500",	"u_var",	"v_var",	"w_var",	"ts_var",
+# "co2_var",	"h2o_var",	"ch4_var",	"wts_cov",	"wco2_cov",	"wh2o_cov",	"wch4_cov",
+# "air_t_mean",	"air_p_mean",	"co2_mean",	"h2o_mean",	"dew_point_mean",	"co2_signal_strength_7500_mean",
+# "ch4_mean",	"rssi_77_mean",	"ch4_tc_1_mean",	"ch4_tc_2_mean",	"ch4_tc_3_mean")
+#   
+# #back to reality
+# 
+# epOut<-read.table("C:/R_Projects/EC/eddyproout/fullOutput/continuous/eddypro_2017june27oct31_dynamicIH_full_output_2017-11-28T161747_adv.csv",
+#            sep=",",  # comma separate
+#            skip=3,  # Skip first line of file.  Header info
+#            colClasses = c(rep("character", 3), rep("numeric", 159)),
+#            as.is=TRUE, # Prevent conversion to factor
+#            header=FALSE, # don't import column names
+#            col.names = epHeader,
+#            na.strings = "NaN",
+#            fill=TRUE)
+# 
+# epOut$RDateTime <- as.POSIXct(paste(epOut$date, epOut$time,sep=""),
+#                              format="%Y-%m-%d%H:%M",
+#                              tz = "UTC")  # POSIXct
 
 ###COMBINE EDDYPRO OUT WITH THE COSPECTRA INFO----
 
+epOutSub <- select(epOut, RDateTime, wind_dir, ustar, zL, 
+                   w_var, co2_flux, ch4_flux, ch4_var, Tau, timeFact) 
+  
+  
 #dateTime column for cospectraDates is RDateTime
 #dateTime column for epOut is RDateTime
 cospectraEC<-left_join(cospectraDates, epOutSub, 
@@ -224,71 +209,97 @@ cospectraEC<-left_join(cospectraDates, epOutSub,
 ggplot(cospectraEC, aes(RDateTime, wind_dir))+
   geom_point()
 ###NEAR NEUTRAL
-#Pre dock reinstallation, near neutral, E winds
-preDockNeutE<-filter(cospectraEC, zL>-0.2, zL<0.1,
-                     RDateTime<"2017-04-04 00:00",
-                     wSpec!= -9999,
-                     wind_dir<165, wind_dir>30)
-#post dock installation, near neutral, E winds, instruments at 2.4 m
-postDockNeutELow<-filter(cospectraEC, zL>-0.2, zL<0.1,
-                      RDateTime>"2017-04-04 12:00",
-                      RDateTime<"2017-04-19 12:00",
-                      wSpec!= -9999,
-                      wind_dir<165, wind_dir>30)
-#post dock installation, near neutral, E winds, instruments at 2.8 m
-postDockNeutEelev<-filter(cospectraEC, zL>-0.2, zL<0.1,
-                          RDateTime>"2017-04-19 16:00",
-                          wSpec!= -9999,
-                          wind_dir<165, wind_dir>30)
+#Facing SSW 3.5, near neutral
+SSW35Neut<-filter(cospectraEC, zL>-0.2, zL<0.1,
+                     timeFact == "SSW 3.5",
+                     wSpec!= -9999)
+#Facing SSW 2.9, near neutral, E winds
+SSW29Neut<-filter(cospectraEC, zL>-0.2, zL<0.1,
+                         timeFact == "SSW 2.9",
+                      wSpec!= -9999)
+#Facing NW 2.9, near neutral, E winds
+NW29Neut<-filter(cospectraEC, zL>-0.2, zL<0.1,
+                          timeFact =="NW 2.9",
+                          wSpec!= -9999)
 
 ####STABLE
 #Pre dock reinstallation, stable, E winds
-preDockStabE<-filter(cospectraEC, zL>0.1,
-                     RDateTime<"2017-04-04 00:00",
-                     wSpec!= -9999,
-                     wind_dir<165, wind_dir>30)
+SSW35Stab<-filter(cospectraEC, zL>0.1,
+                    timeFact == "SSW 3.5",
+                     wSpec!= -9999)
 #post dock installation, stable, E winds, instruments at 2.4 m
-postDockStabELow<-filter(cospectraEC, zL>0.1,
-                         RDateTime>"2017-04-04 12:00",
-                         RDateTime<"2017-04-19 12:00",
-                         wSpec!= -9999,
-                         wind_dir<165, wind_dir>30)
+SSW29Stab<-filter(cospectraEC, zL>0.1,
+                    timeFact == "SSW 2.9",
+                         wSpec!= -9999)
 #post dock installation, stable, E winds, instruments at 2.8 m
-postDockStabEelev<-filter(cospectraEC, zL>0.1,
-                          RDateTime>"2017-04-19 16:00",
-                          wSpec!= -9999,
-                          wind_dir<165, wind_dir>30)
+NW29Stab<-filter(cospectraEC, zL>0.1,
+                   timeFact =="NW 2.9",
+                          wSpec!= -9999)
 
-###Can't get these to run
 ####UNSTABLE (not defined in Novick, but I'll define as -2 to -0.2)---------
 #Pre dock reinstallation, unstable, E winds
-preDockUnstabEast<-filter(cospectraEC, zL<-0.2, 
-                     RDateTime<"2017-04-04 00:00",
-                     wSpec!= -9999,
-                     wind_dir<165, wind_dir>30)
+SSW35Unstab<-filter(cospectraEC, zL<-0.2, 
+                      timeFact == "SSW 3.5",
+                     wSpec!= -9999)
 #post dock installation, unstable, E winds, instruments at 2.4 m
-postDockUnstabELow<-filter(cospectraEC, zL>-2, zL<-0.2,
-                         RDateTime>"2017-04-04 12:00",
-                         RDateTime<"2017-04-19 12:00",
-                         wSpec!= -9999,
-                         wind_dir<165, wind_dir>30)
+SSW29Unstab<-filter(cospectraEC, zL>-2, zL<-0.2,
+                      timeFact == "SSW 2.9",
+                         wSpec!= -9999)
 #post dock installation, unstable, E winds, instruments at 2.8 m
-postDockUnstabEelev<-filter(cospectraEC, zL>-2, zL<-0.2,
-                          RDateTime>"2017-04-19 16:00",
-                          wSpec!= -9999,
-                          wind_dir<165, wind_dir>30)
-###getting "Error in filter_impl(.data, dots) : assignments are forbidden"--------
-
+NW29Unstab<-filter(cospectraEC, zL>-2, zL<-0.2,
+                     timeFact =="NW 2.9",
+                          wSpec!= -9999)
 
 # Axis formatting from http://www.cookbook-r.com/Graphs/Axes_(ggplot2)/
 ########Pre Dock, CO2, H2O, CH4, u, v, w, T spectra-------
 
+library(hexbin)
+plot(hexbin(SSW35Neut$normFreq, SSW35Neut$co2Spec))
+
+plotCospec <- function(d, input.x, input.y){
+  
+  require(ggplot2)
+  
+  p <- ggplot(d, aes_string(x = "input.x", y = "input.y")) + geom_point(alpha=0.1) +
+    scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                  labels = trans_format("log10", math_format(10^.x)),
+                  limits = c(10^-4, 10^1))+
+    scale_x_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                  labels = trans_format("log10", math_format(10^.x)),
+                  limits = c(10^-4, 10^2))
+    labs(title=paste("Cospectra plot for", d, input.y, sep=""))
+  return(p)
+
+p+labs(title=paste("Cospectra plot for", d, input.y, sep=""))
+}
+
+#CO2, H2O, CH4, U, V, W, Ts
+plotCospec(SSW35Neut, SSW35Neut$normFreq, SSW35Neut$co2Spec)
+  ggsave(filename="C:/R_Projects/EC/output/preDockCO2specNeut.tiff",
+       width=8,height=5.5, units="in",
+       dpi=800,compression="lzw")
+plotCospec(SSW35Neut, SSW35Neut$normFreq, SSW35Neut$h2oSpec)
+  ggsave(filename="C:/R_Projects/EC/output/preDockH2OspecNeut.tiff",
+       width=8,height=5.5, units="in",
+       dpi=800,compression="lzw")
+plotCospec(SSW35Neut, SSW35Neut$normFreq, SSW35Neut$ch4Spec)
+  ggsave(filename="C:/R_Projects/EC/output/preDockCH4specNeut.tiff",
+       width=8,height=5.5, units="in",
+       dpi=800,compression="lzw")
+plotCospec(SSW35Neut, SSW35Neut$normFreq, SSW35Neut$uSpec)
+plotCospec(SSW35Neut, SSW35Neut$normFreq, SSW35Neut$uSpec)
+plotCospec(SSW35Neut, SSW35Neut$normFreq, SSW35Neut$uSpec)
+plotCospec(SSW35Neut, SSW35Neut$normFreq, SSW35Neut$vSpec)
+plotCospec(SSW35Neut, SSW35Neut$normFreq, SSW35Neut$wSpec)
+plotCospec(SSW35Neut, SSW35Neut$normFreq, SSW35Neut$TsSpec)
+
+#####long-form: ------
 #CO2
-preDockNeutEPlotCO2<-ggplot(preDockNeutE, aes(normFreq, co2Spec))+ 
+SSW35NeutPlotCO2<-ggplot(SSW35Neut, aes(normFreq, co2Spec))+ 
   geom_point(color=alpha("black", 1/20))+   #alpha makes the points transparent, helps address overplotting
   ggtitle("Pre Dock Reinstallation, -0.2<z/L<0.1, Winds from E")+
   geom_smooth()
-preDockNeutEPlotCO2+
+SSW35NeutPlotCO2+
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x)),
                 limits = c(10^-4, 10^1))+
@@ -296,16 +307,13 @@ preDockNeutEPlotCO2+
                 labels = trans_format("log10", math_format(10^.x)),
                 limits = c(10^-4, 10^2))
 
-ggsave(filename="C:/R_Projects/EC/output/preDockCO2specNeut.tiff",
-       width=8,height=5.5, units="in",
-       dpi=800,compression="lzw")
 
 #H2O
-preDockNeutEPlotH2O<-ggplot(preDockNeutE, aes(normFreq, h2oSpec))+ 
+SSW35NeutPlotH2O<-ggplot(SSW35Neut, aes(normFreq, h2oSpec))+ 
   geom_point(color=alpha("black", 1/20))+   #alpha makes the points transparent, helps address overplotting
   ggtitle("Pre Dock Reinstallation, -0.2<z/L<0.1, Winds from E")+
   geom_smooth()
-preDockNeutEPlotH2O+
+SSW35NeutPlotH2O+
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x)),
                 limits = c(10^-4, 10^1))+
@@ -313,16 +321,14 @@ preDockNeutEPlotH2O+
                 labels = trans_format("log10", math_format(10^.x)),
                 limits = c(10^-4, 10^2))
 
-ggsave(filename="C:/R_Projects/EC/output/preDockH2OspecNeut.tiff",
-       width=8,height=5.5, units="in",
-       dpi=800,compression="lzw")
+
 
 #CH4
-preDockNeutEPlotCH4<-ggplot(preDockNeutE, aes(normFreq, ch4Spec))+ 
+SSW35NeutPlotCH4<-ggplot(SSW35Neut, aes(normFreq, ch4Spec))+ 
   geom_point(color=alpha("black", 1/20))+   #alpha makes the points transparent, helps address overplotting
   ggtitle("Pre Dock Reinstallation, -0.2<z/L<0.1, Winds from E")+
   geom_smooth()
-preDockNeutEPlotCH4+
+SSW35NeutPlotCH4+
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x)),
                 limits = c(10^-4, 10^1))+
@@ -330,17 +336,14 @@ preDockNeutEPlotCH4+
                 labels = trans_format("log10", math_format(10^.x)),
                 limits = c(10^-4, 10^2))
 
-ggsave(filename="C:/R_Projects/EC/output/preDockCH4specNeut.tiff",
-       width=8,height=5.5, units="in",
-       dpi=800,compression="lzw")
 
 
 #u
-preDockNeutEPlotu<-ggplot(preDockNeutE, aes(normFreq, uSpec))+ 
+SSW35NeutPlotu<-ggplot(SSW35Neut, aes(normFreq, uSpec))+ 
   geom_point(color=alpha("black", 1/20))+   #alpha makes the points transparent, helps address overplotting
   ggtitle("Pre Dock Reinstallation, -0.2<z/L<0.1, Winds from E")+
   geom_smooth()
-preDockNeutEPlotu+scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+SSW35NeutPlotu+scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                                labels = trans_format("log10", math_format(10^.x)))+
   scale_x_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x)))
@@ -349,7 +352,7 @@ ggsave(filename="C:/R_Projects/EC/output/preDockUspecNeut.tiff",
        dpi=800,compression="lzw")
 
 #v
-preDockNeutPlotv<-ggplot(preDockNeutE, aes(normFreq, vSpec))+ 
+preDockNeutPlotv<-ggplot(SSW35Neut, aes(normFreq, vSpec))+ 
   geom_point(color=alpha("black", 1/20))+   #alpha makes the points transparent, helps address overplotting
   ggtitle("Pre Dock Reinstallation, -0.2<z/L<0.1")+
   geom_smooth()
@@ -361,11 +364,11 @@ ggsave(filename="C:/R_Projects/EC/output/preDockVspecNeut.tiff",
        width=8,height=5.5, units="in",
        dpi=800,compression="lzw")
 #w
-preDockNeutEPlot<-ggplot(preDockNeutE, aes(normFreq, wSpec))+ 
+SSW35NeutPlot<-ggplot(SSW35Neut, aes(normFreq, wSpec))+ 
   geom_point(color=alpha("black", 1/20))+   #alpha makes the points transparent, helps address overplotting
   ggtitle("Pre Dock Reinstallation, -0.2<z/L<0.1, Winds from E")+
   geom_smooth()
-preDockNeutEPlot+scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+SSW35NeutPlot+scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                                labels = trans_format("log10", math_format(10^.x)))+
   scale_x_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x)))
@@ -374,11 +377,11 @@ ggsave(filename="C:/R_Projects/EC/output/preDockWspecNeut.tiff",
        dpi=800,compression="lzw")
 
 #Ts
-preDockNeutEPlotTs<-ggplot(preDockNeutE, aes(normFreq, TsSpec))+ 
+SSW35NeutPlotTs<-ggplot(SSW35Neut, aes(normFreq, TsSpec))+ 
   geom_point(color=alpha("black", 1/20))+   #alpha makes the points transparent, helps address overplotting
   ggtitle("Pre Dock Reinstallation, -0.2<z/L<0.1, Winds from E")+
   geom_smooth()
-preDockNeutEPlotTs+scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+SSW35NeutPlotTs+scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                                labels = trans_format("log10", math_format(10^.x)))+
   scale_x_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x)))
@@ -429,11 +432,11 @@ ggsave(filename="C:/R_Projects/EC/output/postDockH2OspecNeut.tiff",
        dpi=800,compression="lzw")
 
 #CH4
-postDockNeutEPlotCH4<-ggplot(postDockNeutE, aes(normFreq, ch4Spec))+ 
+NW29neutCH4wPlot<-ggplot(NW29Neut, aes(normFreq, wCh4Cospec))+ 
   geom_point(color=alpha("black", 1/20))+   #alpha makes the points transparent, helps address overplotting
-  ggtitle("post Dock Reinstallation, -0.2<z/L<0.1, Winds from E")+
+  #ggtitle("post Dock Reinstallation, -0.2<z/L<0.1, Winds from E")+
   geom_smooth()
-postDockNeutEPlotCH4+
+NW29neutCH4wPlot+
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x)),
                 limits = c(10^-4, 10^1))+
@@ -511,13 +514,17 @@ ggplot(cospectraEC, aes(zL)) + xlim(-1, 1) +
 
 
 #### Establish discrete freqency bins, discard the extreme 10%, ensemble averaging the spectral values 
-listOfDataFrames <- list(preDockNeutE, postDockNeutELow, postDockNeutEelev, preDockStabE, postDockStabELow, postDockStabEelev
+listOfDataFrames <- list(SSW35Neut, SSW29Neut, NW29Neut, SSW35Stab, SSW29Stab, NW29Stab, 
+                         SSW35Unstab, SSW29Unstab, NW29Unstab)#, preDockStabE, postDockStabELow, postDockStabEelev
                          #preDockUnstabE, postDockUnstabELow, postDockUnstabEelev
-                         )
-names(listOfDataFrames) = c("Pre dock Neutral", "Post dock 2.4m Neutral", "Post dock 2.8m Neutral",
-                            "Pre dock Stable","Post dock 2.4m Stable", "Post dock 2.8m Stable") 
+                         
+names(listOfDataFrames) = c("Facing SSW 3.5m Neutral", "Facing SSW 2.9m Neutral", "Facing NW 2.9m Neutral",
+                            "Facing SSW 3.5m Stable", "Facing SSW 2.9m Stable", "Facing NW 2.9m Stable",
+                            "Facing SSW 3.5m Unstable", "Facing SSW 2.9m Unstable", "Facing NW 2.9m Unstable")#,
+                            #"Pre dock Stable","Post dock 2.4m Stable", "Post dock 2.8m Stable") 
                             #"Pre dock Unstable", "Post dock 2.4m Unstable", "Post dock 2.8 m Unstable"
-neutStabList<-c("neutral", "neutral", "neutral", "stable", "stable", "stable")                            
+neutStabList<-c("neutral", "neutral", "neutral", "stable", "stable", "stable", "unstable", "unstable","unstable")
+setupList<-c("Facing SSW 3.5m", "Facing SSW 2.9m", "Facing NW 2.9m", "Facing SSW 3.5m", "Facing SSW 2.9m", "Facing NW 2.9m","Facing SSW 3.5m", "Facing SSW 2.9m", "Facing NW 2.9m")
 
 #test with a simpler function:
 #listOfDataFrames <- lapply(listOfDataFrames, function(x) mutate(x, newColumn = normFreq +1))
@@ -546,11 +553,11 @@ reducedListOfDataFrames.basic <- lapply(listOfDataFrames, function(x) group_by(x
                                            vSpecPerc < 90, vSpecPerc > 10,
                                            TsSpecPerc < 90, TsSpecPerc > 10
                                            ) %>%
-                                    summarize(binnedW = exp(mean(log(wSpec))),
-                                              binnedU = exp(mean(log(uSpec))),
-                                              binnedV = exp(mean(log(vSpec))),
-                                              binnedTs = exp(mean(log(TsSpec))),
-                                              binnedFreq = exp(mean(log(normFreq)))))
+                                    summarize(binnedW = exp(mean(log(wSpec), na.rm=TRUE)),
+                                              binnedU = exp(mean(log(uSpec), na.rm=TRUE)),
+                                              binnedV = exp(mean(log(vSpec), na.rm=TRUE)),
+                                              binnedTs = exp(mean(log(TsSpec), na.rm=TRUE)),
+                                              binnedFreq = exp(mean(log(normFreq), na.rm=TRUE))))
 
                                             
 
@@ -577,70 +584,100 @@ SpectraByFreqBin <- mutate(SpectraByFreqBin,
                             distribution = rep(x = names(reducedListOfDataFrames.basic), 
                                                times = numberOfRows),
                            stabClass = rep(x=neutStabList,
-                                           times = numberOfRows))
+                                           times = numberOfRows),
+                           towerSetup = rep(x=setupList, times=numberOfRows))
 
 tail(SpectraByFreqBin)
 
 #####PLOT and SAVE U, V, W, Ts, spectra categoriezed by stability and timeframe: -------
+
+plotBinnedCospec <- function(d, input.x, input.y){
+  
+  require(ggplot2)
+  
+  p <- ggplot(d, aes_string(x = "input.x", y = "input.y"))+
+    geom_point(aes(color=towerSetup, shape=stabClass)) +
+    scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                  labels = trans_format("log10", math_format(10^.x)),
+                  limits = c(10^-3, 10^1))+
+    scale_x_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                  labels = trans_format("log10", math_format(10^.x)))+
+  labs(title=paste("(Co)spectra plot for", d, input.y, sep=""))+
+    theme_bw()
+  return(p)
+  
+  #p+labs(title=paste("Cospectra plot for", d, input.y, sep=""))
+}
+
 #w Spectra
+
+plotBinnedCospec(SpectraByFreqBin, SpectraByFreqBin$binnedFreq, SpectraByFreqBin$binnedW) #super slow
+
 ggplot(SpectraByFreqBin, aes(binnedFreq, binnedW))+
   #geom_point(aes(color=distribution))+
   #scale_shape_discrete(solid=F)
-  geom_point(aes(color=distribution, shape=stabClass))+
+  geom_point(aes(color=towerSetup, shape=stabClass))+
   geom_abline(linetype=2, slope=-(2/3), intercept = 10^-1)+
-  theme(legend.position="none")+
+  
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x)),
                 limits = c(10^-3, 10^1))+
   scale_x_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x)))
+                labels = trans_format("log10", math_format(10^.x)))+
+  theme_bw()+
+  theme(legend.position="none")+
                 #limits = c(10^-3, 10^2.5))
                 
 
-ggsave(filename="C:/R_Projects/EC/output/binnedW.tiff",
+ggsave(filename="C:/R_Projects/EC/output/binnedWaq.tiff",
        width=4,height=2.75, units="in",
        dpi=800,compression="lzw")
 
 #U spectra
 ggplot(SpectraByFreqBin, aes(binnedFreq, binnedU))+
-  geom_point(aes(color=distribution, shape=stabClass))+
+  geom_point(aes(color=towerSetup, shape=stabClass))+
   geom_abline(linetype=2, slope=-(2/3), intercept = 10^-2)+
-  theme(legend.position="none")+
+  
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x)),
                 limits = c(10^-3, 10^1))+
   scale_x_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x)),
-                limits = c(10^-3, 10^2.5))
-ggsave(filename="C:/R_Projects/EC/output/binnedU.tiff",
+                limits = c(10^-3, 10^2.5))+
+  theme_bw()+
+  theme(legend.position="none")+
+ggsave(filename="C:/R_Projects/EC/output/binnedUaq.tiff",
        width=4,height=2.75, units="in",
        dpi=800,compression="lzw")
 
 #V spectra
 ggplot(SpectraByFreqBin, aes(binnedFreq, binnedV))+
-  geom_point(aes(color=distribution, shape=stabClass))+
+  geom_point(aes(color=towerSetup, shape=stabClass))+
   geom_abline(linetype=2, slope=-(2/3), intercept = 10^-6)+
-  theme(legend.position="none")+
+  
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x)),
                 limits = c(10^-3, 10^1))+
   scale_x_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x)))
-ggsave(filename="C:/R_Projects/EC/output/binnedV.tiff",
+                labels = trans_format("log10", math_format(10^.x)))+
+  theme_bw()+
+  theme(legend.position="none")+
+ggsave(filename="C:/R_Projects/EC/output/binnedVaq.tiff",
        width=4,height=2.75, units="in",
        dpi=800,compression="lzw")
 
 #Ts Spectra
 ggplot(SpectraByFreqBin, aes(binnedFreq, binnedTs))+
-  geom_point(aes(color=distribution, shape=stabClass))+
+  geom_point(aes(color=towerSetup, shape=stabClass))+
   geom_abline(linetype=2, slope=-(2/3), intercept = 10^-2)+
-  theme(legend.position="none")+
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+    scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x)),
                 limits = c(10^-3, 10^1))+
   scale_x_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x)))
-ggsave(filename="C:/R_Projects/EC/output/binnedTs.tiff",
+                labels = trans_format("log10", math_format(10^.x)))+
+  theme_bw()+
+  theme(legend.position="none")+
+ggsave(filename="C:/R_Projects/EC/output/binnedTsaq.tiff",
        width=4,height=2.75, units="in",
        dpi=800,compression="lzw")
 #### END plotting u, v, w, and Ts spectra categorized by time period and stab class -----
@@ -652,26 +689,32 @@ ggsave(filename="C:/R_Projects/EC/output/binnedTs.tiff",
 reducedListOfDataFrames.adv <- lapply(listOfDataFrames, function(x) group_by(x, freqBin) %>%
                                           #w
                                           mutate(co2SpecPerc = percentile(co2Spec),
+                                                 ch4SpecPerc = percentile(ch4Spec),
                                                  h2oSpecPerc = percentile(h2oSpec),
                                                  uwCospecPerc = percentile(uwCospec),
                                                  wTsCospecPerc = percentile(wTsCospec),
                                                  wCo2CospecPerc = percentile(wCo2Cospec),
+                                                 wCh4CospecPerc = percentile(wCh4Cospec),
                                                  wH2oCospecPerc = percentile(wH2oCospec)
                                           ) %>%
                                           filter(co2SpecPerc < 90, co2SpecPerc > 10,
+                                                 ch4SpecPerc < 90, ch4SpecPerc > 10,
                                                  h2oSpecPerc < 90, h2oSpecPerc > 10,
-                                                 uwCospecPerc <90, uwCospecPerc > 10,
+                                                 uwCospecPerc < 90, uwCospecPerc > 10,
                                                  wTsCospecPerc < 90, wTsCospecPerc > 10,
                                                  wCo2CospecPerc < 90, wCo2CospecPerc > 10,
+                                                 wCh4CospecPerc < 90, wCh4CospecPerc > 10,
                                                  wH2oCospecPerc < 90, wH2oCospecPerc > 10
                                           ) %>%
-                                          summarize(binnedCO2 = exp(mean(log(co2Spec))),
-                                                    binnedH2O = exp(mean(log(h2oSpec))),
-                                                    binnedUW = exp(mean(log(uwCospec))),
-                                                    binnedWTs = exp(mean(log(wTsCospec))),
-                                                    binnedWCo2 = exp(mean(log(wCo2Cospec))),
-                                                    binnedWH2o = exp(mean(log(wH2oCospec))),
-                                                    binnedFreq = exp(mean(log(normFreq)))))
+                                          summarize(binnedCO2 = exp(mean(log(co2Spec), na.rm=TRUE)),
+                                                    binnedCH4 = exp(mean(log(ch4Spec), na.rm=TRUE)),
+                                                    binnedH2O = exp(mean(log(h2oSpec), na.rm=TRUE)),
+                                                    binnedUW = exp(mean(log(uwCospec), na.rm=TRUE)),
+                                                    binnedWTs = exp(mean(log(wTsCospec), na.rm=TRUE)),
+                                                    binnedWCo2 = exp(mean(log(wCo2Cospec), na.rm=TRUE)),
+                                                    binnedWCh4 = exp(mean(log(wCh4Cospec), na.rm=TRUE)),
+                                                    binnedWH2o = exp(mean(log(wH2oCospec), na.rm=TRUE)),
+                                                    binnedFreq = exp(mean(log(normFreq), na.rm=TRUE))))
 
 SpectraByFreqBinAdv <- do.call("rbind", reducedListOfDataFrames.adv) %>%
   as.data.frame()
@@ -694,20 +737,35 @@ SpectraByFreqBinAdv <- mutate(SpectraByFreqBinAdv,
                            distribution = rep(x = names(reducedListOfDataFrames.adv), 
                                               times = numberOfRows),
                            stabClass = rep(x=neutStabList,
-                                           times = numberOfRows))
-
-
-#CO2 spectra
-ggplot(SpectraByFreqBinAdv, aes(binnedFreq, binnedCO2))+
-  geom_point(aes(color=distribution, shape=stabClass))+
+                                           times = numberOfRows),
+                           towerSetup = rep(x=setupList, times=numberOfRows))
+#CH4 spectra
+ggplot(SpectraByFreqBinAdv, aes(binnedFreq, binnedCH4))+
+  geom_point(aes(color=towerSetup, shape=stabClass))+
   geom_abline(linetype=2, slope=-(2/3), intercept = 10^-2)+
-  theme(legend.position="none")+
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+    scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x)),
                 limits = c(10^-3, 10^1))+
   scale_x_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x)))
-ggsave(filename="C:/R_Projects/EC/output/binnedCO2.tiff",
+                labels = trans_format("log10", math_format(10^.x)))+
+  theme_bw()+
+  theme(legend.position="none")+
+ggsave(filename="C:/R_Projects/EC/output/binnedCH4aq.tiff",
+       width=4,height=2.75, units="in",
+       dpi=800,compression="lzw")
+
+#CO2 spectra
+ggplot(SpectraByFreqBinAdv, aes(binnedFreq, binnedCO2))+
+  geom_point(aes(color=towerSetup, shape=stabClass))+
+  geom_abline(linetype=2, slope=-(2/3), intercept = 10^-2)+
+    scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x)),
+                limits = c(10^-3, 10^1))+
+  scale_x_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x)))+
+  theme_bw()+
+  theme(legend.position="none")+
+ggsave(filename="C:/R_Projects/EC/output/binnedCO2aq.tiff",
        width=4,height=2.75, units="in",
        dpi=800,compression="lzw")
 
@@ -715,80 +773,101 @@ ggsave(filename="C:/R_Projects/EC/output/binnedCO2.tiff",
 
 #H2O spectra
 ggplot(SpectraByFreqBinAdv, aes(binnedFreq, binnedH2O))+
-  geom_point(aes(color=distribution, shape=stabClass))+
-  theme(legend.position="none")+
-  geom_abline(linetype=2, slope=-(2/3), intercept = 10^-2)+
+  geom_point(aes(color=towerSetup, shape=stabClass))+
+    geom_abline(linetype=2, slope=-(2/3), intercept = 10^-2)+
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x)),
                 limits = c(10^-3, 10^1))+
   scale_x_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x)))
-ggsave(filename="C:/R_Projects/EC/output/binnedH2O.tiff",
+                labels = trans_format("log10", math_format(10^.x)))+
+  theme_bw()+
+  theme(legend.position="none")+
+ggsave(filename="C:/R_Projects/EC/output/binnedH2Oaq.tiff",
        width=4,height=2.75, units="in",
        dpi=800,compression="lzw")
 
 
 # w'Ts' cospectra
 ggplot(SpectraByFreqBinAdv, aes(binnedFreq,  binnedWTs))+
-  geom_point(aes(color=distribution, shape=stabClass))+
+  geom_point(aes(color=towerSetup, shape=stabClass))+
   geom_abline(linetype=2, slope=-(5/3), intercept = 10^-2)+
-  theme(legend.position="none")+
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+    scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x)),
                 limits = c(10^-6, 10^1))+
   scale_x_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x)),
-                limits = c(10^-2, 10^2))
-ggsave(filename="C:/R_Projects/EC/output/binnedWTs.tiff",
+                limits = c(10^-2, 10^2))+
+  theme_bw()+
+  theme(legend.position="none")+
+ggsave(filename="C:/R_Projects/EC/output/binnedWTsaq.tiff",
        width=4,height=2.75, units="in",
        dpi=800,compression="lzw")
 
 
 # u'w' cospectra
 ggplot(SpectraByFreqBinAdv, aes(binnedFreq,  binnedUW))+
-  geom_point(aes(color=distribution, shape=stabClass))+
+  geom_point(aes(color=towerSetup, shape=stabClass))+
   geom_abline(linetype=2, slope=-(5/3), intercept = 10^-2)+
-  theme(legend.position="none")+
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+    scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x)),
                 limits = c(10^-6, 10^1))+
   scale_x_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x)),
-                limits = c(10^-2, 10^2))
-ggsave(filename="C:/R_Projects/EC/output/binnedUW.tiff",
+                limits = c(10^-2, 10^2))+
+  theme_bw()+
+  theme(legend.position="none")+
+ggsave(filename="C:/R_Projects/EC/output/binnedUWaq.tiff",
        width=4,height=2.75, units="in",
        dpi=800,compression="lzw")
 
 # w'h2o cospectra
 ggplot(SpectraByFreqBinAdv, aes(binnedFreq,  binnedWH2o))+
-  geom_point(aes(color=distribution, shape=stabClass))+
+  geom_point(aes(color=towerSetup, shape=stabClass))+
   geom_abline(linetype=2, slope=-(5/3), intercept = 10^-2)+
-  theme(legend.position="none")+
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x)),
                 limits = c(10^-6, 10^1))+
   scale_x_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x)),
-                limits = c(10^-2, 10^2))
-ggsave(filename="C:/R_Projects/EC/output/binnedWH2O.tiff",
+                limits = c(10^-2, 10^2))+
+  theme_bw()+
+  theme(legend.position="none")+
+ggsave(filename="C:/R_Projects/EC/output/binnedWH2Oaq.tiff",
        width=4,height=2.75, units="in",
        dpi=800,compression="lzw")
 
 
 # w'co2 cospectra
 ggplot(SpectraByFreqBinAdv, aes(binnedFreq,  binnedWCo2))+
-  geom_point(aes(color=distribution, shape=stabClass))+
+  geom_point(aes(color=towerSetup, shape=stabClass))+
   geom_abline(linetype=2, slope=-(5/3), intercept = 10^-2)+
+    scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x)),
+                limits = c(10^-6, 10^1))+
+  scale_x_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x)),
+                limits = c(10^-2, 10^2))+
+  theme_bw()+
   theme(legend.position="none")+
+ggsave(filename="C:/R_Projects/EC/output/binnedWCO2aq.tiff",
+       width=4,height=2.75, units="in",
+       dpi=800,compression="lzw")
+
+# w'CH4 cospectra
+ggplot(SpectraByFreqBinAdv, aes(binnedFreq,  binnedWCh4))+
+  geom_point(aes(color=towerSetup, shape=stabClass))+
+  geom_abline(linetype=2, slope=-(5/3), intercept = 10^-2)+
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x)),
                 limits = c(10^-6, 10^1))+
   scale_x_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x)),
-                limits = c(10^-2, 10^2))
-ggsave(filename="C:/R_Projects/EC/output/binnedWCO2.tiff",
-       width=4,height=2.75, units="in",
-       dpi=800,compression="lzw")
+                limits = c(10^-2, 10^2))+
+  theme_bw()+
+  theme(legend.position="none")+
+  ggsave(filename="C:/R_Projects/EC/output/binnedWCH4aq.tiff",
+         width=4,height=2.75, units="in",
+         dpi=800,compression="lzw")
 
 
 ggplot(SpectraByFreqBin, aes(binnedFreq, binnedWTs))+
@@ -836,30 +915,30 @@ ggplot(SpectraByFreqBin, aes(binnedFreq, binnedWTs))+
 
 
 
-preDockNeutE.poo <- group_by(preDockNeutE, freqBin) %>%
+SSW35Neut.poo <- group_by(SSW35Neut, freqBin) %>%
   mutate(wSpecPerc = percentile(wSpec)) %>%
   filter(wSpecPerc < 90, wSpecPerc > 10) %>%
   summarize(binnedW = mean(wSpec), 
             binnedFreq = exp(mean(log(normFreq))))
 
 ###check the graph------
-preDockNeutE.pooPlot<-ggplot(preDockNeutE.poo, aes(binnedFreq, binnedW))+ 
+SSW35Neut.pooPlot<-ggplot(SSW35Neut.poo, aes(binnedFreq, binnedW))+ 
   geom_point()+   #alpha makes the points transparent, helps address overplotting
   ggtitle("Pre Dock Reinstallation, -0.2<z/L<0.1, Winds from E")+
   geom_abline(slope = 10^(-5/3), intercept = 0.01)
-preDockNeutE.pooPlot+scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+SSW35Neut.pooPlot+scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                                    labels = trans_format("log10", math_format(10^.x)))+
   scale_x_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x)))
-preDockNeutE.pooPlot+xlim(0.001, 10)+ ylim(0.001, 1)
+SSW35Neut.pooPlot+xlim(0.001, 10)+ ylim(0.001, 1)
 
 #######end-----
 
-binnedW<-tapply(preDockNeutE$wSpec, 
+binnedW<-tapply(SSW35Neut$wSpec, 
        ,
        mean)
-binnedNormF<-tapply(preDockNeutE$normFreq, 
-              cut(preDockNeutE$normFreq,breaks=c(10^-4, 10^-3.5, 10^-3, 10^-2.8, 10^-2.6, 10^-2.4, 10^-2.2, 10^-2, 
+binnedNormF<-tapply(SSW35Neut$normFreq, 
+              cut(SSW35Neut$normFreq,breaks=c(10^-4, 10^-3.5, 10^-3, 10^-2.8, 10^-2.6, 10^-2.4, 10^-2.2, 10^-2, 
                                                  10^-1.8, 10^-1.6, 10^-1.4, 10^-1.2, 10^-1,
                                                  10^-0.8, 10^-0.6, 10^-0.4, 10^-0.2,
                                                  1, 10^0.2, 10^0.4, 10^0.6, 10^0.8, 10,
@@ -875,7 +954,7 @@ ensAvg<-data.frame(normFreq=binnedNormF,
 str(ensAvg)
 str(cospectraEC)
 
-ggplot(preDockNeutE.poo, aes(binnedFreq, binnedW))+
+ggplot(SSW35Neut.poo, aes(binnedFreq, binnedW))+
   geom_point()+
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x)))+

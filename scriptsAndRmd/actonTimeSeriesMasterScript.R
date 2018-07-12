@@ -19,15 +19,16 @@ source("scriptsAndRmd/GRTS/readLgrActonGRTS.R")
         #searches in the Acton subfolder of the GGA data directory
 
 source("scriptsAndRmd/loadEddyPro.R")
-        #just loads, doesn't filter or change
+        #loads, deals with out of order/overlapping files by putting the
+        # loaded data frame into order by date and deleting duplicate lines
+        #doesn't filter or change
+  
 source("scriptsAndRmd/loadVWS_RBR.R") 
         #load the vanni weather station, buoy T, and RBR thermistor data, 
         #turn 15-min VWS readings into 30-min averages,
         #adjust the level offset in the VWS dataset,
         #turn the 15-min buoy T readings into 30-min averages
 source("scriptsAndRmd/readHobo.R")#reads in all of the hobo files, from Acton and Harsha
-
-
 
 
 #turn raw data into data products: dissolved/sat gas, chamber fluxes
