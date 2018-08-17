@@ -3,7 +3,7 @@
 ##Updated 20 Feb 2018 
 ###2. LOAD VANNI WEATHER STATION ----
 myWd
-vanniMet<-read.table(paste(myWd, "/vanniWeatherStation/vws20160929_20180410_concat.csv", sep=""),
+vanniMet<-read.table(paste(myWd, "/vanniWeatherStation/vws20160929_20180808_concat.csv", sep=""),
                      sep=",",  # comma separate
                      skip=4,  # Skip first line of file.  Header info
                      colClasses = c("character", rep("numeric", 9), "character"),
@@ -65,7 +65,7 @@ vanni30min$levelAdj.vws<-vanni30min$levelAdj.vws+1
 vanni30min$waterPressure.vws<-vanni30min$levelAdj.vws*9800  
 
 #3. LOAD rbr thermistor ----
-rbrT<-read.table(paste(myWd, "/RBR/Acton/L1_30minRBR/RBR20170510_20171211.csv", sep=""),
+rbrT<-read.table(paste(myWd, "/RBR/Acton/L1_30minRBR/RBR20170510_20180315.csv", sep=""),
                  sep=",",  # comma separate
                  skip=1,  # Skip first line of file.  Header info
                  colClasses = c("character", rep("numeric", 7)),

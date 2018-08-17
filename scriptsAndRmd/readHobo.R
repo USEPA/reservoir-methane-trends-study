@@ -1,16 +1,18 @@
 # READ HOBO FILES FROM USACE AND PEGASUS MONITORING AT ACTON, DILLON,
 # PIEDMONT, AND HARSHA LAKES
 
-hoboWD<-"L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/ebullition2017/data/HOBO/"
+hoboWD2017<-"L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/ebullition2017/data/HOBO/ActonLake/"
+hoboWD2018<-"L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/ebullition2018/HOBO/"
 
-
-txtFiles <- list.files(hoboWD, 
-                       pattern="*.csv$", recursive = TRUE) # $ matches end of string, excludes '...txt.zip' file
+txtFiles <- c(list.files(hoboWD2017, 
+                       pattern="*.csv$", recursive = TRUE),
+              list.files(hoboWD2018, 
+                         pattern="*.csv$", recursive = TRUE))# $ matches end of string, excludes '...txt.zip' file
   #4/9/18: there was a problem with the trap.10.20.2017.al.u12.csv file -- it was not 
   #saved with the proper format, and could not be loaded with this code. I manipulated
   #the format of that file to match the others. 
 
-txtFiles[1:4]
+txtFiles[75:80]
 
 #txtFiles<-txtFiles[txtFiles != "Acton Lake/U12/u12_csv/trap.05.26.2017.al.u12.csv"]
 

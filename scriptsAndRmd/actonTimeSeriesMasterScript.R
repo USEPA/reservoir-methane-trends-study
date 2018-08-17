@@ -25,6 +25,8 @@ source("scriptsAndRmd/loadEddyPro.R")
   
 source("scriptsAndRmd/loadVWS_RBR.R") 
         #load the vanni weather station, buoy T, and RBR thermistor data, 
+              # vws file that is loaded: vws20160929_20180808_concat.csv
+              # RBR file that is loaded: RBR20170510_20180315.csv
         #turn 15-min VWS readings into 30-min averages,
         #adjust the level offset in the VWS dataset,
         #turn the 15-min buoy T readings into 30-min averages

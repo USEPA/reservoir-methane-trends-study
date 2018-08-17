@@ -57,6 +57,29 @@ metaDataDG$sample.date<-as.Date(metaDataDG$sample.date)
 metaDataDG$sample<-metaDataDG$exetainer.code
 metaDataDGact<-filter(metaDataDG, lake=="acton")
 
+#sonde tab -- pH needed for dissolved gas calc
+metaDataSonde<-read_excel("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/ebullition2017/data/masterDataSheetEbullition2017.xlsx",
+                       sheet="sondeData",
+                       skip=0,
+                       na=c("NA", ""),
+                       trim_ws=TRUE,
+                       col_types=c("text", "text", "date", rep("numeric", 17)))
+#metaDataSonde$Sample.Date<-as.Date(metaDataDG$Sample.Date)
+metaDataSonde<-filter(metaDataSonde, Lake=="acton")
+metaDataSonde$Site<-ifelse(metaDataSonde$Site == "u4", "u04", metaDataSonde$Site)
+metaDataSonde$Site<-ifelse(metaDataSonde$Site == "u5", "u05", metaDataSonde$Site)
+metaDataSonde$Site<-ifelse(metaDataSonde$Site == "u6", "u06", metaDataSonde$Site)
+metaDataSonde$Site<-ifelse(metaDataSonde$Site == "u7", "u07", metaDataSonde$Site)
+metaDataSonde$Site<-ifelse(metaDataSonde$Site == "u8", "u08", metaDataSonde$Site)
+metaDataSonde$Site<-ifelse(metaDataSonde$Site == "u9", "u09", metaDataSonde$Site)
+metaDataSonde$Site<-ifelse(metaDataSonde$Site == "u0", "u09", metaDataSonde$Site) #checked in the data sheet
+metaDataSonde$Site<-ifelse(metaDataSonde$Site == "u1", "u01", metaDataSonde$Site)
+ggplot(filter(metaDataSonde, Sample.depth.m<0.5), aes(Site, pH))+
+  geom_point(alpha=0.8, aes(color=Sample.Date))
+
+metaDataSonde$salinity<-(metaDataSonde$`sp.Cond.us/cm`/1000)^1.0878*0.4665 #in ppt (?)
+metaDataSonde$Temp.K<-metaDataSonde$Temp.C+273.15
+
 
 metaDataTrapAct<-filter(metaDataTrap, lake=="acton")
 #the trap sheet has exetainer codes in comma delimited lists of up to three per cell

@@ -134,8 +134,8 @@ write.table(actonDGoutput,
             sep=",",
             row.names=FALSE)
 
-rm(actonDG, actonDGair, actonDGinput, actonDgJoin, airMeans, 
-   dockAmbientAir, gc.Acton, gc.all.NonGrts)
+#rm(actonDG, actonDGair, actonDGinput, actonDgJoin, airMeans, 
+#   dockAmbientAir, gc.Acton, gc.all.NonGrts)
 
 ##############################################
 #######Calculate k_600########################
@@ -155,14 +155,61 @@ epOutWind$date<-as.Date(epOutWind$date, format = "%m/%d/%Y")
 dailyWind<-epOutWind %>%
   group_by(date) %>%
   summarize(meanWind = (mean(wind_speed, na.rm=TRUE)))
-dailyWind$meanWind10<-dailyWind$meanWind*(10/2.8)^0.1
+dailyWind$meanWind10<-dailyWind$meanWind*(10/2.8)^0.1 #log wid profile
 dailyWind$k600<-2.07+0.215*dailyWind$meanWind10^1.7
 
 ggplot(dailyWind, aes(date, k600))+
   geom_point()
 dailyWind$sample.date<-dailyWind$date
-
 actonDGoutput<-left_join(actonDGoutput, dailyWind, by="sample.date")
+
+###Since Acton surface waters have pH >8, we should apply 
+###the pH enhancement (see Knoll et al., 2013): k_enh=alpha*k
+
+##From Wanninkhof et al., 1996:
+## alpha = T/[(T-1)+tanh(Qz)/(Qz)]
+    # Q=(rTD^-1)^0.5  (cm^-1)
+    # r=r1+r2K'_w*a_H^-1  (s-1)
+    # T=1+a_H^2(K'_1*K'_2+K'_1*a_H)^-1
+    # z=Dk^-1 (stagnant coundary layer thickness, cm) 
+    # r1=rate constant for CO2 + H2O = H2CO3, ~0.04 s-1 at 25 deg C (http://www.aqion.de/site/carbonic-acid-kinetics)
+    # r2=rate constant for CO2 + OH- = HCO3-, aka k_OH- in Johnson, 6900 M-1s-1
+    # K'_w=apparent dissociation constant for H2O
+    # a_H=activity coefficient for H+
+    # K'_1 and K'_2 = first and second apparent dissociation constants for carbonic acid
+    # D= molecular diffusion coeffiencient for CO2
+
+##going from the bottom up:
+
+##D at 298 K is ~ 2.2 *10^-9 m^2s^-1. In units of cm^2/s^-1, that would be 2.2 * 10^-5 cm2s-1 (https://pubs.acs.org/doi/full/10.1021/je401008s)
+molecDiff<-2.2*10^-5
+
+##From Dickson and Millero, 1987, K'_1 and K'_2 when salinity ~0
+#(https://ac.els-cdn.com/0198014987900215/1-s2.0-0198014987900215-main.pdf?_tid=91931f19-3df8-4cd2-be0b-9d6587cea684&acdnat=1531935681_ef4d2db263d7b0f6ca3ed21b1ae1b8b8)
+    #-log(K_1) ~= 6320.81/T - 126.3405 + 19.568*ln(T)
+    #-log(K_2) ~= 5143.69/T - 90.1833 + 14.613*ln(T) where T is temperature in K
+##aH is a function of pH:
+metaDataSonde<-mutate(metaDataSonde,
+       pK1 = 6320.81/Temp.K - 126.3405 + 19.568*log(Temp.K),
+       pK2 = 5143.69/Temp.K - 90.1833 + 14.613*log(Temp.K),
+       K1 = (10^(pK1)^-1), # pH = -log(aH)=log(1/aH) <--> 10^pH = 1/aH <--> aH = 1/10^pH
+       K2 = (10^(pK2)^-1),
+       aH = 1/10^(pH),
+       sample.date = as.Date(Sample.Date),
+       sampleID = )
+
+#dissociation costant for water at 25 degrees C is 1.023*10^-14 (https://en.wikipedia.org/wiki/Dissociation_constant)
+Kw<-1.023*10^-14
+r2<-6900
+r1<-0.04
+
+actonDGoutputT<-as.data.frame(actonDGoutput)
+metaDataSondeT<-as.data.frame(metaDataSonde)
+
+test<-left_join(actonDGoutputT, metaDataSondeT, by="sample.date")
+
+
+
 
 ###Calculate Fluxes:
 #Let's think about units: dissolvedGAS and satGAS are in units of mol/L [M]

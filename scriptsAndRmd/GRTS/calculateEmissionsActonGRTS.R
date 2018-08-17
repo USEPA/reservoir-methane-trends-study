@@ -332,8 +332,29 @@ eqAreaData <- mutate(eqAreaData,
 
 eqAreaDataSub<-filter(eqAreaData, EvalStatus=="sampled")
 
+eqAreaDataSub$siteID
+eqAreaDataSub$siteDistFromShore<-rep(c(67,  #U01
+                                       81,  #U04
+                                       105, #U05 
+                                       75,  #U06 
+                                       24,  #U07
+                                       163, #U08
+                                       30,  #U09
+                                       14,  #U11
+                                       158, #U12
+                                       98,  #U13
+                                       218, #U14
+                                       203, #U15
+                                       268, #U16
+                                       242, #U17
+                                       170),#U18
+                                     3)
+ 
 ggplot(eqAreaDataSub, aes(siteID, ebMlHrM2))+
   geom_point()
+
+ggplot(eqAreaDataSub, aes(Tmp_C_S, ebMlHrM2))+
+  geom_point(aes(color=Lake_Name))
 
 eqAreaDataSub$fsiteID <- orderSite(eqAreaDataSub, 
                                    choice1 = "ch4.d")

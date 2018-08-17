@@ -113,6 +113,7 @@ epOut <- do.call("rbind", epList)  # Coerces list into dataframe.
 epOut$RDateTime <- as.POSIXct(paste(epOut$date, epOut$time,sep=""),
                              format="%m/%d/%Y%H:%M",
                              tz = "UTC")  # POSIXct
+###Problem was that some dates were mm/dd/yyyy, some were mm-dd-yyyy. Sigh. 
 #order chronologically:  
 epOutOrder<-epOut[order(epOut$RDateTime),]
 check<-select(epOutOrder, RDateTime)

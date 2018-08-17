@@ -8,6 +8,7 @@
 ##Updated 20 Feb 2018 -- let's make the example ANN dataset June 1 thru Aug 31 
 ##Updated 21 Mar 2018 -- putting together a longer ANN dataset that includes all sediment T observations
                         # so 5/10/2017 - 11/29/2017
+##working on this 16 Aug 2018 -- want to combine 2017 and 2018 datasets
 head(rbrTsub$RDateTime)
 tail(rbrTsub$RDateTime)
 
@@ -22,7 +23,7 @@ tail(rbrTsub$RDateTime)
 epOutANN<-epOutOrder
 #head(epOut$RDateTime)
 epOutANN<-filter(epOutANN, RDateTime>("2017-02-01 00:30:00")
-                 & RDateTime < ("2017-11-29 12:00:00"))
+                 & RDateTime < ("2018-08-15 12:00:00"))
 head(epOutANN$RDateTime)
 tail(epOutANN$RDateTime)
 
@@ -45,15 +46,17 @@ noObs<-sum(length(which(is.na(epOutANN$ch4_flux))))
 print(c("Site Down %:", round(noObs/tot*100, digits=2)))
 
 ##Can filter fluxes for QAQC parameters and replace with NAs using mutate: 
+## 8/16/18: added in a time frame for the wind dir filtering:
+##          ->only apply this filter before May of 2018
 epOutANN<-epOutANN %>% mutate(ch4_flux=replace(ch4_flux, qc_ch4_flux==2, NA)) %>%
   mutate(co2_flux=replace(co2_flux, qc_co2_flux==2, NA))%>%
   mutate(H=replace(H, qc_H==2, NA))%>%
   mutate(LE=replace(LE, qc_LE==2, NA))%>%
-  mutate(ch4_flux=replace(ch4_flux, wind_dir>195 & wind_dir<330, NA))%>%
+  mutate(ch4_flux=replace(ch4_flux, wind_dir>195 & wind_dir<330 & RDateTime<"2018-05-01 00:00:00", NA))%>%
   mutate(ch4_flux=replace(ch4_flux, abs(ch4_flux)>500, NA))%>%
-  mutate(co2_flux=replace(co2_flux, wind_dir>195 & wind_dir<330, NA))%>%
-  mutate(H=replace(H, wind_dir>195 & wind_dir<330, NA))%>%
-  mutate(LE=replace(LE, wind_dir>195 & wind_dir<330, NA))
+  mutate(co2_flux=replace(co2_flux, wind_dir>195 & wind_dir<330 & RDateTime<"2018-05-01 00:00:00", NA))%>%
+  mutate(H=replace(H, wind_dir>195 & wind_dir<330 & RDateTime<"2018-05-01 00:00:00", NA))%>%
+  mutate(LE=replace(LE, wind_dir>195 & wind_dir<330 & RDateTime<"2018-05-01 00:00:00", NA))
 
 ggplot(epOutANN, aes(RDateTime, ch4_flux))+
   geom_point(alpha=0.2)
@@ -70,7 +73,7 @@ DailyCh4$RDateTime<-as.POSIXct(DailyCh4$RDateTime,
                                  format="%Y-%m-%d",
                                  tz="UTC")
 ggplot(DailyCh4, aes(RDateTime, meanCh4Flux))+
-  #geom_point(alpha=0.5)
+  geom_point(alpha=0.5)
   geom_line()
 
 
