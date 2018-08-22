@@ -32,6 +32,9 @@ epOutSub$qc_ch4_factor<-as.factor(epOutSub$qc_ch4_flux)
 epOutSubFilt<-epOutSub %>% 
    mutate(ch4_flux=replace(ch4_flux, qc_ch4_flux==2, NA),
          co2_flux=replace(co2_flux, qc_co2_flux==2, NA),
+         ch4_flux=replace(ch4_flux, ustar<0.07 & RDateTime>"2018-05-01 00:00:00", NA),
+         co2_flux=replace(co2_flux, qc_co2_flux==2, NA),
+         co2_flux=replace(co2_flux, ustar<0.07 & RDateTime>"2018-05-01 00:00:00", NA),
          #co2_flux=replace(co2_flux, abs(co2_flux)>20, NA),
          rand_err_ch4_flux=replace(rand_err_ch4_flux, qc_ch4_flux==2, NA),
          rand_err_co2_flux=replace(rand_err_co2_flux, qc_co2_flux==2, NA),
@@ -77,16 +80,17 @@ ggplot(epOutSubFilt, aes(monthday, air_temperature))+
 
 epOut2017<-filter(epOutSubFilt, RDateTime<"2018-01-01 00:00")
 
-ggplot(epOutPow, aes(wind_dir, ch4_flux/10^3*16*60*60))+
-  geom_point(alpha=0.3)+
-  coord_polar()+
-  #ylim(-1, 1)+
-  xlim(0, 360)
 
 epOutPow<-filter(epOutSubFilt, RDateTime>"2018-06-04 12:00")
 epOutPowS<-filter(epOutPow, wind_dir<270 & wind_dir > 90)
 epOutPowN<-filter(epOutPow, wind_dir>270 | wind_dir <90)
 epOutPowPelagic<-filter(epOutPow, wind_dir<330 & wind_dir >30)
+
+ggplot(epOutPow, aes(wind_dir, ch4_flux/10^3*16*60*60))+
+  geom_point(alpha=0.3)+
+  coord_polar()+
+  #ylim(-1, 1)+
+  xlim(0, 360)
 
 ggplot(epOutPowS, aes(monthday, co2_flux/1000000*16*60*60))+
   geom_point(alpha=0.1)+
@@ -103,14 +107,32 @@ totFilt<-length(epOutPow$ch4_flux)
 numNAsFilt<-sum(length(which(is.na(epOutPow$ch4_flux))))
 #the coverage is 1- the number of NAs/total
 print(c("Coverage %:", round(100-numNAsFilt/totFilt*100, digits=2)))
+####with u* filter, coverage is 70.6%, without it, coverage is 80.4%
 
 epOutPow$date<-epOutPow$RDateTime
 epOutPowS$date<-epOutPowS$RDateTime
 epOutPowN$date<-epOutPowN$RDateTime
 epOutPowPelagic$date<-epOutPowPelagic$RDateTime
 
-CH4fluxDiurnalPlotPower<-timeVariation(epOutPowPelagic, pollutant="co2_flux", type="month", statistic="mean", name.pol=expression(CH[4]~Flux))
-plot(CH4fluxDiurnalPlotPower, subset="hour")
+##diurnal CH4 flux, excluding 330-30 degrees
+CH4fluxDiurnalPlotPower<-timeVariation(epOutPowPelagic, pollutant="ch4_flux", 
+                                       type="month", statistic="mean", 
+                                       name.pol=expression(CH[4]~Flux))
+plot(CH4fluxDiurnalPlotPower, subset="hour", ylim=c(0, 0.8))
+
+##diurnal CO2 flux, excluding 330-30 degrees
+CO2fluxDiurnalPlotPower<-timeVariation(epOutPowPelagic, pollutant="co2_flux", 
+                                       type="month", statistic="mean", 
+                                       name.pol=expression(CO[2]~Flux))
+plot(CO2fluxDiurnalPlotPower, subset="hour")#, ylim=c(0, 0.8))
+
+ggplot(filter(epOutPow, RDateTime>"2018-07-15 00:00:00"),
+       aes(RDateTime, ch4_flux))+
+  geom_point(alpha=0.4)
+
+ustarDiurnal<-timeVariation(epOutPow, pollutant="ustar",
+                            type="month", statistic = "mean")
+plot(ustarDiurnal, subset="hour", ylim=c(0, 0.3))
 
 #CO2 flux as f(wind dir)
 ggplot(epOutPow, aes(wind_dir, co2_flux/10^6*44*60*60))+

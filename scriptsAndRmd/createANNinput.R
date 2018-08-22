@@ -49,7 +49,9 @@ print(c("Site Down %:", round(noObs/tot*100, digits=2)))
 ## 8/16/18: added in a time frame for the wind dir filtering:
 ##          ->only apply this filter before May of 2018
 epOutANN<-epOutANN %>% mutate(ch4_flux=replace(ch4_flux, qc_ch4_flux==2, NA)) %>%
+  mutate(ch4_flux=replace(ch4_flux, ustar<0.07 & RDateTime>"2018-05-01 00:00:00", NA)) %>%
   mutate(co2_flux=replace(co2_flux, qc_co2_flux==2, NA))%>%
+  mutate(co2_flux=replace(co2_flux, ustar<0.07 & RDateTime>"2018-05-01 00:00:00", NA)) %>%
   mutate(H=replace(H, qc_H==2, NA))%>%
   mutate(LE=replace(LE, qc_LE==2, NA))%>%
   mutate(ch4_flux=replace(ch4_flux, wind_dir>195 & wind_dir<330 & RDateTime<"2018-05-01 00:00:00", NA))%>%
@@ -61,10 +63,18 @@ epOutANN<-epOutANN %>% mutate(ch4_flux=replace(ch4_flux, qc_ch4_flux==2, NA)) %>
 ggplot(epOutANN, aes(RDateTime, ch4_flux))+
   geom_point(alpha=0.2)
 
+tot<-length(epOutANN$ch4_flux)
 noObsFilt<-sum(length(which(is.na(epOutANN$ch4_flux))))
 noObsFiltCO2<-sum(length(which(is.na(epOutANN$co2_flux))))
 print(c("Rejection %:", round(noObsFilt/tot*100, digits=2)))
 print(c("CO2 Rejection %:", round(noObsFiltCO2/tot*100, digits=2)))
+
+epOutANNsub<-filter(epOutANN, RDateTime>"2018-05-01 00:00:00")
+tot<-length(epOutANNsub$ch4_flux)
+noObsFilt<-sum(length(which(is.na(epOutANNsub$ch4_flux))))
+noObsFiltCO2<-sum(length(which(is.na(epOutANN$co2_flux))))
+print(c("Rejection %:", round(noObsFilt/tot*100, digits=2)))
+
 ##Daily Averages, convert from umol m-2 s-1 to mg m-2 DAY-1:
 DailyCh4<-epOutANN %>%
   group_by(RDateTime = cut(RDateTime, breaks = "24 hour")) %>%

@@ -41,6 +41,7 @@ txtFiles66 <- list.files("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCo
 txtFiles59 #these are the files I want
 txtFiles61
 txtFiles62
+txtFiles66
 
 
 #####brute force method to load all of the data frames:
@@ -48,7 +49,7 @@ filepath <- "L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/
 rbrList<-list()  ###list to hold raw 1Hz data
   #the "for(i in X)" logic means that the loop will execute for i in the range of X. So if X is one number, it will only load that number
   #EDIT the number "X" to correspond to the number of the file in the list to be loaded
-  for(i in 8){    #length(txtFiles59)){
+  for(i in 9){    #length(txtFiles59)){
     rbr.i<-read.table(paste(filepath,"rbr_10cm/",txtFiles59[i], sep=""),
                       colClasses=c("POSIXct","numeric"),
                       sep = ",",
@@ -59,7 +60,7 @@ RBR59<-do.call(rbind, rbrList)
 
 rbrList<-list()  ###list to hold raw 1Hz data
   #CAUTION: this one is going to be low because of the weirdness with the 59/61 mixup
-for(i in 5){    #length(txtFiles61)){
+for(i in 6){    #length(txtFiles61)){
   rbr.i<-read.table(paste(filepath,"rbr_25cm/",txtFiles61[i], sep=""),
                     colClasses=c("POSIXct","numeric"),
                     sep = ",",
@@ -69,7 +70,7 @@ for(i in 5){    #length(txtFiles61)){
 RBR61<-do.call(rbind, rbrList)
 
 rbrList<-list()  ###list to hold raw 1Hz data
-for(i in 9){    #1:length(txtFiles62)){
+for(i in 10){    #1:length(txtFiles62)){
   rbr.i<-read.table(paste(filepath,"rbr62/",txtFiles62[i], sep=""),
                     colClasses=c("POSIXct","numeric"),
                     sep = ",",
@@ -79,7 +80,7 @@ for(i in 9){    #1:length(txtFiles62)){
 RBR62<-do.call(rbind, rbrList)
 
 rbrList<-list()  ###list to hold raw 1Hz data
-for(i in 9){    #1:length(txtFiles63)){
+for(i in 10){    #1:length(txtFiles63)){
   rbr.i<-read.table(paste(filepath,"rbr63/",txtFiles63[i], sep=""),
                     colClasses=c("POSIXct","numeric"),
                     sep = ",",
@@ -89,7 +90,7 @@ for(i in 9){    #1:length(txtFiles63)){
 RBR63<-do.call(rbind, rbrList)
 
 rbrList<-list()  ###list to hold raw 1Hz data
-for(i in 9){    #1:length(txtFiles64)){
+for(i in 10){    #1:length(txtFiles64)){
   rbr.i<-read.table(paste(filepath,"rbr64/",txtFiles64[i], sep=""),
                     colClasses=c("POSIXct","numeric"),
                     sep = ",",
@@ -99,7 +100,7 @@ for(i in 9){    #1:length(txtFiles64)){
 RBR64<-do.call(rbind, rbrList)
 
 rbrList<-list()  ###list to hold raw 1Hz data
-for(i in 9){    #1:length(txtFiles65)){
+for(i in 10){    #1:length(txtFiles65)){
   rbr.i<-read.table(paste(filepath,"rbr65/",txtFiles65[i], sep=""),
                     colClasses=c("POSIXct","numeric"),
                     sep = ",",
@@ -109,10 +110,10 @@ for(i in 9){    #1:length(txtFiles65)){
 RBR65<-do.call(rbind, rbrList)
 
 rbrList<-list()  ###list to hold raw 1Hz data
-for(i in 9){    #in 1:length(txtFiles66)){
+for(i in 11){    #in 1:length(txtFiles66)){
   rbr.i<-read.table(paste(filepath,"rbr66/",txtFiles66[i], sep=""),
                     colClasses=c("POSIXct","numeric"),
-                    sep = ",",
+                    sep = " ",
                     header=TRUE)  
   rbrList[[i]]<-rbr.i
 }
@@ -208,15 +209,15 @@ reducedRbr66$RDateTime<-as.POSIXct(reducedRbr66$Time,
                                    tz="UTC")
 
 head(reducedRbr66)
-tail(reducedRbr63)
+tail(reducedRbr62)
 tail(reducedRbr66)
 
-reducedRbr59sub<-filter(reducedRbr59, RDateTime<"2017-12-11 10:00:00")
-reducedRbr61sub<-filter(reducedRbr61, RDateTime<"2017-12-11 10:00:00")
-reducedRbr62sub<-filter(reducedRbr62, RDateTime<"2017-12-11 10:00:00")
-reducedRbr63sub<-filter(reducedRbr63, RDateTime<"2017-12-11 10:00:00")
-reducedRbr64sub<-filter(reducedRbr64, RDateTime<"2017-12-11 10:00:00")
-reducedRbr65sub<-filter(reducedRbr65, RDateTime<"2017-12-11 10:00:00")
+reducedRbr59sub<-filter(reducedRbr59, RDateTime<"2017-12-12 12:00:00")
+reducedRbr61sub<-filter(reducedRbr61, RDateTime<"2017-12-12 12:00:00")
+reducedRbr62sub<-filter(reducedRbr62, RDateTime<"2017-12-12 12:00:00")
+reducedRbr63sub<-filter(reducedRbr63, RDateTime<"2017-12-12 12:00:00")
+reducedRbr64sub<-filter(reducedRbr64, RDateTime<"2017-12-12 12:00:00")
+reducedRbr65sub<-filter(reducedRbr65, RDateTime<"2017-12-12 12:00:00")
 
 
 #EDIT the filenames to reflect the monitopring period
@@ -346,12 +347,17 @@ RBR65hh<-do.call(rbind, rbrList)
 rbrList<-list()
 for(i in 1:length(txtFiles30min66)){
   rbr.i<-read.table(paste(filepath,"L1_30minRBR/RBR66/",txtFiles30min66[i], sep=""),
-                    colClasses=c("POSIXct","numeric", "numeric", "POSIXct"),
+                    colClasses=c("character","numeric", "numeric", "character"), #read.table won't read in the time of day for ONE of the files...can't figure out why. A work around is reading it in as a character
                     sep = ",",
                     header=TRUE)  
+  rbr.i$Time<-as.POSIXct(rbr.i$Time, format="%Y-%m-%d %H:%M:%S", tz="UTC")
+  rbr.i$RDateTime<-as.POSIXct(rbr.i$RDateTime, format="%Y-%m-%d %H:%M:%S", tz="UTC")
   rbrList[[i]]<-rbr.i
 }
 RBR66hh<-do.call(rbind, rbrList)
+
+ggplot(RBR66hh, aes(RDateTime, meanT))+
+  geom_line()
 
 #### Step 3: join all of the reduced data frames into one data frame, and format for the rLakeAnalyzer --------
 
@@ -366,21 +372,33 @@ mergedRBRAvg$datetime<-mergedRBRAvg$RDateTime #making mergedRBRAvg match usace.d
 m.RBR <- select(mergedRBRAvg, -c(Time, RDateTime)) %>%        #making m.RBR match m.usace.dam from Jake's readUsaceSonde.R
   melt(id.vars=c("depth", "datetime")) #in m.usace.dam, "datetime" is in POSIXct time format. Apparently vital for wtr.heat.map to run. 
   #looks ok, except values are characters, not numeric
+#g.RBR <- gather(mergedRBRAvg, key, value, -depth, -Time, -RDateTime)
 
 m.RBR$value<-as.numeric(m.RBR$value) #this looks like it addressed the of characters->numeric, got the warning: "NAs introduced by coercion"
 
-c.RBR<-dcast(m.RBR, datetime ~ variable + depth) #cast, copying Jake's readUsaceSonde.R. c.RBR matches the dataframe c.usace.dam
+c.RBR<-reshape2::dcast(m.RBR, datetime ~ variable + depth, mean) #cast, copying Jake's readUsaceSonde.R. c.RBR matches the dataframe c.usace.dam
+#s.RBR<-spread(g.RBR, Time, depth)
+
 ####end-----
 
 
-ggplot(c.RBR, aes(datetime, meanT_0.25))+
-  geom_point()
-head(c.RBR)
+ggplot(c.RBR, aes(datetime, meanT_1.6))+
+  geom_point(alpha=0.3)
+ggplot(filter(c.RBR, datetime>"2018-01-26 00:00:00" & datetime<"2018-03-27 00:00:00"),
+       aes(datetime, meanT_1.6))+
+  geom_point(alpha=0.3)
+  head(c.RBR)
+tail(RBR66hh$Time)
 
+###Filter time period where RBRs were out of the water
+c.RBR<-c.RBR%>%
+  mutate(meanT_1.6 = replace(meanT_1.6, datetime>"2018-02-26 07:30:00" & datetime<"2018-03-15 12:30:00", NA))#,
+         #volt = replace(volt, date.time>"2017-06-26 14:00:00" & date.time<"2017-07-14 11:00:00", NA),
+         #volt = replace(volt, date.time>"2017-10-31 12:00:00" & date.time<"2017-12-14 11:00:00", NA)) 
 
 
 #Step 4: Plot default figures
-tiff("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/tempProfile20170510_20171211.tif", res=1200, compression="lzw", 
+tiff("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/tempProfile20170510_20180315.tif", res=1200, compression="lzw", 
      width=14, height=6, units='in')
 rLakeAnalyzer::wtr.heat.map(c.RBR, 
              key.title = title(main = "Celsius", cex.main = 1, line=1),
@@ -489,7 +507,7 @@ ggsave(filename="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/
  
 
 write.table(c.RBR, 
-            file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/L1_30minRBR/RBR20170510_20171211.csv",
+            file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/L1_30minRBR/RBR20170510_20180315.csv",
             sep=",",
             row.names=FALSE)
 
