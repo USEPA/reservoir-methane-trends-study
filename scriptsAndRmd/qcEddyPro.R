@@ -1,4 +1,4 @@
-# FILTER AND SELECT THE EDDY PRO OUTPUT ----
+ # FILTER AND SELECT THE EDDY PRO OUTPUT ----
 ###for a subset of time for the test set for Will:
 
 epOutSub<-filter(epOutOrder, RDateTime>"2017-01-26")

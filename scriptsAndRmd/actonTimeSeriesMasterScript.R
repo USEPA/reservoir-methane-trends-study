@@ -30,7 +30,8 @@ source("scriptsAndRmd/loadVWS_RBR.R")
         #turn 15-min VWS readings into 30-min averages,
         #adjust the level offset in the VWS dataset,
         #turn the 15-min buoy T readings into 30-min averages
-source("scriptsAndRmd/readHobo.R")#reads in all of the hobo files, from Acton and Harsha
+source("scriptsAndRmd/readHobo.R")
+        #reads in all of the hobo files, from Acton and Harsha
 
 
 #turn raw data into data products: dissolved/sat gas, chamber fluxes
@@ -45,7 +46,8 @@ source("scriptsAndRmd/calculateChamberEmissions.R")
         #produces chamData and chamDataSub
 source("scriptsAndRmd/qcEddyPro.R") #makes epOutSub, filters data by QC parameters
         #makes DailyEcFluxes and MonthlyCh4
-source("scriptsAndRmd/calculateEbEmissions.R")#calculates time series of ebullition emissions
+source("scriptsAndRmd/calculateEbEmissions.R")
+        #calculates time series of ebullition emissions
         #from the active trap data
 
 #remove non longer needed data frames and lists:
