@@ -12,20 +12,31 @@ txtFiles <- c(list.files(hoboWD2017,
   #saved with the proper format, and could not be loaded with this code. I manipulated
   #the format of that file to match the others. 
 
-txtFiles[75:80]
+txtFiles[30:51]
 
 #txtFiles<-txtFiles[txtFiles != "Acton Lake/U12/u12_csv/trap.05.26.2017.al.u12.csv"]
 
 hoboList <- list()  # Empty list to hold results
 
 for (i in 1:length(txtFiles)) {  # loop to read and format each file
-  hobo.i <- read.table(paste(hoboWD, 
+  if(grepl("2017", txtFiles[i])){
+  hobo.i <- read.table(paste(hoboWD2017, 
                             txtFiles[i], sep=""),
                       sep=",",  # comma separate
                       skip=1,  # Skip first line of file.  Header info
                       as.is=TRUE, # Prevent conversion to factor
                       header=TRUE, # Import column names
                       fill=TRUE)  # Needed to deal with empty cells in last column
+  }
+  if(grepl("2018", txtFiles[i])){
+    hobo.i <- read.table(paste(hoboWD2018, 
+                               txtFiles[i], sep=""),
+                         sep=",",  # comma separate
+                         skip=1,  # Skip first line of file.  Header info
+                         as.is=TRUE, # Prevent conversion to factor
+                         header=TRUE, # Import column names
+                         fill=TRUE)  # Needed to deal with empty cells in last column
+  }
   #6/12/18 SW
   # #we don't want to include all of the file "Acton Lake/U12/u12_csv/trap.05.26.2017.al.u12.csv" 
   # #because this was collected when the funnel trap was adrift -- not good data  

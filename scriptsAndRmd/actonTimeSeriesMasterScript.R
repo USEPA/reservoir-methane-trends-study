@@ -32,6 +32,7 @@ source("scriptsAndRmd/loadVWS_RBR.R")
         #turn the 15-min buoy T readings into 30-min averages
 source("scriptsAndRmd/readHobo.R")
         #reads in all of the hobo files, from Acton and Harsha
+        #updated 2018-08-23 to read both 2017 and 2018 files
 
 
 #turn raw data into data products: dissolved/sat gas, chamber fluxes

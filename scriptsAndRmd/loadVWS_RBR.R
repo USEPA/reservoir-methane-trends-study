@@ -65,7 +65,7 @@ vanni30min$levelAdj.vws<-vanni30min$levelAdj.vws+1
 vanni30min$waterPressure.vws<-vanni30min$levelAdj.vws*9800  
 
 #3. LOAD rbr thermistor ----
-rbrT<-read.table(paste(myWd, "/RBR/Acton/L1_30minRBR/RBR20170510_20180315.csv", sep=""),
+rbrT<-read.table(paste(myWd, "/RBR/Acton/L1_30minRBR/RBR20170510_20180827.csv", sep=""),
                  sep=",",  # comma separate
                  skip=1,  # Skip first line of file.  Header info
                  colClasses = c("character", rep("numeric", 7)),
@@ -86,12 +86,20 @@ rbrTsub<-select(rbrT, RDateTime, RBRmeanT_0.1, RBRmeanT_0.25,
 
 rbrDaily<-rbrTsub%>%
   group_by(RDateTime = cut(RDateTime, breaks = "24 hour"))%>%
-           summarize(rbrMeanT_1.6 = mean(RBRmeanT_1.6, na.rm=TRUE))
-  rbrDaily$date<-as.Date(rbrDaily$RDateTime,
-                                    format="%Y-%m-%d %H:%M:%S",
-                                    tz="UTC")
+           summarize(rbrMeanT_1.6 = mean(RBRmeanT_1.6, na.rm=TRUE),
+                     rbrMeanT_1.25 = mean(RBRmeanT_1.25, na.rm=TRUE),
+                     rbrMeanT_1 = mean(RBRmeanT_1, na.rm=TRUE),
+                     rbrMeanT_0.75 = mean(RBRmeanT_0.75, na.rm=TRUE),
+                     rbrMeanT_0.5 = mean(RBRmeanT_0.5, na.rm=TRUE),
+                     rbrMeanT_0.25 = mean(RBRmeanT_0.25, na.rm=TRUE),
+                     rbrMeanT_0.1 = mean(RBRmeanT_0.1, na.rm=TRUE))
+  rbrDaily<-rbrDaily%>%
+    mutate(RDateTime=as.Date(rbrDaily$RDateTime),
+           year=year(RDateTime),
+           monthday = format(RDateTime, format="%m-%d %H:%M")%>%
+             as.POSIXct(monthday, format="%m-%d %H:%M", tz="UTC"))
            
-
+                                    
 
 #4. LOAD VANNI BUOY TMPR DATA ----
 
@@ -170,3 +178,23 @@ U12sonde$date<-as.Date(U12sonde$sondeDate,
 U12sonde<-U12sonde[c(2,5,7,9,11,13,14,16,18,19:26), ]
 ggplot(U12sonde, aes(date, sondeTmpr))+
   geom_point()
+
+
+####Load campbell data logger met data
+campMet<-read.table(paste(myWd, "/CR6/CR6Series_BioMet20180814.csv", sep=""),
+                     sep=",",  # comma separate
+                     skip=4,  # Skip first line of file.  Header info
+                     colClasses = c("character", rep("numeric", 10)),
+                     as.is=TRUE, # Prevent conversion to factor
+                     header=FALSE, # don't import column names
+                     col.names = c("dateTimeW", "record", "battV_min", "PTemp_C_Avg", 
+                                   "AirTC_avg", "AitTC_std", "Raim_mm_tot", "NR_Wm2_avg", 
+                                   "NR_Wm2_std", "RH", "RH_avg"),
+                     na.strings = "NAN",
+                     fill=TRUE)
+campMet$RDateTime<-as.POSIXct(campMet$dateTimeW,
+                               format="%Y-%m-%d %H:%M:%S",
+                               tz = "UTC")
+# ggplot(campMet, aes(RDateTime, NR_Wm2_avg))+
+#   geom_line()+
+#   ylim(-200, 1000)

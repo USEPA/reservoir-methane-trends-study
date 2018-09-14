@@ -314,6 +314,10 @@ for(i in 1:length(txtFiles30min62)){
 }
 RBR62hh<-do.call(rbind, rbrList)
 
+ggplot(RBR61hh, aes(RDateTime, meanT))+
+  geom_point()
+#2018 is there
+
 rbrList<-list()
 for(i in 1:length(txtFiles30min63)){
   rbr.i<-read.table(paste(filepath,"L1_30minRBR/RBR63/",txtFiles30min63[i], sep=""),
@@ -356,33 +360,66 @@ for(i in 1:length(txtFiles30min66)){
 }
 RBR66hh<-do.call(rbind, rbrList)
 
-ggplot(RBR66hh, aes(RDateTime, meanT))+
+ggplot(RBR65hh, aes(RDateTime, meanT))+
   geom_line()
 
 #### Step 3: join all of the reduced data frames into one data frame, and format for the rLakeAnalyzer --------
 
+RBR59hh<-mutate(RBR59hh, meanT_0.1 = meanT)%>%
+  select(RDateTime, meanT_0.1)
+RBR61hh<-mutate(RBR61hh, meanT_0.25 = meanT)%>%
+  select(RDateTime, meanT_0.25)
+RBR62hh<-mutate(RBR62hh, meanT_0.5 = meanT)%>%
+  select(RDateTime, meanT_0.5)
+RBR63hh<-mutate(RBR63hh, meanT_0.75 = meanT)%>%
+  select(RDateTime, meanT_0.75)
+RBR64hh<-mutate(RBR64hh, meanT_1 = meanT)%>%
+  select(RDateTime, meanT_1)
+RBR65hh<-mutate(RBR65hh, meanT_1.25 = meanT)%>%
+  select(RDateTime, meanT_1.25)
+RBR66hh<-mutate(RBR66hh, meanT_1.6 = meanT)%>%
+  select(RDateTime, meanT_1.6)
+
 RBRList<- list(RBR59hh, RBR61hh, RBR62hh, RBR63hh, RBR64hh, RBR65hh, RBR66hh)
 
-mergedRBRAvg<-Reduce(function(x, y) merge(x, y, all=TRUE), 
-                     list(RBR59hh, RBR61hh, RBR62hh, RBR63hh, RBR64hh, RBR65hh, RBR66hh))
-                     #this gives all of the meanT values the value for RBR61, repeated for the seven depths for each timestep
+# mergedRBRAvg<-Reduce(function(x, y) merge(x, y, all=TRUE),
+#                      list(RBR59hh, RBR61hh, RBR62hh, RBR63hh, RBR64hh, RBR65hh, RBR66hh))
+#                      #this gives all of the meanT values the value for RBR61, repeated for the seven depths for each timestep
+
+#now RBR66hh has a longer time series than the others, since it was
+#left out for the winter. Try left_join:
+
+mergedRBRAvg<-left_join(RBR66hh, RBR65hh, by="RDateTime")
+mergedRBRAvg<-left_join(mergedRBRAvg, RBR64hh, by="RDateTime")
+mergedRBRAvg<-left_join(mergedRBRAvg, RBR63hh, by="RDateTime")
+mergedRBRAvg<-left_join(mergedRBRAvg, RBR62hh, by="RDateTime")
+mergedRBRAvg<-left_join(mergedRBRAvg, RBR61hh, by="RDateTime")
+mergedRBRAvg<-left_join(mergedRBRAvg, RBR59hh, by="RDateTime")
+  
+
+ggplot(mergedRBRAvg, aes(RDateTime, meanT_0.25))+
+  geom_point()
 
 mergedRBRAvg$datetime<-mergedRBRAvg$RDateTime #making mergedRBRAvg match usace.dam from Jake's readUsaceSonde.R
 
-m.RBR <- select(mergedRBRAvg, -c(Time, RDateTime)) %>%        #making m.RBR match m.usace.dam from Jake's readUsaceSonde.R
-  melt(id.vars=c("depth", "datetime")) #in m.usace.dam, "datetime" is in POSIXct time format. Apparently vital for wtr.heat.map to run. 
-  #looks ok, except values are characters, not numeric
-#g.RBR <- gather(mergedRBRAvg, key, value, -depth, -Time, -RDateTime)
-
-m.RBR$value<-as.numeric(m.RBR$value) #this looks like it addressed the of characters->numeric, got the warning: "NAs introduced by coercion"
-
-c.RBR<-reshape2::dcast(m.RBR, datetime ~ variable + depth, mean) #cast, copying Jake's readUsaceSonde.R. c.RBR matches the dataframe c.usace.dam
-#s.RBR<-spread(g.RBR, Time, depth)
+# m.RBR <- select(mergedRBRAvg, -c(Time, RDateTime)) %>%        #making m.RBR match m.usace.dam from Jake's readUsaceSonde.R
+#   melt(id.vars=c("depth", "datetime")) #in m.usace.dam, "datetime" is in POSIXct time format. Apparently vital for wtr.heat.map to run. 
+#   #looks ok, except values are characters, not numeric
+# #g.RBR <- gather(mergedRBRAvg, key, value, -depth, -Time, -RDateTime)
+# 
+# m.RBR$value<-as.numeric(m.RBR$value) #this looks like it addressed the of characters->numeric, got the warning: "NAs introduced by coercion"
+# 
+# ggplot(filter(m.RBR, depth == 0.25), aes(datetime, value))+
+#   geom_point()
+# 
+# 
+# c.RBR<-reshape2::dcast(m.RBR, datetime ~ variable + depth, mean) #cast, copying Jake's readUsaceSonde.R. c.RBR matches the dataframe c.usace.dam
+# #s.RBR<-spread(g.RBR, Time, depth)
 
 ####end-----
 
 
-ggplot(c.RBR, aes(datetime, meanT_1.6))+
+ggplot(c.RBR, aes(datetime, meanT_0.25))+
   geom_point(alpha=0.3)
 ggplot(filter(c.RBR, datetime>"2018-01-26 00:00:00" & datetime<"2018-03-27 00:00:00"),
        aes(datetime, meanT_1.6))+
@@ -391,11 +428,17 @@ ggplot(filter(c.RBR, datetime>"2018-01-26 00:00:00" & datetime<"2018-03-27 00:00
 tail(RBR66hh$Time)
 
 ###Filter time period where RBRs were out of the water
-c.RBR<-c.RBR%>%
-  mutate(meanT_1.6 = replace(meanT_1.6, datetime>"2018-02-26 07:30:00" & datetime<"2018-03-15 12:30:00", NA))#,
-         #volt = replace(volt, date.time>"2017-06-26 14:00:00" & date.time<"2017-07-14 11:00:00", NA),
-         #volt = replace(volt, date.time>"2017-10-31 12:00:00" & date.time<"2017-12-14 11:00:00", NA)) 
+mergedRBRAvg<-mergedRBRAvg%>%
+  mutate(meanT_1.6 = replace(meanT_1.6, datetime>"2018-02-26 07:30:00" & datetime<"2018-03-15 12:30:00", NA))%>%
+  select(datetime, meanT_0.1, meanT_0.25, meanT_0.5, meanT_0.75, 
+         meanT_1, meanT_1.25, meanT_1.6)
 
+#Write to table:
+write.table(mergedRBRAvg, 
+            file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/L1_30minRBR/RBR20170510_20180827.csv",
+            sep=",",
+            row.names=FALSE)
+         
 
 #Step 4: Plot default figures
 tiff("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/tempProfile20170510_20180315.tif", res=1200, compression="lzw", 
@@ -406,7 +449,7 @@ rLakeAnalyzer::wtr.heat.map(c.RBR,
 #how do I get this plot to have more x-axis ticks? 
 dev.off()
 
-rLakeAnalyzer::wtr.lineseries(c.RBR)
+rLakeAnalyzer::wtr.lineseries(mergedRBRAvg)
 rLakeAnalyzer::wtr.plot.temp(c.RBR)
 
 tiff("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/tempLayerProfile20170510_20171020.tif", res=1200, compression="lzw", 

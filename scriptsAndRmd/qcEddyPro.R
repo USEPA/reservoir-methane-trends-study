@@ -113,18 +113,56 @@ epOutPow$date<-epOutPow$RDateTime
 epOutPowS$date<-epOutPowS$RDateTime
 epOutPowN$date<-epOutPowN$RDateTime
 epOutPowPelagic$date<-epOutPowPelagic$RDateTime
+epOutPowPelagic$co2Roll<-(rollapply(epOutPowPelagic$co2_flux, 7, FUN=mean, na.rm=TRUE, fill=NA, align="center"))
+test<-rollmean(epOutPowPelagic$co2_flux, 7)
+
+epOutPowPelagic08<-filter(epOutPowPelagic, RDateTime>"2018-08-01")
+
+
+ggplot(epOutPow,
+       aes(RDateTime, co2_flux))+
+  geom_point(aes(color=as.factor(epOutPow$daytime)))+
+  # geom_line(aes(data=filter(epOutPowPelagic, RDateTime>"2018-08-01"),
+  #               x=RDateTime,
+  #               y=co2Roll))+
+  ylim(-10, 10)
 
 ##diurnal CH4 flux, excluding 330-30 degrees
 CH4fluxDiurnalPlotPower<-timeVariation(epOutPowPelagic, pollutant="ch4_flux", 
-                                       type="month", statistic="mean", 
+                                       type="month", statistic="median",
+                                       normalise=TRUE,
                                        name.pol=expression(CH[4]~Flux))
 plot(CH4fluxDiurnalPlotPower, subset="hour", ylim=c(0, 0.8))
 
+#air pressure, sediment T
+airPdiurnalPlot<-timeVariation(epOutPow, pollutant="air_pressure", 
+                               type="month", statistic="mean",
+                               normalise=FALSE)
+plot(airPdiurnalPlot, subset="hour")
+
+ggplot(rbrT, aes(RDateTime, RBRmeanT_1.6))+
+  geom_line()
+rbrT$date<-rbrT$RDateTime
+sedTdiurnalPlot<-timeVariation(filter(rbrT, date>"2018-06-01 00:00:00", 
+                                      date< "2018-08-31 00:00:00"),
+                               pollutant="RBRmeanT_0.25", 
+                               type="month", statistic="mean",
+                               normalise=FALSE)
+plot(sedTdiurnalPlot, subset="hour")
+
+
 ##diurnal CO2 flux, excluding 330-30 degrees
-CO2fluxDiurnalPlotPower<-timeVariation(epOutPowPelagic, pollutant="co2_flux", 
+CO2fluxDiurnalPlotPower<-timeVariation(filter(epOutPowPelagic, abs(co2_flux)<10),
+                                       pollutant="co2_flux", 
                                        type="month", statistic="mean", 
+                                       normalise=TRUE,
                                        name.pol=expression(CO[2]~Flux))
-plot(CO2fluxDiurnalPlotPower, subset="hour")#, ylim=c(0, 0.8))
+plot(CO2fluxDiurnalPlotPower, subset="hour", ylim=c(-1, 1))
+
+CO2MRDiurnalPlotPower<-timeVariation(epOutPowPelagic, pollutant="co2_mixing_ratio", 
+                                       type="month", statistic="median",
+                                       normalise=FALSE)
+plot(CO2MRDiurnalPlotPower, subset="hour")
 
 ggplot(filter(epOutPow, RDateTime>"2018-07-15 00:00:00"),
        aes(RDateTime, ch4_flux))+
@@ -207,6 +245,11 @@ ggplot(DailyEcFluxes, aes(monthday, meanCH4Flux))+
   theme_bw()+
   theme(axis.text.x=element_text(angle=45, hjust=1))
 
+#daily water T
+ggplot(filter(rbrDaily, monthday>"2018-04-15", monthday <"2018-09-01"),
+       aes(monthday, rbrMeanT_1.6))+
+  geom_line(aes(color=as.factor(year)))
+
 daily_d<-ggplot(DailyEcFluxes, aes(RDateTime, meanCH4Flux))+
   #geom_point(alpha=0.5)+
   geom_pointrange(mapping=aes(x=RDateTime, y=meanCH4Flux*24, 
@@ -246,12 +289,39 @@ cumuCH4timeframe$ch4mgm2d<-cumuCH4timeframe$meanCH4Flux*24
 cumulativeCH4Flux<-sum(DailyEcFluxes$ch4mgm2d, na.rm=TRUE)
 cumulativeCH4FluxErr<-sqrt(sum((DailyEcFluxes$randErrCh4Prop*24)^2, na.rm=TRUE))/sqrt(sum(DailyEcFluxes$nCH4Flux, na.rm=TRUE))
 
-cumuCH4timeframe$cumuCH4<-  
+ 
 
 #Cumulative EC CH4 Fluxes based on daily fluxes, with uncertainty range 
 #based on SE of daily average flux
   
+######Plotting daily EC vs. daily volumetric ebullition at shallow site:
+ecEbList<-list()
+DailyEcFluxes$emissions<-DailyEcFluxes$meanCH4Flux
+DailyEcFluxes$method<-"EC"
+ecEbList[[1]]<-select(DailyEcFluxes, emissions, year, monthday, method)
+dailyMassFlux14$emissions<-dailyMassFlux14$dailyEbCh4mgM2h
+dailyMassFlux14$method<-"trap"
+ecEbList[[2]]<-select(dailyMassFlux14, emissions, year, monthday, method)
+ecEb<-do.call("rbind", ecEbList)
 
+ggplot(filter(ecEb, year !="NA"), aes(monthday, emissions))+
+  geom_line(alpha=0.6, aes(color=method))+
+  facet_grid(year~.)+
+  theme_bw()
+
+ecEbVs<-merge(dailyMassFlux14, DailyEcFluxes, by.x="date", by.y="RDateTime")
+
+ggplot(ecEbVs, aes(dailyEbCh4mgM2h, meanCH4Flux))+
+  geom_point(aes(color=as.factor(year.x)))
+fit1<-lm(meanCH4Flux~dailyEbCh4mgM2h, data = filter(ecEbVs, date>"2018-07-01"))
+summary(fit1)
+fit2<-lm(meanCH4Flux~dailyEbCh4mgM2h, data = filter(ecEbVs, year.x=="2017"))
+summary(fit2)
+
+ggplot(filter(ecEb, year!="NA", method=="EC"), aes(monthday, emissions))+
+  geom_point(alpha=0.6)+
+  facet_grid(year~.)+
+  geom_point(aes(dailyEb14$monthday, dailyEb14$dailyVolEb2))
 
 ##Monthly Averages, convert from umol m-2 s-1 to mg CH4 m-2 HOUR-1:
 MonthlyCh4<-epOutSub %>%

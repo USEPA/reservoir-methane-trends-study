@@ -55,20 +55,24 @@ hoboActon<-filter(hobo, lake.name=="acton lake")
 hoboU12<-filter(hoboActon, site=="u12") #deep site
 hoboU14<-filter(hoboActon, site=="u14") #shallow site
 
- #ggplot(hoboActon,
-  #      aes(date.time, volt))+
-  # geom_line()+
-  # facet_grid(site~.)+
-  # scale_x_datetime(labels=date_format("%b %d", tz="UTC"), 
-  #                  breaks=date_breaks("1 month"))
+hoboActon$year<-year(hoboActon$date.time)
+hoboActon$monthday <- format(hoboActon$date.time, format="%m-%d %H:%M")%>%
+  as.POSIXct(monthday, format="%m-%d %H:%M", tz="UTC")
+
+ ggplot(hoboActon,
+        aes(monthday, volt))+
+   geom_line()+
+   facet_grid(year~site)+
+   scale_x_datetime(labels=date_format("%b %d", tz="UTC"),
+                    breaks=date_breaks("1 month"))
 
  #filtered for a date range
-# ggplot(filter(hoboActon, date.time>"2017-05-10"&date.time<"2017-6-14"),
-#        aes(date.time, volt))+
-#   geom_line(alpha=0.5)+
-#   facet_grid(site~.)+
-#   scale_x_datetime(labels=date_format("%b %d", tz="UTC"), 
-#                    breaks=date_breaks("1 week"))
+ ggplot(filter(hoboActon, date.time>"2018-05-10"&date.time<"2017-6-14"),
+        aes(date.time, volt))+
+   geom_line(alpha=0.5)+
+   facet_grid(site~.)+
+   scale_x_datetime(labels=date_format("%b %d", tz="UTC"),
+                    breaks=date_breaks("1 week"))
 #metaDataTrapAct has been loaded as part of compileGcDataNonGrts.R script. This
 #date frame includes trap.size, circuit, gas.vol.ml, and exetainer.code, site.visit.dateTime
 
@@ -82,7 +86,8 @@ hoboU14<-filter(hoboActon, site=="u14") #shallow site
  hoboU12<-hoboU12%>%
    mutate(volt = replace(volt, date.time>"2017-06-03 14:30:00" & date.time<"2017-06-12 00:00:00", NA),
           volt = replace(volt, date.time>"2017-06-26 14:00:00" & date.time<"2017-07-14 11:00:00", NA),
-          volt = replace(volt, date.time>"2017-10-31 12:00:00" & date.time<"2017-12-14 11:00:00", NA)) 
+          volt = replace(volt, date.time>"2017-10-31 12:00:00" & date.time<"2017-12-14 11:00:00", NA),
+          volt = replace(volt, date.time>"2018-04-01 12:00:00" & date.time<"2018-05-25 00:00:00", NA)) 
  
  ######Shallow site aka U14:
  ## Some strange drop-outs between May 20-22: filter if voltage is <0.5
@@ -95,22 +100,24 @@ hoboU14<-filter(hoboActon, site=="u14") #shallow site
           volt = replace(volt, date.time>"2017-05-26 01:00:00" & date.time<"2017-05-27 05:00:00" & volt >1.75, NA),
           volt = replace(volt, date.time>"2017-05-20 01:00:00" & date.time<"2017-05-22 05:00:00" & volt <0.5, NA),
           volt = replace(volt, date.time>"2017-06-26 13:00:00" & date.time<"2017-07-14 13:30:00", NA),
-          volt = replace(volt, date.time>"2017-10-05 00:00:00" & date.time<"2017-12-14 11:00:00", NA)) 
+          volt = replace(volt, date.time>"2017-10-05 00:00:00" & date.time<"2017-12-14 11:00:00", NA),
+          volt = replace(volt, date.time>"2018-04-01 00:00:00" & date.time<"2018-06-07 12:00:00", NA)) 
 
 
-# ggplot(filter(hoboU14, date.time>"2017-05-24"&date.time<"2017-6-01"),
-#        aes(date.time, volt))+
-#   geom_point(alpha=0.1)+
-#   scale_x_datetime(labels=date_format("%b %d", tz="UTC"),
-#                    breaks=date_breaks("1 day"))
+ggplot(filter(hoboU12, date.time>"2018-06-14"&date.time<"2018-06-17"),
+       aes(date.time, volt))+
+  geom_point(alpha=0.1)+
+  scale_x_datetime(labels=date_format("%d %H", tz="UTC"),
+                   breaks=date_breaks("6 hour"))
 
 ### Raw data to Volumetric Fluxes: ----
 ###1: Convert from voltage (V) to height (cm) using the calibration coefficients:----
 
 #U12 (deep site) had the following circuits during the following dates:
-  # 10 May - 9 June: #9. height = 31.603*volt - 13.475
-  # 12 June - 14 July: #19. height = 28.742*volt - 4.8 (from 2015 calibration)
-  # 14 July - 11 Dec: # 9
+  # 2017 10 May - 9 June: #9. height = 31.603*volt - 13.475
+  # 2017 12 June - 14 July: #19. height = 28.742*volt - 4.8 (from 2015 calibration)
+  # 2017 14 July - 11 Dec: # 9
+  # 2018 all season: #9
 
 hoboU12$hMult<-ifelse(hoboU12$date.time>"2017-06-10 12:00:00" 
                       & hoboU12$date.time<"2017-07-14 13:00:00",
@@ -127,8 +134,10 @@ hoboU12$height<-hoboU12$volt*hoboU12$hMult+hoboU12$hOffset
 #   geom_line()
 
 #U14 (shallow site) had the following circuits during the following dates:
-  # 10 May - 14 July: #1. height = 32.565 * volt + 0.54 (from 2015 calibration)
-  # 14 July - 11 Dec: #19. height = 28.742*volt - 4.8 (from 2015 calibration)
+  # 2017 10 May - 14 July: #1. height = 32.565 * volt + 0.54 (from 2015 calibration)
+  # 2017 14 July - 11 Dec: #19. height = 28.742*volt - 4.8 (from 2015 calibration)
+  # 2018 all season: #11 as of 9/10, no info on circut calibration
+
 hoboU14$hMult<-ifelse(hoboU14$date.time<"2017-07-14 13:00:00",
                        32.565, #value if TRUE -- period when circuit #1
                        28.742) #value if FALSE -- period when circuit #19
@@ -142,10 +151,16 @@ hoboU14$height<-hoboU14$volt*hoboU14$hMult+hoboU14$hOffset
 #   geom_line()
 
 ###2: Convert from height to volume (cm3) ----
-##U12 had a large-diameter tube until 6/12, when a small diameter tube was deployed as the replacement for the missing trap
+##U12 had a large-diameter tube until 6/12 at 12:00, when a small diameter tube was deployed as the replacement for the missing trap
 #hoboU12$date.time[8000] #this is 6/7. Large diam. tube became unmoored on 6/3 
-hoboU12$diameter<-c(rep(2.5, 8000), rep(1.5, 61912-8000))
-hoboU14$diameter<-2.5
+#nrow(hoboU12)
+hoboU12$diameter<-ifelse(hoboU12$date.time<"2018-06-12 12:00:00",
+                         2.5, #value if true, before 6/12
+                         1.5) #value if false, after 6/12/2017
+  #c(rep(2.5, 8000), rep(1.5, nrow(hoboU12)-8000))
+hoboU14$diameter<-ifelse(hoboU14$date.time<"2018-01-01 00:00:00",
+                         2.5, #large diameter tube in 2017 
+                         1.5) #small diameter tube in 2018
 #ggplot(hoboU12, aes(date.time, diameter))+
 #  geom_line()
 
@@ -188,8 +203,10 @@ hoboU14$date.timeHH<-lubridate::round_date(hoboU14$date.time, "5 minutes")
 ###hoboU12$date.timeHH[4] = "2017-05-10 12:00:00 UTC"
 ###hoboU12$date.timeHH[71997] = "2017-12-14 09:00:00 UTC"
 
+range(hoboU12$date.timeHH)
+nrow(hoboU12)
 timeframe0.5<-seq.POSIXt(from = hoboU12$date.timeHH[4],
-                         to = hoboU12$date.timeHH[60000],by = "30 min")
+                         to = hoboU12$date.timeHH[102466],by = "30 min")
 
 #head(timeframe)
 df12<-as.data.frame(timeframe0.5)
@@ -219,11 +236,11 @@ df14<-df14%>%
          dVolSmth24=c(rep(NA, 48), diff(df14$volSmth, 48)),
          dVolSmth48=c(rep(NA, 96), diff(df14$volSmth, 96)))
 
-# ggplot(filter(df12, date.time>"2017-07-15"&date.time<"2017-08-01"),
-#   aes(date.time, dVolSmth0.5))+
-#   geom_point(alpha=0.3, color="red")+
-#   geom_point(aes(date.time, dVolSmth2), alpha = 0.3)
-#   ylim(-30, 10)
+ggplot(filter(df14, date.time>"2018-05-15"&date.time<"2018-09-01"),
+  aes(date.time, dVolSmth0.5))+
+  geom_point(alpha=0.3, color="red")+
+  geom_point(aes(date.time, dVolSmth2), alpha = 0.3)
+  ylim(-30, 10)
 
 #df14 <- hoboU14[seq(5,nrow(hoboU14),6),]
 
@@ -260,7 +277,10 @@ df12<-df12%>%
          volEb6 = dVolSmth6/funnelArea/6,
          volEb12 = dVolSmth12/funnelArea/12,
          volEb24 = dVolSmth24/funnelArea/24,
-         volEb48 = dVolSmth48/funnelArea/48)
+         volEb48 = dVolSmth48/funnelArea/48,
+         year=year(date.time),
+         monthday = format(date.time, format="%m-%d %H:%M")%>%
+           as.POSIXct(monthday, format="%m-%d %H:%M", tz="UTC"))
    
 df14<-df14%>%
   mutate(volEb0.5 = dVolSmth0.5/funnelArea*2,#cm^3 = mL, funnelArea in m^2, convert from timeframe to hr 
@@ -269,16 +289,62 @@ df14<-df14%>%
          volEb6 = dVolSmth6/funnelArea/6,
          volEb12 = dVolSmth12/funnelArea/12,
          volEb24 = dVolSmth24/funnelArea/24,
-         volEb48 = dVolSmth48/funnelArea/48)
+         volEb48 = dVolSmth48/funnelArea/48,
+         year=year(date.time),
+         monthday = format(date.time, format="%m-%d %H:%M")%>%
+           as.POSIXct(monthday, format="%m-%d %H:%M", tz="UTC"))
 
-#  ggplot(filter(df12, date.time>"2017-07-15"&date.time<"2017-8-01"),
-#        aes(date.time, volEb2))+
-#   geom_point(alpha=0.3)+
-#    geom_point(aes(date.time, volEb0.5), color="red", alpha=0.3)
-#   #ylim(-250, 500)
-# ggplot(filter(df14, date.time>"2017-06-15"&date.time<"2017-10-01"),
-#        aes(date.time, volEb0.5))+
-#   geom_point(alpha=0.3)
+ ggplot(filter(df12, date.time>"2017-07-15"&date.time<"2017-8-20"),
+       aes(date.time, volEb0.5))+
+  geom_point(alpha=0.3)+
+   geom_point(aes(date.time, volEb0.5), color="red", alpha=0.3)
+  #ylim(-250, 500)
+ggplot(filter(df14, date.time>"2017-06-15"&date.time<"2017-10-01"),
+       aes(date.time, volEb0.5))+
+  geom_point(alpha=0.3)
+
+ggplot(filter(df12, date.timeHH<"2017-08-01 00:00:00"), 
+       aes(monthday, volEb2))+
+  geom_point(alpha=0.5)
+  #facet_grid(year~.)
+
+###diurnal plots:
+df12$date<-df12$date.timeHH
+df14$date<-df14$date.timeHH
+
+df14_2017<-filter(df14, date<"2018-04-01 00:00:00")
+df12_2017<-filter(df12, date<"2018-04-01 00:00:00")
+# %>%
+#   mutate(volEb0.5, replace(volEb0.5, date>"2017-07-01 00:00:00" & 
+#                              date< "2017-08-01 00:00:00"), NA)
+
+
+shallowDiurnalPlot17<-timeVariation(df14_2017, pollutant="volEb1", 
+                                  type="month", statistic="mean",
+                                  normalise=FALSE)
+plot(shallowDiurnalPlot17, subset="hour")
+
+deepDiurnalPlot17<-timeVariation(df12_2017, pollutant="volEb1", 
+                               type="month", statistic="mean",
+                               normalise=FALSE)
+plot(deepDiurnalPlot17, subset="hour")
+
+df14_2018<-filter(df14, date>"2018-04-01 00:00:00")
+df12_2018<-filter(df12, date>"2018-04-01 00:00:00")
+
+shallowDiurnalPlot<-timeVariation(df14_2018, pollutant="volEb0.5", 
+                                       type="month", statistic="mean",
+                                       normalise=FALSE)
+plot(shallowDiurnalPlot, subset="hour")
+
+deepDiurnalPlot<-timeVariation(df12_2018, pollutant="volEb0.5", 
+                                  type="month", statistic="mean",
+                                  normalise=FALSE)
+plot(deepDiurnalPlot, subset="hour")
+
+#Why is the 2017 july volEb0.5 super high? It's like it didn't get divided or something
+#volEb1 for the same period looks ok.
+
 ##   #ylim(-250, 500) ----
 
 #filter the time points measuring siphon purges:
@@ -294,8 +360,13 @@ dailyEb12<-df12 %>%
                    dailyVolEb2 = (mean(volEb2, na.rm=TRUE)),
                    sdVolEb0.5 = (sd(volEb0.5, na.rm=TRUE)),
                    sdVolEb2 = (sd(volEb2, na.rm=TRUE)))
-dailyEb12$date<-as.Date(dailyEb12$date.time)
-dailyEb12$site<-"deep"
+dailyEb12<-mutate(dailyEb12,
+       date=as.Date(date.time),
+       site="deep",
+       year=year(date),
+       monthday = format(date, format="%m-%d %H:%M")%>%
+  as.POSIXct(monthday, format="%m-%d %H:%M", tz="UTC"))
+
 
 dailyEb14<-df14 %>%
   dplyr::group_by(date.time= cut(date.time, breaks="24 hour")) %>%
@@ -303,9 +374,18 @@ dailyEb14<-df14 %>%
             sdVolEb0.5 = (sd(volEb0.5, na.rm=TRUE)),
             dailyVolEb2 = (mean(volEb2, na.rm=TRUE)), 
             sdVolEb2 = (sd(volEb2, na.rm=TRUE)))
-dailyEb14$date<-as.Date(dailyEb14$date.time)
-dailyEb14$site<-"shallow"
+dailyEb14<-mutate(dailyEb14,
+                  date=as.Date(date.time),
+                  site="shallow",
+                  year=year(date),
+                  monthday = format(date, format="%m-%d %H:%M")%>%
+                    as.POSIXct(monthday, format="%m-%d %H:%M", tz="UTC"))
 
+# dailyEb14$date<-as.Date(dailyEb14$date.time)
+# dailyEb14$site<-"shallow"
+# dailyEb14$year=year(dailyEb14$date)
+# dailyEb14$monthday = format(dailyEb14$date, format="%m-%d %H:%M")%>%
+#   as.POSIXct(monthday, format="%m-%d %H:%M", tz="UTC")
 
 # ggplot(filter(dailyEb12, date>"2017-05-15"&date<"2017-12-01"),
 #        aes(date, dailyVolEb0.5))+
@@ -342,6 +422,16 @@ dailyEbP1<-ggplot(filter(dailyEb, date>"2017-04-15"&date<"2017-11-01"),
   #geom_hline(aes(yintercept=24,color="red"))+
   scale_x_date(labels=date_format("%b %d", tz="UTC"), 
                breaks=date_breaks("1 month"))
+
+dailyEbP2<-ggplot(filter(dailyEb, year!= "NA", site=="shallow"),
+                  aes(monthday, dailyVolEb2))+
+  geom_line(alpha=0.5)+
+  facet_grid(year~site)+
+  #geom_hline(aes(yintercept=24,color="red"))+
+  scale_x_datetime(labels=date_format("%b %d", tz="UTC"), 
+               breaks=date_breaks("1 month"))+
+  labs(y="Daily Volumetric Ebullition (mL/m2/hr)")+
+  theme_bw()
   
 # FilteredEbP1<-ggplot(filter(filteredEb, date>"2017-04-15"&date<"2017-11-01"),
 #                   aes(date.time, volEb))+
@@ -360,7 +450,7 @@ dailyEbP1<-ggplot(filter(dailyEb, date>"2017-04-15"&date<"2017-11-01"),
 #                    breaks=date_breaks("1 month"))
 
 
-dailyEbP1+geom_point(data=grts.df, aes(g.date, g.volEb, color=g.site))
+dailyEbP2+geom_point(data=grts.df, aes(g.date, g.volEb, color=g.site))
 
 
 #FilteredEbP1+geom_point(data=grts.df, aes(g.date, g.volEb, color=g.site))
@@ -399,11 +489,16 @@ df12.gc<-df12.gc %>% mutate(meanCH4interp = na.approx(meanCH4, rule=2),
                             sdCO2interp = na.approx(sdCO2, rule=2),
                             sdN2Ointerp = na.approx(sdN2O, rule=2))
 
+#replace missing 2018 GC data with 50% CH4
+df14.gc<-df14.gc%>%
+  mutate(meanCH4interp = replace(meanCH4interp, date.time>"2018-01-01 00:00:00" & meanCH4interp <100000, 500000)) 
+df12.gc<-df12.gc%>%
+  mutate(meanCH4interp = replace(meanCH4interp, date.time>"2018-01-01 00:00:00" & meanCH4interp <100000, 500000)) 
 
 
-testP1<-ggplot(df12.gc, aes(date.time, meanCH4))+
+testP1<-ggplot(df14.gc, aes(date.time, meanCH4))+
   geom_point(alpha=0.3)
-testP1+geom_line(data=df12.gc, aes(date.time, meanCH4interp), alpha=0.1)
+testP1+geom_line(data=df14.gc, aes(date.time, meanCH4interp), alpha=0.1)
 #there's a strange repeat of June 12-26th at u12.
   #check for duplicate dates:
   #filter(df12.gc, duplicated(date.time,fromLast = TRUE) | duplicated(date.time,fromLast = FALSE)) %>% arrange(date.time)
@@ -469,6 +564,14 @@ dailyMassFlux14<-df14.gc %>%
             sdEbCh4mgM2h = (sd(ebCh4mgM2h, na.rm=TRUE)))
 dailyMassFlux14$site<-"shallow"
 dailyMassFlux14<-as.data.frame(dailyMassFlux14)
+
+
+dailyMassFlux14<-mutate(dailyMassFlux14,
+                  #date=as.Date(date.time),
+                  #site="shallow",
+                  year=year(date),
+                  monthday = format(date, format="%m-%d %H:%M")%>%
+                    as.POSIXct(monthday, format="%m-%d %H:%M", tz="UTC"))
 
 ####temperatures----
 

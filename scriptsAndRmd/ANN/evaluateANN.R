@@ -31,7 +31,7 @@ validMedians <- apply(validPreds, 1, median)
 medR2 <- 1 - (sum((validFlux-validMedians)^2)/sum((validFlux-mean(validFlux))^2))
 
 
-## Grab variable importance from ANN ensemble
+## Grab variable importance from ANN ensemble  ???ensemble of ensembles???
 impVars <- do.call(rbind,lapply(bestANNs, function(x){ x$varimp}))
 impVarsMedians <- ddply(impVars, .(Variable), summarise, 
                         "MedianImportance" = median(Importance))
