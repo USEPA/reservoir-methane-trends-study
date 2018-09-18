@@ -92,6 +92,12 @@ ggplot(epOutPow, aes(wind_dir, ch4_flux/10^3*16*60*60))+
   #ylim(-1, 1)+
   xlim(0, 360)
 
+ggplot(epOutPowPelagic, aes(wind_dir, co2_flux/10^3*44*60*60))+
+  geom_point(alpha=0.3)+
+  coord_polar()+
+  #ylim(-1, 1)+
+  xlim(0, 360)
+
 ggplot(epOutPowS, aes(monthday, co2_flux/1000000*16*60*60))+
   geom_point(alpha=0.1)+
   geom_point(data=filter(epOutPowS, w_unrot>0.1), 
@@ -179,8 +185,26 @@ ggplot(epOutPow, aes(wind_dir, co2_flux/10^6*44*60*60))+
   coord_polar()+
   ylim(-2, 5)+
   ylab("CO2 Flux (g CO2 m-2 hr-1)")+
-  xlab("wind direction")
- # scale_fill_discrete(labels=c("night", "day", "NA"))
+  xlab("wind direction")+
+  scale_fill_discrete(name = "Time of Day",labels=c("night", "day", "NA"))
+
+#without 330-30 deg
+ggplot(epOutPowPelagic, aes(wind_dir, co2_flux/10^6*44*60*60))+
+  geom_point(alpha=0.3, aes(color=as.factor(epOutPowPelagic$daytime)))+
+  geom_hline(yintercept=0)+
+  coord_polar()+
+  ylim(-2, 5)+
+  xlim(0, 360)+
+  ylab("CO2 Flux (g CO2 m-2 hr-1)")+
+  xlab("wind direction")+
+  scale_fill_discrete(name = "Time of Day", labels=c("night", "day", "NA"))
+
+#time series, filtering 30-330
+ggplot(epOutPowPelagic, aes(RDateTime, co2_flux/10^6*44*60*60))+
+  geom_point(alpha=0.3, aes(color=as.factor(epOutPowPelagic$daytime)))+
+  theme(legend.position = "none")+
+  ylim(-2, 5)
+#try filtering time periods where random error in the co2 flux is high
 
 #CH4 flux as f(wind dir)
 ggplot(epOutPow, aes(wind_dir, ch4_flux/10^6*16*60*60*1000))+

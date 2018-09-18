@@ -153,7 +153,124 @@ tenHzCO2<-do.call("rbind", tenHzList)
 ggplot(tenHzCO2, aes(rDateTime, CO2ppm))+
   geom_point(alpha=0.2)
 
+############################################
+###########################################
+##### 18 Sept 2018 #########################
+##############################################
+############################################
 
+
+#CO2 flux as f(wind dir)
+ggplot(epOutPow, aes(wind_dir, co2_flux/10^6*44*60*60))+
+  geom_point(alpha=0.3, aes(color=as.factor(epOutPow$daytime)))+
+  geom_hline(yintercept=0)+
+  coord_polar()+
+  ylim(-2, 5)+
+  ylab("CO2 Flux (g CO2 m-2 hr-1)")+
+  xlab("wind direction")+
+  scale_fill_discrete(name = "Time of Day",labels=c("night", "day", "NA"))
+
+#without 330-30 deg
+ggplot(epOutPowPelagic, aes(wind_dir, co2_flux/10^6*44*60*60))+
+  geom_point(alpha=0.3, aes(color=as.factor(epOutPowPelagic$daytime)))+
+  geom_hline(yintercept=0)+
+  coord_polar()+
+  ylim(-2, 5)+
+  xlim(0, 360)+
+  ylab("CO2 Flux (g CO2 m-2 hr-1)")+
+  xlab("wind direction")+
+  scale_fill_discrete(name = "Time of Day", labels=c("night", "day", "NA"))
+
+#time series, filtering 30-330
+ggplot(epOutPowPelagic, aes(RDateTime, co2_flux/10^6*44*60*60))+
+  geom_point(alpha=0.3, aes(color=as.factor(epOutPowPelagic$daytime)))+
+  theme(legend.position = "none")
+  ylim(-2, 5)
+#try filtering time periods where random error in the co2 flux is high
+ggplot(epOutPowPelagic, aes(RDateTime, co2_flux/10^6*44*60*60))+
+  geom_point(alpha=0.3)+
+  geom_errorbar(aes(x=RDateTime, 
+                    ymin=((co2_flux-rand_err_co2_flux)/(10^6*44*60*60)), 
+                    ymax = ((co2_flux+rand_err_co2_flux)/(10^6*44*60*60))))
+
+#define a fractional error
+epOutPowPelagic$fracErrCo2<-abs(epOutPowPelagic$rand_err_co2_flux/epOutPowPelagic$co2_flux)
+ggplot(epOutPowPelagic, aes(fracErrCo2))+
+  geom_histogram(binwidth=0.1)+
+  xlim(0, 10)+
+  ylim(0, 100)
+
+#does fractional error scale with CO2 flux magnitude? or do smaller fluxes have larger fractional errors?
+ggplot(epOutPowPelagic, aes(co2_flux, fracErrCo2))+
+  geom_point(alpha=0.3, aes(color=as.factor(epOutPowPelagic$daytime)))+
+  theme(legend.position = "none")+
+  ylim(-10, 500) #yup, fluxes close to zero have largest fractional errors
+
+#ok, let's look at absolute random errors:
+ggplot(epOutPow, aes(co2_flux, rand_err_co2_flux))+
+  geom_point(alpha=0.3, aes(color=as.factor(epOutPow$daytime)))+
+  theme(legend.position = "none")+
+  xlim(-200, 200)
+
+epOutPowPelagic<-epOutPowPelagic%>%
+  mutate(co2_flux.FE=replace(co2_flux, fracErrCo2>5, NA), #removes 744-535 = 209
+         co2_flux.E = replace(co2_flux, rand_err_co2_flux>25, NA),
+         randErrCo2.E = replace(rand_err_co2_flux, rand_err_co2_flux>25, NA)) 
+
+ggplot(filter(epOutPow, abs(co2_flux/10^3*44*60*60)<1*10^7), aes(abs(co2_flux)/10^3*44*60*60))+
+  geom_histogram(binwidth=0.1)+
+  scale_x_log10()+
+  xlab("Absolute Val of CO2 Flux (mg CO2 m-2 hr-1)")
+  xlim(0.01, 10)
   
+  ggplot(filter(epOutPowPelagic, RDateTime>"2018-09-01 00:00:00"),
+       aes(RDateTime, co2_flux.E/10^6*44*60*60))+
+  geom_point(alpha=0.4)
+  #geom_point(alpha=0.3, aes(color=as.factor(epOutPowPelagic$daytime)))+
+  theme(legend.position = "none")
+  ylim(-2, 5)
   
-   
+DailyEcFluxesPel<-epOutPowPelagic %>%
+    group_by(RDateTime = cut(RDateTime, breaks = "24 hour")) %>%
+    summarize(meanCO2Flux.E = (mean(co2_flux.E, na.rm=TRUE)/1000*44*60*60),
+              sdCO2Flux = (sd(ch4_flux, na.rm=TRUE)/1000*44*60*60),
+              randErrCO2Prop = sqrt(sum((randErrCo2.E/1000*44*60*60)^2, 
+                                        na.rm=TRUE)),
+              meanCO2Flux = (mean(co2_flux, na.rm=TRUE)/1000*44*60*60),
+              sdCO2Flux = (sd(co2_flux, na.rm=TRUE)/1000*44*60*60),
+              #nCH4Flux = n_distinct(ch4_flux, na.rm=TRUE),
+              nCO2Flux =  n_distinct(co2_flux, na.rm=TRUE),
+              meanAirT = (mean(air_temperature, na.rm=TRUE)-273.15))
+  DailyEcFluxesPel<-DailyEcFluxesPel%>%
+    mutate(RDateTime=as.Date(DailyEcFluxesPel$RDateTime),
+           year = year(RDateTime),
+           monthday = format(RDateTime, format="%m-%d %H:%M"))# %>%
+  DailyEcFluxesPel$monthday<-as.Date(DailyEcFluxesPel$monthday, format="%m-%d %H:%M")
+
+  #same time period, but all wind directions 
+DailyEcFluxesPow<-epOutPow %>%
+    group_by(RDateTime = cut(RDateTime, breaks = "24 hour")) %>%
+    summarize(meanCH4Flux = (mean(ch4_flux, na.rm=TRUE)/1000*16*60*60),
+              sdCH4Flux = (sd(ch4_flux, na.rm=TRUE)/1000*16*60*60),
+              randErrCh4Prop = sqrt(sum((rand_err_ch4_flux/1000*16*60*60)^2, 
+                                        na.rm=TRUE)),
+              meanCO2Flux = (mean(co2_flux, na.rm=TRUE)/1000*44*60*60),
+              sdCO2Flux = (sd(co2_flux, na.rm=TRUE)/1000*44*60*60),
+              nCH4Flux = n_distinct(ch4_flux, na.rm=TRUE),
+              nCO2Flux =  n_distinct(co2_flux, na.rm=TRUE),
+              meanAirT = (mean(air_temperature, na.rm=TRUE)-273.15))
+  DailyEcFluxesPow<-DailyEcFluxesPow%>%
+    mutate(RDateTime=as.Date(DailyEcFluxesPow$RDateTime),
+           year = year(RDateTime),
+           monthday = format(RDateTime, format="%m-%d %H:%M"))# %>%
+  DailyEcFluxesPow$monthday<-as.Date(DailyEcFluxesPow$monthday, format="%m-%d %H:%M")
+
+DailyEcFluxesPow <- subset(DailyEcFluxesPow, !duplicated(RDateTime))    
+  
+ggplot(DailyEcFluxesPel, aes(RDateTime, meanCO2Flux.E))+
+  geom_point(alpha=0.5)+
+  ylim(-1000, 2000)
+  geom_point(aes(DailyEcFluxesPel$RDateTime, DailyEcFluxesPel$meanCO2Flux, color="red"), alpha=0.7)
+ggplot(DailyEcFluxesPow, aes(RDateTime, meanCO2Flux))+
+  geom_point(alpha=0.7)+
+  ylim(-1000, 2000)
