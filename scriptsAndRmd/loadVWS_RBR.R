@@ -19,6 +19,14 @@ vanniMet$RDateTime<-as.POSIXct(vanniMet$dateTimeW,
                                tz = "UTC")
 vanniMetSub<-filter(vanniMet, RDateTime>"2016-09-29 00:45:00")
 
+#Filter time periods when rain gauge was down, as indicated by long periods of zero rain:
+  # ggplot(filter(vanniMetSub, RDateTime>"2017-05-10 00:00:00", RDateTime<"2018-07-20 00:00:00"))+
+  #   geom_point(aes(RDateTime, DailyRain), alpha=0.3)+
+  #   ylim(0, 10)
+vanniMetSub<-vanniMetSub%>%
+  mutate(DailyRain = replace(DailyRain, RDateTime>"2017-11-17 00:00:00" & RDateTime<"2018-05-15 00:00:00", NA))
+         
+
 #head(vanniMetSub$RDateTime)
 #tail(vanniMetSub$RDateTime)
 #average 15-min readings into 30-min averages
@@ -34,13 +42,18 @@ vanni30min<-vanniMetSub %>%
             RH.vws=mean(RH, na.rm=TRUE),
             bPress.vws=mean(Bpress, na.rm=TRUE)*3386.39)#convert from inHg to Pa
 
+vanni30min$rain30min<-c(0, diff(vanni30min$dailyRain.vws, 1))
+vanni30min<-mutate(vanni30min,
+                   rain30min=replace(rain30min, rain30min<0, 0))
 
 vanni30min$RDateTime<-as.POSIXct(vanni30min$RDateTime,
                                   format = "%Y-%m-%d %H:%M:%S",
                                   tz="UTC")
 
-ggplot(vanni30min, aes(RDateTime, waterLevel.vws))+
-  geom_line()
+
+
+# ggplot(vanni30min, aes(RDateTime, waterLevel.vws))+
+#   geom_line()
 #on April 25, 2017 between the data points of 10:45 and 11:15, the Level went from 0.472 to 0.317
 #can fix this offset by adding 0.472-0.317 = 0.155 to all points after 4/25/17 11:15
 
@@ -79,10 +92,99 @@ rbrT<-read.table(paste(myWd, "/RBR/Acton/L1_30minRBR/RBR20170510_20180827.csv", 
 rbrT$RDateTime<-as.POSIXct(rbrT$datetimeW,
                            format="%Y-%m-%d %H:%M:%S",
                            tz="UTC")
+ggplot(filter(rbrT, RDateTime>"2017-01-15", RDateTime<"2018-12-01"))+
+#ggplot(rbrT)+  
+    geom_line(aes(RDateTime, RBRmeanT_0.75, color="0.75"))+
+    geom_line(aes(RDateTime, RBRmeanT_0.25, color="0.25"))
+     #    geom_point(alpha=0.3)
+
+#filter time periods when RBRs have spikes from being serviced:
+
+rbrT<-rbrT%>%
+  mutate(RBRmeanT_0.1 = replace(RBRmeanT_0.1, 
+                                RDateTime>"2017-10-20" & RDateTime<"2017-10-21" & RBRmeanT_0.1>20|
+                                RDateTime>"2017-11-28" & RDateTime<"2017-11-30" & RBRmeanT_0.1>7 |
+                                RDateTime>"2017-12-11" & RDateTime<"2017-12-13" & RBRmeanT_0.1>3 |
+                                RDateTime>"2018-05-08" & RDateTime<"2018-05-09", NA),
+         RBRmeanT_0.25 = replace(RBRmeanT_0.25, 
+                                 RDateTime>"2017-10-20" & RDateTime<"2017-10-21" & RBRmeanT_0.25>20|
+                                 RDateTime>"2017-11-28" & RDateTime<"2017-11-30" & RBRmeanT_0.25>7 |
+                                 RDateTime>"2017-12-11" & RDateTime<"2017-12-13" & RBRmeanT_0.25>3 |
+                                 RDateTime>"2018-05-08" & RDateTime<"2018-05-09", NA),
+         RBRmeanT_0.5 = replace(RBRmeanT_0.5, 
+                                 RDateTime>"2017-10-20" & RDateTime<"2017-10-21" & RBRmeanT_0.5>20|
+                                   RDateTime>"2017-11-28" & RDateTime<"2017-11-30" & RBRmeanT_0.5>7 |
+                                   RDateTime>"2017-12-11" & RDateTime<"2017-12-13" & RBRmeanT_0.5>3 |
+                                   RDateTime>"2018-05-08" & RDateTime<"2018-05-09", NA),
+         RBRmeanT_0.75 = replace(RBRmeanT_0.75, 
+                                 RDateTime>"2017-10-20" & RDateTime<"2017-10-21" & RBRmeanT_0.75>20|
+                                   RDateTime>"2017-11-28" & RDateTime<"2017-11-30" & RBRmeanT_0.75>7 |
+                                   RDateTime>"2017-12-11" & RDateTime<"2017-12-13" & RBRmeanT_0.75>3 |
+                                   RDateTime>"2018-05-08" & RDateTime<"2018-05-09", NA),
+         RBRmeanT_1 = replace(RBRmeanT_1, 
+                                 RDateTime>"2017-10-20" & RDateTime<"2017-10-21" & RBRmeanT_1>20|
+                                   RDateTime>"2017-11-28" & RDateTime<"2017-11-30" & RBRmeanT_1>7 |
+                                   RDateTime>"2017-12-11" & RDateTime<"2017-12-13" & RBRmeanT_1>3 |
+                                   RDateTime>"2018-05-08" & RDateTime<"2018-05-09", NA),
+         RBRmeanT_1.25 = replace(RBRmeanT_1.25, 
+                                 RDateTime>"2017-10-20" & RDateTime<"2017-10-21" & RBRmeanT_1.25>20|
+                                   RDateTime>"2017-11-28" & RDateTime<"2017-11-30" & RBRmeanT_1.25>7 |
+                                   RDateTime>"2017-12-11" & RDateTime<"2017-12-13" & RBRmeanT_1.25>3 |
+                                   RDateTime>"2018-05-08" & RDateTime<"2018-05-09", NA),
+         RBRmeanT_1.6 = replace(RBRmeanT_1.6, 
+                                 RDateTime>"2017-10-20" & RDateTime<"2017-10-21" & RBRmeanT_1.6>20|
+                                   RDateTime>"2017-11-28" & RDateTime<"2017-11-30" & RBRmeanT_1.6>7 |
+                                   RDateTime>"2017-12-11" & RDateTime<"2017-12-13" & RBRmeanT_1.6>3 |
+                                   RDateTime>"2018-05-08" & RDateTime<"2018-05-09", NA))
+###FANCY FAILED ATTEMPTS USING APPLY:------
+# rollT<-zoo::rollapply(rbrT$RBRmeanT_1.6, width = 24,FUN = mean)
+# rbrT$rollT<-c(rep(NA, 11), rollT, rep(NA, 12))
+# rbrT<-mutate(rbrT,
+#              rollT = replace(rollT, RDateTime>as.POSIXct("2017-11-28 00:00:00") & RDateTime<as.POSIXct("2017-11-30 00:00:00") & rollT>8, 7))
+# 
+# softFilt<-function(x) {if(abs(rbrT$rollT-x)/rbrT$rollT>0.5) x==NA}
+# rbrT<-as.data.frame(apply(rbrT, 2, function(x) if(!is.na(x)) if(abs(rbrT$rollT-x)/rbrT$rollT>0.5) x==NA))
+# rbrT<-as.data.frame(apply(rbrT, 2, softFilt(x)))                          
+# rbrT<-(lapply(rbrT, function(x) mutate(rbrT,
+#                                         x = replace(x, rbrT$RDateTime>"2017-10-20" & rbrT$RDateTime<"2017-10-21" & x>20, NA)))) 
+#                          
+#                           
+# rbrT<-as.data.frame(apply(rbrT, 2, function(x) if(rbrT$RDateTime>"2017-10-20" & rbrT$RDateTime<"2017-10-21" & x>20|
+#                                                   rbrT$RDateTime>"2017-11-28" & rbrT$RDateTime<"2017-11-30" & x>7 |
+#                                                   rbrT$RDateTime>"2017-12-11" & rbrT$RDateTime<"2017-12-13" & x>3 |
+#                                                   rbrT$RDateTime>"2018-05-08" & rbrT$RDateTime<"2018-05-09") {x==NA}))
+# 
+# rbrT<-as.data.frame(apply(rbrT, 2, function(x) x=replace(x, rbrT$RDateTime>"2017-12-11" & rbrT$RDateTime<"2017-12-13" & x>3, NA)))
+# rbrT<-as.data.frame(apply(rbrT, 2, function(x) x=replace(x, rbrT$RDateTime>"2018-05-08" & rbrT$RDateTime<"2018-05-09", NA)))
+# 
+# myfunc<-function(x) {replace(x, 
+#                              rbrT$RDateTime>"2016-11-28" & rbrT$RDateTime<"2017-11-30" & x>15, 
+#                              NA)}
+# 
+# myfunc(rbrT$RBRmeanT_0.75)
+
+#apply made everything a factor:
+# rbrT<-mutate(rbrT,
+#              RBRmeanT_0.1 = as.numeric(as.character(RBRmeanT_0.1)),
+#              RBRmeanT_0.25 = as.numeric(as.character(RBRmeanT_0.25)),
+#              RBRmeanT_0.5 = as.numeric(as.character(RBRmeanT_0.5)),
+#              RBRmeanT_0.75 = as.numeric(as.character(RBRmeanT_0.75)),
+#              RBRmeanT_1 = as.numeric(as.character(RBRmeanT_1)),
+#              RBRmeanT_1.25 = as.numeric(as.character(RBRmeanT_1.25)),
+#              RBRmeanT_1.6 = as.numeric(as.character(RBRmeanT_1.6))
+#              )
+# rbrT$RDateTime<-as.POSIXct(rbrT$datetimeW,
+#                            format="%Y-%m-%d %H:%M:%S",
+#                            tz="UTC")
+# ggplot(filter(rbrT, RDateTime>"2017-10-15", RDateTime<"2017-12-01"),
+#        aes(RDateTime, RBRmeanT_0.5))+
+#   geom_point(alpha=0.3)
+####-----
 
 rbrTsub<-select(rbrT, RDateTime, RBRmeanT_0.1, RBRmeanT_0.25,
                 RBRmeanT_0.5,RBRmeanT_0.75,RBRmeanT_1,
                 RBRmeanT_1.25,RBRmeanT_1.6)
+
 
 rbrDaily<-rbrTsub%>%
   group_by(RDateTime = cut(RDateTime, breaks = "24 hour"))%>%
@@ -188,13 +290,18 @@ campMet<-read.table(paste(myWd, "/CR6/CR6Series_BioMet20180814.csv", sep=""),
                      as.is=TRUE, # Prevent conversion to factor
                      header=FALSE, # don't import column names
                      col.names = c("dateTimeW", "record", "battV_min", "PTemp_C_Avg", 
-                                   "AirTC_avg", "AitTC_std", "Raim_mm_tot", "NR_Wm2_avg", 
+                                   "AirTC_avg", "AitTC_std", "Rain_mm_tot", "NR_Wm2_avg", 
                                    "NR_Wm2_std", "RH", "RH_avg"),
                      na.strings = "NAN",
                      fill=TRUE)
 campMet$RDateTime<-as.POSIXct(campMet$dateTimeW,
                                format="%Y-%m-%d %H:%M:%S",
                                tz = "UTC")
+
+#filter periods when rain gauge was not measuring, but was being logged:
+campMet<-campMet%>%
+  mutate(Rain_mm_tot = replace(Rain_mm_tot, RDateTime>"2018-04-15 00:00:00" & RDateTime<"2018-06-15 00:00:00", NA))
+
 # ggplot(campMet, aes(RDateTime, NR_Wm2_avg))+
 #   geom_line()+
 #   ylim(-200, 1000)

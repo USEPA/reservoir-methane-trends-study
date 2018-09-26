@@ -172,8 +172,7 @@ hoboU14$Vol<-hoboU14$height*(2.5/2)^2*pi  #large diameter tube
 
 ###3: smooth with rolling average----
 
-zwat<-zoo::rollapply(hoboU12$Vol, width = 12,FUN = mean)
-hoboU12$volSmth<-c(rep(NA, 5), zwat, rep(NA, 6))
+,
 
 zwat<-zoo::rollapply(hoboU14$Vol, width = 12,FUN = mean)
 hoboU14$volSmth<-c(rep(NA, 5), zwat, rep(NA, 6))

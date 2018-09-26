@@ -23,7 +23,7 @@ USact<-mutate(epOutOrder,
               LE_SSITC_TEST = qc_LE,
               SH = H_strg,
               SLE = LE_strg,
-              PA = air_pressure/1000, #kPa
+              PA = air_p_mean/1000, #kPa
               RH = RH,
               T_SONIC = sonic_temperature-273.15, #C
               TA = air_temperature-273.15, #C
@@ -39,6 +39,7 @@ USact<-mutate(epOutOrder,
               TW_4 = -9999, #water T, from RBRs -0.75
               TW_5 = -9999, #water T, from RBRs -1.0 
               TW_6 = -9999, #water T, from RBRs -1.25
+              WTD = -9999,
               MO_LENGTH = L,
               TAU = Tau,
               TAU_SSITC_TEST = qc_Tau,
@@ -53,12 +54,12 @@ USact<-mutate(epOutOrder,
   select(TIMESTAMP_START, TIMESTAMP_END, FC_SSITC_TEST, FCH4_SSITC_TEST, FETCH_70, FETCH_90,
          FETCH_FILTER, FETCH_MAX, CH4, CO2, CO2_SIGMA, FC, FCH4, H2O, H2O_SIGMA, SC, SCH4,
          H, H_SSITC_TEST, LE, LE_SSITC_TEST, SH, SLE, PA, RH, T_SONIC, TA, VPD, P, P_RAIN, 
-         NETRAD, PPFD_BC_IN, TS, TW_1, TW_2, TW_3, TW_4, TW_5, TW_6, MO_LENGTH, TAU, TAU_SSITC_TEST,
-         U_SIGMA, USTAR, V_SIGMA, W_SIGMA, WS, WS, WS_MAX, ZL)
+         NETRAD, PPFD_BC_IN, TS, TW_1, TW_2, TW_3, TW_4, TW_5, TW_6, WTD, MO_LENGTH, TAU, 
+         TAU_SSITC_TEST, U_SIGMA, USTAR, V_SIGMA, W_SIGMA, WD, WS, WS_MAX, ZL)
 
 #designate fetch filter and "PI" qa'ed fluxes
 USact<-mutate(USact,
-              FETCH_FILTER = replace(FETCH_FILTER, TIMESTAMP_START<"2018-05-01 00:00:00" & wind_dir>195 & wind_dir<330, 0),
+              FETCH_FILTER = replace(FETCH_FILTER, TIMESTAMP_START<"2018-05-01 00:00:00" & WD>195 & WD<330, 0),
               FC_PI = replace(FC, FETCH_FILTER == 0 |
                                 FC_SSITC_TEST == 2 ,
                                 -9999),
@@ -86,21 +87,93 @@ amerifluxTime$RDateTime<-amerifluxTime$TIMESTAMP_START
 
 amerifluxRBR<-left_join(amerifluxTime, rbrT, by = "RDateTime")    
 amerifluxRBR2<-subset(amerifluxRBR, !duplicated(RDateTime)) #30693
-USact2<-subset(USact, !duplicated(TIMESTAMP_START)) #30693
+USact<-subset(USact, !duplicated(TIMESTAMP_START)) #30693
 
-for(i in 1:length(USact2$TS)){
-  USact$TW_1[i] = ifelse(!is.na(amerifluxRBR2$RBRmeanT_0.1[i]), amerifluxRBR2$RBRmeanT_0.1[i], -9999)
-  USact$TW_2[i] = ifelse(!is.na(amerifluxRBR2$RBRmeanT_0.25[i]), amerifluxRBR2$RBRmeanT_0.25[i], -9999)
-  USact$TW_3[i] = ifelse(!is.na(amerifluxRBR2$RBRmeanT_0.5[i]), amerifluxRBR2$RBRmeanT_0.5[i], -9999)
-  USact$TW_4[i] = ifelse(!is.na(amerifluxRBR2$RBRmeanT_0.75[i]), amerifluxRBR2$RBRmeanT_0.75[i], -9999)
-  USact$TW_5[i] = ifelse(!is.na(amerifluxRBR2$RBRmeanT_1[i]), amerifluxRBR2$RBRmeanT_1[i], -9999)
-  USact$TW_6[i] = ifelse(!is.na(amerifluxRBR2$RBRmeanT_1.25[i]), amerifluxRBR2$RBRmeanT_1.25[i], -9999)
-  USact$TS[i] = ifelse(!is.na(amerifluxRBR2$RBRmeanT_1.6[i]), amerifluxRBR2$RBRmeanT_1.6[i], -9999)
+#give USact RBR values for TS, TW 1 thru 6 where available, -9999s where not avail
+USact<-mutate(USact,
+              TW_1 = amerifluxRBR2$RBRmeanT_0.1,
+              TW_2 = amerifluxRBR2$RBRmeanT_0.25,
+              TW_3 = amerifluxRBR2$RBRmeanT_0.5,
+              TW_4 = amerifluxRBR2$RBRmeanT_0.75,
+              TW_5 = amerifluxRBR2$RBRmeanT_1,
+              TW_6 = amerifluxRBR2$RBRmeanT_1.25,
+              TS = amerifluxRBR2$RBRmeanT_1.6)
+#gplot(campMet, aes(RDateTime, Rain_mm_tot))+
+#   geom_point(alpha=0.3)
+# ggplot(vanni30min, aes(RDateTime, dailyRain.vws))+
+#   geom_point()
+# ggplot(filter(vanni30min, RDateTime>"2017-10-01"), aes(RDateTime, rain30min))+
+#   geom_point()
+
+     
+#merge precip & PAR & water level from VWS
+# also need to change precip from daily cumulative to 30-min
+
+
+# P=-9999, #precipitation
+# P_RAIN = -9999, #rainfall, from VWS
+# NETRAD = -9999, #net radiation, W/m2, from our net radiometer
+# PPFD_BC_IN = -9999, #PPFD, below canopy, incoming
+amerifluxVWS<-left_join(amerifluxTime, vanni30min, by="RDateTime") %>% #30709
+  subset(!duplicated(RDateTime)) #30693
+
+#merge net radiation and precip from campbell suite   
+amerifluxCampVWS<-left_join(amerifluxVWS, campMet, by="RDateTime")%>%
+  subset(!duplicated(RDateTime)) #30693
+
+# ggplot(amerifluxCampVWS, aes(rain30min, Rain_mm_tot))+
+#   geom_point(alpha=0.2)# 
+# ggplot(filter(amerifluxCampVWS, RDateTime>"2018-04-15", 
+#               RDateTime<"2018-07-01"))+
+#   geom_point(aes(RDateTime, rain30min, color="VWS"), alpha=0.3)+
+#   geom_point(aes(RDateTime, Rain_mm_tot, color="tower"), alpha=0.3)+
+#   ylim(0, 5)
+
+
+
+
+#give USact VWS values for PAR, precip, and water level (WTD) where avail, -9999s where not avail
+#with(amerifluxCampVWS)%>%
+for(i in 1:length(USact$TS)){
+  USact$P[i] = if(!is.na(amerifluxCampVWS$rain30min[i])) amerifluxCampVWS$rain30min[i] else
+    if(!is.na(amerifluxCampVWS$Rain_mm_tot[i])) amerifluxCampVWS$Rain_mm_tot[i] else
+      -9999
+  USact$P_RAIN[i] = USact$P[i]
+  USact$PPFD_BC_IN[i] = ifelse(!is.na(amerifluxCampVWS$par.vws[i]), 
+                               amerifluxCampVWS$par.vws[i], -9999)
+  USact$WTD[i] = ifelse(!is.na(amerifluxCampVWS$levelAdj.vws[i]), #level adjust has the offset for the step change, plus 1 m to account for the depth difference between the flux footprint and the msmt site
+                        amerifluxCampVWS$waterLevel.vws[i], -9999)
+  USact$NETRAD[i] = ifelse(!is.na(amerifluxCampVWS$NR_Wm2_avg[i]), 
+                           amerifluxCampVWS$NR_Wm2_avg[i], -9999)
 }
-        
-              
-#merge precip & PAR from VWS
-#merge net radiation from campbell suite        
+
+# ggplot(USact, aes(TIMESTAMP_START, P))+
+#   geom_point(alpha=0.2)+
+#   ylim(0, 10)
+
+#change all na's to -9999's
+USact[is.na(USact)]<- -9999
+USactNA<-USact
+
+USactNA[USact== -9999]<- NaN
+
 #additional variables for this site: water level, static pressure
-              
+
+USactSub<-filter(USact, TIMESTAMP_START>"2017-01-25 18:30",
+                 TIMESTAMP_START<"2017-12-31 19:00")         
+head(USactSub$TIMESTAMP_START)
+tail(USactSub$TIMESTAMP_END)
+
+#check for missing HH periods:
+USactSub$check<-c(18000, diff(as.numeric(USactSub$TIMESTAMP_START), 1))
+summary(check)
+ggplot(filter(USactSub, TIMESTAMP_START>"2017-05-01", TIMESTAMP_START<"2017-07-01"),
+       aes(TIMESTAMP_START, check))+
+  geom_point()
+
+write.table(USactSub, 
+            file=("C:/R_Projects/actonFluxProject/output/US-Act_HH_201701260000_2018010000.csv"),
+            sep=",",
+            row.names=FALSE)
+
                                     

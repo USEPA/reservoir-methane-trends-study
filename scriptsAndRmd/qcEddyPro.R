@@ -24,8 +24,8 @@ epOutSub$qc_ch4_factor<-as.factor(epOutSub$qc_ch4_flux)
 #the coverage is 1- the number of NAs/total
 #print(c("Coverage %:", round(100-numNAs/tot*100, digits=2)))
 
- ggplot(epOut, aes(RDateTime, ch4_flux))+
-   geom_point(alpha=0.1)
+ # ggplot(epOut, aes(RDateTime, ch4_flux))+
+ #   geom_point(alpha=0.1)
 #   ylim(-50,50)
 
 ##Can filter fluxes for QAQC parameters and replace with NAs using mutate: 
@@ -247,6 +247,10 @@ ggplot(filter(DailyEcFluxes,RDateTime>"2017-05-01"&RDateTime<"2017-12-20"), aes(
  #geom_line()
 ggplot(DailyEcFluxes, aes(nCH4Flux))+
   geom_histogram(bins=48)
+
+ggplot(filter(epOutSubFilt, RDateTime>"2018-03-26", RDateTime<"2018-04-5"),
+       aes(RDateTime, ch4_flux))+
+  geom_point(alpha=0.2)
 
 #daily_hr<-
 
