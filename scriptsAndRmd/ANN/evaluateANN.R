@@ -1,17 +1,17 @@
-# load("output/annSimulationListAq2018.RData")
+ load("output/annSimulationList4.0.RData")
   #3.1: aq tower dataset 5/6/2018 thru 8/6/2018 with ustar filter applied
 
 ## Look at the simList object and pick out the 'best' models
 ## Look at the R^2 values first
 r2Sims <- sapply(simList, function(x){ x$r2 })
 summary(r2Sims)
-sum(r2Sims>= 0.4)/length(r2Sims) # 20% are higher than 0.5.
+sum(r2Sims>= 0.36)/length(r2Sims) # 20% are higher than 0.5.
 # Find the highest 100 R2 values
 minR2 <- sort(r2Sims, decreasing = TRUE)[100]
 # Subset the simList object to only include the highest 100 R2 values.
 simKeep <- sapply(simList, function(x){ x$r2 >= minR2 } )
 bestANNs <- simList[simKeep]
-save(bestANNs, file = "output/BestANNs3.1.RData")
+save(bestANNs, file = "output/BestANNs4.1.RData")
 #load("output/BestANNs.RData")
 
 

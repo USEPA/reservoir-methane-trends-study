@@ -22,22 +22,27 @@ covarTrapEb <- FALSE
 covarFuzzy <- TRUE
 
 #start and end of data set:
-#startdate <- "2017-02-01 00:00:00" #start of good data
-startdate <- "2018-05-06 00:00:00" #instruments on aquatic tower
-enddate <- "2018-08-07 00:00:00"
+startdate <- "2018-05-01 00:00:00" #start of good data
+#startdate <- "2018-05-06 00:00:00" #instruments on aquatic tower
+#enddate <- "2018-08-07 00:00:00" #end of RBR data
+enddate<-"2018-10-01 00:00:00"
 
 #run number/version
 
-runVer<-"3.2"
+runVer<-"4.1"
+#4.0 is Feb 2017 thru Oct 2018 with everything but trap ebullition as 
+##drivers. Also, RBR temp is gapfilled from August to Oct 2018 
+#4.1 is May 2018 thru Oct 2018 with sedT, airT, windSp, statP, delStatP, and fuzzy time as drivers
 
 ### Load data ------
-fluxDat <- read.csv("output/exampleDatasetANN.csv")
-
+#fluxDat <- read.csv("output/exampleDatasetANN.csv")
+fluxDat<-read.csv("output/annDataset201702201810.csv")
 
 ## Make date into Date class.
 fluxDat$date <- as.Date(fluxDat$date, format = "%m/%d/%Y")
 ## Make RDateTime into POSIXct class
 fluxDat$datetime <- as.POSIXct(fluxDat$RDateTime, tz = "Etc/GMT+5")
+
 
 
 ## There are duplicate rows for some reason. Get rid of them.
@@ -515,6 +520,7 @@ if(fitModels){
   proc.time() - ptm # 2762 seconds --> 45 minutes
   save(simList, file = paste("output/annSimulationList", runVer, ".RData", sep=""))
 }
+
 # load("output/annSimulationListAq2018.RData")
     #3.1: aq tower dataset 5/6/2018 thru 8/6/2018 with ustar filter applied
 

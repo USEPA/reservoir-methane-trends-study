@@ -23,7 +23,7 @@ tail(rbrTsub$RDateTime)
 epOutANN<-epOutOrder
 #head(epOut$RDateTime)
 epOutANN<-filter(epOutANN, RDateTime>("2017-02-01 00:30:00")
-                 & RDateTime < ("2018-08-15 12:00:00"))
+                 & RDateTime < ("2018-10-01 12:00:00"))
 head(epOutANN$RDateTime)
 tail(epOutANN$RDateTime)
 
@@ -144,7 +144,7 @@ write.table(ANNdata,
              row.names=FALSE)
 #write it to the C: drive so that it can go on Git
 write.table(ANNdata, 
-            file=("C:/R_Projects/actonFluxProject/output/exampleDatasetANN.csv"),
+            file=("C:/R_Projects/actonFluxProject/output/annDataset201702201810.csv"),
             sep=",",
             row.names=FALSE)
 

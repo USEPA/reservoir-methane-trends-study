@@ -68,6 +68,30 @@ print(c("Total Rejection %:", round(numNAsFilt/totFilt*100, digits=2)))
     numNAswind<-numNAs3.b-numNAs2.b
     print(c("Wind Direction %:", round(numNAswind/tot*100, digits=2)))
     print(c("%of Data Loss Due to Wind Direction:", round(numNAswind/numNAsFilt*100, digits=2)))
+  
+    
+    #2. From what at the aquatic tower site?
+    ###CH4:
+    epOutAqTow<-filter(epOutSub, RDateTime>"2018-05-01")
+    #2.1: Site down/data not collected:
+    tot<-length(epOutAqTow$ch4_flux)
+    tot<-length(epOutAqTow$ch4_flux)
+    numNAs<-sum(length(which(is.na(epOutAqTow$ch4_flux))))
+    numNAs.b<-nrow(filter(epOutAqTow, is.na(ch4_flux))) #same as numNAs
+    #epOutOrder has not been QA filtered; just missing times with missing measurements
+    print(c("Site Down %:", round(numNAs/tot*100, digits=2)))
+    print(c("%of Data Loss Due to Site Down:", round(numNAs/numNAsFilt*100, digits=2)))
+    #2.2: QC Level 2:
+    numNAs2<-sum(length(which(epOutSub$qc_ch4_flux==2)))
+    numNAs2.b<-nrow(filter(epOutSub, qc_ch4_flux==2 | is.na(ch4_flux))) #= numNAs+numNAs2
+    print(c("QC Level 2 %:", round(numNAs2/tot*100, digits=2)))
+    print(c("%of Data Loss Due to QC Level2:", round(numNAs2/numNAsFilt*100, digits=2)))
+    #2.3: Wind Direction:
+    numNAs3<-sum(length(which(epOutSub$wind_dir>195 & epOutSub$wind_dir<330)))
+    numNAs3.b<-nrow(filter(epOutSub, qc_ch4_flux==2 | is.na(ch4_flux) | (epOutSub$wind_dir>195 & epOutSub$wind_dir<330) )) # != numNAs+numNAs2+numNAs3 -- overlap between east winds and other filtering
+    numNAswind<-numNAs3.b-numNAs2.b
+    print(c("Wind Direction %:", round(numNAswind/tot*100, digits=2)))
+    print(c("%of Data Loss Due to Wind Direction:", round(numNAswind/numNAsFilt*100, digits=2)))
     
     
 ###3. Daytime vs. nighttime gaps:   ---- 
@@ -122,26 +146,29 @@ print(c("Nighttime Rejection %:", round(numNAsNight/totNight*100, digits = 2)))
 
 #6. Fingerprint plots of gaps. First need to make a column with filtering paramters with which to map colors
 ## 1=good quality data
-## 2=QC level 2
-## 3=wind direction
+## 2=QC level 2 OR u* while at aquatic tower
+## 3=wind direction while at dock
 ## 4=site down
 
-epOutOrder$date<-as.Date(epOutOrder$date, format="%m/%d/%Y")
-str(epOutOrder$date)
-epOutOrder$time<-as.POSIXct(epOutOrder$time, format="%H:%M", tz="UTC")
-str(epOutOrder$time)
+epOutSub$date<-as.Date(epOutSub$date, format="%m/%d/%Y")
+str(epOutSub$date)
+epOutSub$time<-as.POSIXct(epOutSub$time, format="%H:%M", tz="UTC")
+str(epOutSub$time)
 
-epOutOrder$gapMap<-"Best Data"
-epOutOrder$qc_ch4_factor<-as.factor(epOutOrder$qc_ch4_flux)
-for(j in 1:length(epOutOrder$gapMap)){
-  if(is.na(epOutOrder$ch4_flux[j])){
-    epOutOrder$gapMap[j]="Site Down"
+epOutSub$gapMap<-"Best Data"
+epOutSub$qc_ch4_factor<-as.factor(epOutSub$qc_ch4_flux)
+for(j in 1:length(epOutSub$gapMap)){
+  if(is.na(epOutSub$ch4_flux[j])){
+    epOutSub$gapMap[j]="Site Down"
   }
-  else if(epOutOrder$qc_ch4_factor[j]=="2"){
-    epOutOrder$gapMap[j]="Failed QC"
+  else if(epOutSub$qc_ch4_factor[j]=="2"){
+    epOutSub$gapMap[j]="Failed QC"
   }
-  else if(epOutOrder$wind_dir[j]>195 & epOutOrder$wind_dir[j]<330){
-    epOutOrder$gapMap[j]="Wind"
+  else if(epOutSub$RDateTime[j]>"2018-05-01 00:00:00" & epOutSub$ustar[j]<0.07){
+    epOutSub$gapMap[j]="Failed QC"
+  }
+  else if(epOutSub$RDateTime[j]<"2018-05-01 00:00:00" & epOutSub$wind_dir[j]>195 & epOutSub$wind_dir[j]<330){
+    epOutSub$gapMap[j]="Wind"
   }
  
 }
@@ -161,14 +188,41 @@ for(j in 1:length(epOutOrder$gapMapCO2)){
   }
 }
 
-epOutOrder$gapMapFact<-as.factor(epOutOrder$gapMap)
-summary(epOutOrder$gapMapFact)
+epOutSub$Gap_Attribution<-as.factor(epOutSub$gapMap)
+summary(epOutSub$gapMapFact)
+epOutSub$year <- year(epOutSub$RDateTime)
+epOutSub$monthday <- format(epOutSub$RDateTime, format="%m-%d %H:%M")%>%
+  as.POSIXct(monthday, format="%m-%d %H:%M", tz="UTC")
 
-epOutOrder$gapMapCO2<-as.factor(epOutOrder$gapMapCO2)
-summary(epOutOrder$gapMapCO2Fact)
+epOutSub$gapMapCO2<-as.factor(epOutSub$gapMapCO2)
+summary(epOutSub$gapMapCO2Fact)
 
-ggplot(epOutOrder, aes(time, date))+
-  geom_point(aes(color=gapMapFact), shape=15)+
+#facet
+gapAttFacet<-ggplot(epOutSub, aes(time, monthday))+
+  geom_point(aes(color=Gap_Attribution), shape=15)+
+  scale_shape_manual(values=c(15,15,15,15))+
+  scale_color_manual(values=c("#FF3333","#33CC99", "#CCCCCC", "#6699CC"))+
+  scale_x_datetime(labels=date_format("%H:%M"))+
+  scale_y_datetime(labels=date_format("%b"), breaks=date_breaks("1 month"))+
+  facet_grid(.~year)+
+  theme_classic()+
+  scale_fill_discrete(name="CH4 Gap Attribution")+
+  labs(y="Month of Year", x="Time of Day")
+gapAttFacet+xlim(c(as.POSIXct("2018-10-04 00:00", format="%H:%M"),
+                   as.POSIXct("2018-10-04 23:59", format="%H:%M")))+
+  scale_x_datetime(labels=date_format("%H:%M"))
+#2017
+ggplot(filter(epOutSub, RDateTime<"2018-01-01"), aes(time, date))+
+  geom_point(aes(color=Gap_Attribution), shape=15)+
+  scale_shape_manual(values=c(15,15,15,15))+
+  scale_color_manual(values=c("#FF3333","#33CC99", "#CCCCCC", "#6699CC"))+
+  scale_x_datetime(labels=date_format("%H:%M"))+
+  scale_y_date(breaks=date_breaks("2 months"))+
+  theme_classic()+
+  scale_fill_discrete(name="CH4 Gap Attribution")
+
+ggplot(filter(epOutSub, RDateTime>"2018-01-01"), aes(time, date))+
+  geom_point(aes(color=Gap_Attribution), shape=15)+
   scale_shape_manual(values=c(15,15,15,15))+
   scale_color_manual(values=c("#FF3333","#33CC99", "#CCCCCC", "#6699CC"))+
   scale_x_datetime(labels=date_format("%H:%M"))+

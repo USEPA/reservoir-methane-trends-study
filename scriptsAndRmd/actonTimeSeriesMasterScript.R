@@ -25,7 +25,7 @@ source("scriptsAndRmd/loadEddyPro.R")
   
 source("scriptsAndRmd/loadVWS_RBR.R") 
         #load the vanni weather station, buoy T, campbell met, and RBR thermistor data, 
-              # vws file that is loaded: vws20160929_20180808_concat.csv
+              # vws file that is loaded: vws20160929_20181002_concat.csv
               # RBR file that is loaded: RBR20170510_20180827.csv
               # buoy T file that is loaded: vanniBuoyTmpr.csv (just 2018 data)
               # campbell met file that is loaded: CR6Series_BioMet20180814.csv

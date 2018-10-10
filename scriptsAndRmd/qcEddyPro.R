@@ -427,3 +427,14 @@ ch4plot+geom_pointrange(mapping=aes(x=RDateTime, y=meanCH4FluxAnn,
                                     ymin=meanCH4FluxAnn-(sdCH4FluxAnn/sqrt(nCH4Flux)),
                                     ymax=meanCH4FluxAnn+(sdCH4FluxAnn/sqrt(nCH4Flux))),
                         color="red", shape=21, fill="black", size=0.4, alpha=0.7)
+
+
+ggplot(filter(epOutSubFilt, RDateTime>"2018-07-01"),
+              aes(wind_dir, w_unrot))+
+  geom_point(alpha=0.1)+
+  geom_hline(aes(yintercept=0), color="red")+
+  xlim(0,360)+
+  ylim(-0.4, 0.4)+
+  labs(x="Wind Direction", y="Unrotated Vertical Wind (m/s)")+
+  coord_polar()+
+  theme_bw()

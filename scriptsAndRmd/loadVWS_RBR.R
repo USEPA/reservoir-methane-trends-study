@@ -3,7 +3,7 @@
 ##Updated 20 Feb 2018 
 ###2. LOAD VANNI WEATHER STATION ----
 myWd
-vanniMet<-read.table(paste(myWd, "/vanniWeatherStation/vws20160929_20180808_concat.csv", sep=""),
+vanniMet<-read.table(paste(myWd, "/vanniWeatherStation/vws20160929_20181002_concat.csv", sep=""),
                      sep=",",  # comma separate
                      skip=4,  # Skip first line of file.  Header info
                      colClasses = c("character", rep("numeric", 9), "character"),
