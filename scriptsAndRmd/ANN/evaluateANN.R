@@ -1,4 +1,4 @@
- load("output/annSimulationList4.0.RData")
+ load("output/annSimulationList4.2.RData")
   #3.1: aq tower dataset 5/6/2018 thru 8/6/2018 with ustar filter applied
 
 ## Look at the simList object and pick out the 'best' models
@@ -11,7 +11,7 @@ minR2 <- sort(r2Sims, decreasing = TRUE)[100]
 # Subset the simList object to only include the highest 100 R2 values.
 simKeep <- sapply(simList, function(x){ x$r2 >= minR2 } )
 bestANNs <- simList[simKeep]
-save(bestANNs, file = "output/BestANNs4.1.RData")
+save(bestANNs, file = "output/BestANNs4.3.RData")
 #load("output/BestANNs.RData")
 
 
@@ -60,7 +60,7 @@ ggplot(impVarsMedians, aes(x = reorder(Variable, MedianImportance), y = MedianIm
   theme_classic()
 
 
-#in units of mg CH4 m-2 hr-1
+                                                                                                  #in units of mg CH4 m-2 hr-1
 g <- ggplot(d, aes(x = Flux*60*60*16/1000, y = Preds*60*60*16/1000)) + 
   geom_point(alpha=0.2) + 
   geom_abline(slope = 1, intercept = 0, colour = "red") + 

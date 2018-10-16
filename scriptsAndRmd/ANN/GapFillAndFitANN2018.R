@@ -18,25 +18,26 @@ covarUstar <- FALSE
 covarWindSp <- TRUE
 covarStatP <- TRUE
 covarDelStatP <- TRUE
-covarTrapEb <- FALSE
+covarTrapEb <- TRUE
 covarFuzzy <- TRUE
 
 #start and end of data set:
-startdate <- "2018-05-01 00:00:00" #start of good data
+startdate <- "2018-06-07 00:00:00" #start of good data 
 #startdate <- "2018-05-06 00:00:00" #instruments on aquatic tower
 #enddate <- "2018-08-07 00:00:00" #end of RBR data
 enddate<-"2018-10-01 00:00:00"
 
 #run number/version
 
-runVer<-"4.1"
+runVer<-"4.2"
 #4.0 is Feb 2017 thru Oct 2018 with everything but trap ebullition as 
 ##drivers. Also, RBR temp is gapfilled from August to Oct 2018 
 #4.1 is May 2018 thru Oct 2018 with sedT, airT, windSp, statP, delStatP, and fuzzy time as drivers
+#4.2 has same drivers as 4.1 plus TrapEb as driver; time period is dictated by active trap data availability: 2018-06-07 thru 2018-10-10
 
 ### Load data ------
 #fluxDat <- read.csv("output/exampleDatasetANN.csv")
-fluxDat<-read.csv("output/annDataset201702201810.csv")
+fluxDat<-read.csv("output/annDataset_trapeb201702201810.csv")
 
 ## Make date into Date class.
 fluxDat$date <- as.Date(fluxDat$date, format = "%m/%d/%Y")
@@ -274,33 +275,33 @@ fluxDat$FilledStaticPressChg <- c(NA, diff(fluxDat$FilledStaticPress))
 ##### gap-filling active trap data ###
 ######################################
 if(covarTrapEb){
-sum(is.na(fluxDat$ebCh4_deep)) #8655
-sum(is.na(fluxDat$ebCh4_shallow)) #8949
+sum(is.na(fluxDat$ebCh4_deep)) #8655; with 2018: 17487
+sum(is.na(fluxDat$ebCh4_shallow)) #8949;  with 2018: 18238
 
 range(fluxDat$ebCh4_deep, na.rm=TRUE)
 plotGaps(fluxDat, "ebCh4_deep")
 plotGaps(fluxDat, "ebCh4_shallow")
 
-ggplot(filter(fluxDatEb, datetime>"2017-05-01 00:00:00" & datetime<"2017-10-10 00:00:00"),
+ggplot(filter(fluxDat, datetime>"2018-06-07 00:00:00" & datetime<"2018-10-10 00:00:00"),
        aes(datetime, ebCh4_deep))+
   geom_line(alpha=0.3)+
   geom_line(aes(datetime, ebCh4_shallow, color="red"), alpha=0.7)
 
 #make a new fluxDat data frame with just the ebullition time periods
-fluxDatEb<-filter(fluxDat, datetime>"2017-05-10 15:00:00", datetime<"2017-10-05 00:00:00")
-fluxDatEb<-filter(fluxDatEb, datetime<"2017-06-26 13:00:00" | datetime>"2017-07-14 14:00:00")
-plotGaps(fluxDatEb, "ebCh4_deep")
-plotGaps(fluxDatEb, "ebCh4_shallow")
-sum(is.na(fluxDatEb$ebCh4_deep)) #1526
-sum(is.na(fluxDatEb$ebCh4_shallow)) #686
+fluxDat<-filter(fluxDat, datetime>"2018-06-07 15:00:00", datetime<"2018-10-05 00:00:00")
+#fluxDatEb<-filter(fluxDatEb, datetime<"2017-06-26 13:00:00" | datetime>"2017-07-14 14:00:00")
+plotGaps(fluxDat, "ebCh4_deep")
+plotGaps(fluxDat, "ebCh4_shallow")
+sum(is.na(fluxDat$ebCh4_deep)) #1526; 2018: 1880
+sum(is.na(fluxDat$ebCh4_shallow)) #686; 2018: 2371
 
 #gap fill small gaps via linear interpolation
 
-fluxDatEb<-fluxDatEb %>%mutate(ebCh4_deepGf = zoo::na.approx(ebCh4_deep, rule=2),
+fluxDat<-fluxDat %>%mutate(ebCh4_deepGf = zoo::na.approx(ebCh4_deep, rule=2),
                                ebCh4_shalGf = zoo::na.approx(ebCh4_shallow, rule=2))
-plotGaps(fluxDatEb, "ebCh4_deepGf")
-plotGaps(fluxDatEb, "ebCh4_shalGf")                             
-ggplot(filter(fluxDatEb, datetime>"2017-05-01 00:00:00" & datetime<"2017-10-10 00:00:00"),
+plotGaps(fluxDat, "ebCh4_deepGf")
+plotGaps(fluxDat, "ebCh4_shalGf")                             
+ggplot(filter(fluxDat, datetime>"2018-05-01 00:00:00" & datetime<"2018-10-10 00:00:00"),
        aes(datetime, ebCh4_deepGf))+
   geom_line(alpha=0.3)+
   geom_line(aes(datetime, ebCh4_shalGf, color="red"), alpha=0.7)

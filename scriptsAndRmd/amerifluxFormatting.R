@@ -1,12 +1,12 @@
 
 USact<-mutate(epOutOrder,
-              TIMESTAMP_START = RDateTime,
-              TIMESTAMP_END = (RDateTime+30*60),
+              RDateTime_START = RDateTime,
+              RDateTime_END = (RDateTime+30*60),
               FC_SSITC_TEST = qc_co2_flux,
               FCH4_SSITC_TEST = qc_ch4_flux,
               FETCH_70 = x_70,
               FETCH_90 = x_90,
-              FETCH_FILTER = 1, # 0 and 1 flag indicating direction that should be discarded and kept, respectively
+              FETCH_FILTER = -9999, # 0 and 1 flag indicating direction that should be discarded and kept, respectively
               FETCH_MAX = x_peak,
               CH4 = ch4_mixing_ratio*1000, #nmolCH4 per mol
               CO2 = co2_mixing_ratio, #umol CO2 per mol
@@ -51,43 +51,43 @@ USact<-mutate(epOutOrder,
               WS = wind_speed,
               WS_MAX = max_wind_speed,
               ZL=zL)%>%
-  select(TIMESTAMP_START, TIMESTAMP_END, FC_SSITC_TEST, FCH4_SSITC_TEST, FETCH_70, FETCH_90,
+  select(RDateTime_START, RDateTime_END, FC_SSITC_TEST, FCH4_SSITC_TEST, FETCH_70, FETCH_90,
          FETCH_FILTER, FETCH_MAX, CH4, CO2, CO2_SIGMA, FC, FCH4, H2O, H2O_SIGMA, SC, SCH4,
          H, H_SSITC_TEST, LE, LE_SSITC_TEST, SH, SLE, PA, RH, T_SONIC, TA, VPD, P, P_RAIN, 
          NETRAD, PPFD_BC_IN, TS, TW_1, TW_2, TW_3, TW_4, TW_5, TW_6, WTD, MO_LENGTH, TAU, 
          TAU_SSITC_TEST, U_SIGMA, USTAR, V_SIGMA, W_SIGMA, WD, WS, WS_MAX, ZL)
 
 #designate fetch filter and "PI" qa'ed fluxes
-USact<-mutate(USact,
-              FETCH_FILTER = replace(FETCH_FILTER, TIMESTAMP_START<"2018-05-01 00:00:00" & WD>195 & WD<330, 0),
-              FC_PI = replace(FC, FETCH_FILTER == 0 |
-                                FC_SSITC_TEST == 2 ,
-                                -9999),
-              FC_PI = replace(FC_PI, USTAR<0.07 & TIMESTAMP_START>"2018-05-01 00:00:00", 
-                              -9999),
-              FCH4_PI = replace(FCH4, FETCH_FILTER == 0 |
-                                  FCH4_SSITC_TEST == 2 ,
-                                -9999),
-              FCH4_PI = replace(FCH4_PI, USTAR<0.07 & TIMESTAMP_START>"2018-05-01 00:00:00", 
-                                -9999),
-              H_PI = replace(H, FETCH_FILTER == 0 |
-                               H_SSITC_TEST == 2,
-                             -9999),
-              H_PI = replace(H_PI, USTAR<0.07 & TIMESTAMP_START>"2018-05-01 00:00:00", 
-                             -9999),
-              LE_PI = replace(LE, FETCH_FILTER == 0 |
-                                LE_SSITC_TEST == 2,
-                              -9999),
-              H_PI = replace(LE_PI, USTAR<0.07 & TIMESTAMP_START>"2018-05-01 00:00:00", 
-                             -9999))
+# USact<-mutate(USact,
+#               FETCH_FILTER = replace(FETCH_FILTER, RDateTime_START<"2018-05-01 00:00:00" & WD>195 & WD<330, 0),
+#               FC_PI = replace(FC, FETCH_FILTER == 0 |
+#                                 FC_SSITC_TEST == 2 ,
+#                                 -9999),
+#               FC_PI = replace(FC_PI, USTAR<0.07 & RDateTime_START>"2018-05-01 00:00:00", 
+#                               -9999),
+#               FCH4_PI = replace(FCH4, FETCH_FILTER == 0 |
+#                                   FCH4_SSITC_TEST == 2 ,
+#                                 -9999),
+#               FCH4_PI = replace(FCH4_PI, USTAR<0.07 & RDateTime_START>"2018-05-01 00:00:00", 
+#                                 -9999),
+#               H_PI = replace(H, FETCH_FILTER == 0 |
+#                                H_SSITC_TEST == 2,
+#                              -9999),
+#               H_PI = replace(H_PI, USTAR<0.07 & RDateTime_START>"2018-05-01 00:00:00", 
+#                              -9999),
+#               LE_PI = replace(LE, FETCH_FILTER == 0 |
+#                                 LE_SSITC_TEST == 2,
+#                               -9999),
+#               H_PI = replace(LE_PI, USTAR<0.07 & RDateTime_START>"2018-05-01 00:00:00", 
+#                              -9999))
 
 #merge RBRs
-amerifluxTime<-select(USact, TIMESTAMP_START)
-amerifluxTime$RDateTime<-amerifluxTime$TIMESTAMP_START
+amerifluxTime<-select(USact, RDateTime_START)
+amerifluxTime$RDateTime<-amerifluxTime$RDateTime_START
 
 amerifluxRBR<-left_join(amerifluxTime, rbrT, by = "RDateTime")    
 amerifluxRBR2<-subset(amerifluxRBR, !duplicated(RDateTime)) #30693
-USact<-subset(USact, !duplicated(TIMESTAMP_START)) #30693
+USact<-subset(USact, !duplicated(RDateTime_START)) #30693
 
 #give USact RBR values for TS, TW 1 thru 6 where available, -9999s where not avail
 USact<-mutate(USact,
@@ -133,7 +133,7 @@ amerifluxCampVWS<-left_join(amerifluxVWS, campMet, by="RDateTime")%>%
 
 
 #give USact VWS values for PAR, precip, and water level (WTD) where avail, -9999s where not avail
-#with(amerifluxCampVWS)%>%
+#also fill in fetch filter values here
 for(i in 1:length(USact$TS)){
   USact$P[i] = if(!is.na(amerifluxCampVWS$rain30min[i])) amerifluxCampVWS$rain30min[i] else
     if(!is.na(amerifluxCampVWS$Rain_mm_tot[i])) amerifluxCampVWS$Rain_mm_tot[i] else
@@ -145,9 +145,11 @@ for(i in 1:length(USact$TS)){
                         amerifluxCampVWS$waterLevel.vws[i], -9999)
   USact$NETRAD[i] = ifelse(!is.na(amerifluxCampVWS$NR_Wm2_avg[i]), 
                            amerifluxCampVWS$NR_Wm2_avg[i], -9999)
+  USact$FETCH_FILTER[i]=ifelse(USact$RDateTime_START<"2018-05-01 00:00:00" & USact$WD>195 & USact$WD<330, 0, #value if winds are from the W at the dock
+                               1) #value if aquatic tower -- no fetch filter 
 }
 
-# ggplot(USact, aes(TIMESTAMP_START, P))+
+# ggplot(USact, aes(RDateTime_START, P))+
 #   geom_point(alpha=0.2)+
 #   ylim(0, 10)
 
@@ -159,17 +161,32 @@ USactNA[USact== -9999]<- NaN
 
 #additional variables for this site: water level, static pressure
 
-USactSub<-filter(USact, TIMESTAMP_START>"2017-01-25 18:30",
-                 TIMESTAMP_START<"2017-12-31 19:00")         
-head(USactSub$TIMESTAMP_START)
-tail(USactSub$TIMESTAMP_END)
+USactSub<-filter(USact, RDateTime_START>"2017-01-25 18:30",
+                 RDateTime_START<"2017-12-31 19:00")         
+head(USactSub$RDateTime_START)
+tail(USactSub$RDateTime_END)
 
 #check for missing HH periods:
-USactSub$check<-c(18000, diff(as.numeric(USactSub$TIMESTAMP_START), 1))
+USactSub$check<-c(18000, diff(as.numeric(USactSub$RDateTime_START), 1))
 summary(check)
-ggplot(filter(USactSub, TIMESTAMP_START>"2017-05-01", TIMESTAMP_START<"2017-07-01"),
-       aes(TIMESTAMP_START, check))+
+ggplot(filter(USactSub, RDateTime_START>"2017-05-01", RDateTime_START<"2017-07-01"),
+       aes(RDateTime_START, check))+
   geom_point()
+
+#change timestampts to YYYYMMDDHHMM format
+#strptime(USactSub$RDateTime_START, "%Y-%m-%d %H:%M:%S")
+USactSub<-mutate(USactSub,
+                  TIMESTAMP_START=format(strptime(RDateTime_START,
+                                                  "%Y-%m-%d %H:%M:%S"), 
+                                         "%Y%m%d%H%M"),
+                 TIMESTAMP_END<-format(strptime(RDateTime_END, 
+                                          "%Y-%m-%d %H:%M:%S"), 
+                                       "%Y%m%d%H%M"))%>%
+select(TIMESTAMP_START, TIMESTAMP_END, FC_SSITC_TEST, FCH4_SSITC_TEST, FETCH_70, FETCH_90,
+       FETCH_FILTER, FETCH_MAX, CH4, CO2, CO2_SIGMA, FC, FCH4, H2O, H2O_SIGMA, SC, SCH4,
+       H, H_SSITC_TEST, LE, LE_SSITC_TEST, SH, SLE, PA, RH, T_SONIC, TA, VPD, P, P_RAIN, 
+       NETRAD, PPFD_BC_IN, TS, TW_1, TW_2, TW_3, TW_4, TW_5, TW_6, WTD, MO_LENGTH, TAU, 
+       TAU_SSITC_TEST, U_SIGMA, USTAR, V_SIGMA, W_SIGMA, WD, WS, WS_MAX, ZL)
 
 write.table(USactSub, 
             file=("C:/R_Projects/actonFluxProject/output/US-Act_HH_201701260000_2018010000.csv"),

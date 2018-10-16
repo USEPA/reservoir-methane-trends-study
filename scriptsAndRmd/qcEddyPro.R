@@ -63,7 +63,7 @@ ggplot(epOutSubFilt, aes(monthday, ch4_flux/1000*16*60*60))+
   labs(x="date", y="CH4 Flux (mg m-2 hr-1)")+
   scale_x_datetime(labels=date_format("%d %b"), breaks = date_breaks("1 month"))
 
-ggplot(epOutSubFilt, aes(monthday, co2_flux/10^6*44*60*60))+ #g CO2 m-2 hr-1
+ ggplot(epOutSubFilt, aes(monthday, co2_flux/10^6*44*60*60))+ #g CO2 m-2 hr-1
   geom_point(alpha=0.1)+
   theme(legend.position="none")+
   ylim(-5, 5)+
@@ -228,6 +228,8 @@ DailyEcFluxes<-epOutSubFilt %>%
             sdCO2Flux = (sd(co2_flux, na.rm=TRUE)/1000*44*60*60),
             nCH4Flux = n_distinct(ch4_flux, na.rm=TRUE),
             nCO2Flux =  n_distinct(co2_flux, na.rm=TRUE),
+            meanH = (mean(H, na.rm=TRUE)),
+            meanLE = (mean(LE, na.rm=TRUE)),
             meanAirT = (mean(air_temperature, na.rm=TRUE)-273.15))
 DailyEcFluxes<-DailyEcFluxes%>%
   mutate(RDateTime=as.Date(DailyEcFluxes$RDateTime),
@@ -236,6 +238,26 @@ DailyEcFluxes<-DailyEcFluxes%>%
 DailyEcFluxes$monthday<-as.Date(DailyEcFluxes$monthday, format="%m-%d %H:%M")
 
 numNAsDaily<-sum(length(which(is.na(DailyEcFluxes$meanCH4Flux))))
+
+#daily avg of VWS -- want to look at PAR per Wik
+DailyVWS<-vanni30min %>%
+  group_by(RDateTime = cut(RDateTime, breaks = "24 hour")) %>%
+  summarize(meanPAR = (mean(par.vws, na.rm=TRUE)))
+            #sdCH4Flux = (sd(ch4_flux, na.rm=TRUE)/1000*16*60*60),
+            #randErrCh4Prop = sqrt(sum((rand_err_ch4_flux/1000*16*60*60)^2, 
+            #                          na.rm=TRUE)),
+            # meanCO2Flux = (mean(co2_flux, na.rm=TRUE)/1000*44*60*60),
+            # sdCO2Flux = (sd(co2_flux, na.rm=TRUE)/1000*44*60*60),
+            # nCH4Flux = n_distinct(ch4_flux, na.rm=TRUE),
+            # nCO2Flux =  n_distinct(co2_flux, na.rm=TRUE),
+            # meanH = (mean(H, na.rm=TRUE)),
+            # meanLE = (mean(LE, na.rm=TRUE)),
+            # meanAirT = (mean(air_temperature, na.rm=TRUE)-273.15))
+DailyVWS<-DailyVWS %>%
+  mutate(RDateTime=as.Date(DailyVWS$RDateTime),
+         year = year(RDateTime),
+         monthday = format(RDateTime, format="%m-%d %H:%M"))# %>%
+DailyVWS$monthday<-as.Date(DailyVWS$monthday, format="%m-%d %H:%M")
 
 
 DailyEcFluxes<-DailyEcFluxes[1:534,]
@@ -276,8 +298,15 @@ ggplot(DailyEcFluxes, aes(monthday, meanCH4Flux))+
 #daily water T
 ggplot(filter(rbrDaily, monthday>"2018-04-15", monthday <"2018-09-01"),
        aes(monthday, rbrMeanT_1.6))+
-  geom_line(aes(color=as.factor(year)))
+  #geom_line(aes(color=as.factor(year)))
+  geom_point()+
+  facet_grid(year~.)
 
+dailyFluxRbr<-left_join(DailyEcFluxes, 
+                        select(rbrDaily, -year, -monthday), 
+                        by="RDateTime") 
+dailyFluxRbrPar<-left_join(dailyFluxRbr, select(DailyVWS, meanPAR, RDateTime),
+                           by="RDateTime")
 daily_d<-ggplot(DailyEcFluxes, aes(RDateTime, meanCH4Flux))+
   #geom_point(alpha=0.5)+
   geom_pointrange(mapping=aes(x=RDateTime, y=meanCH4Flux*24, 
@@ -438,3 +467,44 @@ ggplot(filter(epOutSubFilt, RDateTime>"2018-07-01"),
   labs(x="Wind Direction", y="Unrotated Vertical Wind (m/s)")+
   coord_polar()+
   theme_bw()
+
+
+###inspired by WIK:
+DailyEcFluxes$HplusLE<-DailyEcFluxes$meanH+DailyEcFluxes$meanLE
+
+ggplot(filter(DailyEcFluxes, monthday>"2018-04-01" & monthday<"2018-10-01"),
+       aes(HplusLE, meanCH4Flux))+
+  geom_point(alpha=0.3)+
+  facet_grid(.~year)
+
+ggplot(filter(DailyEcFluxes, monthday>"2018-05-01" & monthday<"2018-10-01"),
+       aes(meanH, meanCH4Flux))+
+  geom_point(alpha=0.3)+
+  facet_grid(.~year)
+
+ggplot(filter(DailyEcFluxes, monthday>"2018-05-01" & monthday<"2018-10-01"),
+       aes(meanLE, meanCH4Flux))+
+  geom_point(alpha=0.3)+
+  facet_grid(.~year)
+
+ggplot(filter(dailyFluxRbr, monthday>"2018-03-01" & monthday<"2018-10-01"),
+       aes(rbrMeanT_1.6, meanCH4Flux))+
+  geom_point(alpha=0.3)+
+  facet_grid(.~year)
+
+ggplot(filter(dailyFluxRbrPar, monthday>"2018-05-01" & monthday<"2018-10-01"),
+       aes(meanPAR, meanCH4Flux))+
+  geom_point(alpha=0.3)+
+  facet_grid(.~year)
+
+fluxes.lm17<-filter(DailyEcFluxes, RDateTime>"2017-05-01", RDateTime<"2017-10-01")
+lm17<-lm(formula = meanCH4Flux ~ meanLE, data = fluxes.lm17)
+summary(lm17)
+
+fluxes.lm18<-filter(DailyEcFluxes, RDateTime>"2018-05-01", 
+                    RDateTime<"2018-10-01")
+lm18<-lm(formula = meanCH4Flux ~ HplusLE, data = fluxes.lm18)
+summary(lm18)
+
+
+

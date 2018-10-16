@@ -47,9 +47,11 @@ library(mefa)
 # READ DATA-----------------
 # List of .txt files containing data
 csvDir<-"L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/L1eddyproOut/eddypro_binned_cospectra"
+csvDir<-"C:/R_Projects/actonFluxProject/cospectra"
 csvFilesAll<-list.files(csvDir)
 csvFiles2018<-csvFilesAll[80029:82224]
-#str(csvFiles2018) #2196 files
+csvFiles2018<-csvFilesAll
+str(csvFiles2018) #2196 files
 #test<-paste(csvDir, csvFiles2018, sep="/")
 #csvFiles2018<-csvFiles2018[file.info(test)$size>1] #cull empty/incomplete files from time periods with no results
 #str(csvFiles2018) #2190 files
@@ -91,13 +93,13 @@ csvFiles2018.2<-csvFiles2018[-bash]
 
 
 # Merge all of the loaded cospectra files
-cospectra2018 <- do.call("rbind", cospectra2018List2)  # Coerces list into dataframe.
+cospectra2018 <- do.call("rbind", cospectra2018List)  # Coerces list into dataframe.
 str(cospectra2018)
 
 ####MAKING DATE AND TIME LIST FROM FILE NAME LIST ----
 #Need to add date and time to cospectra files. Could extract it from file names, which
 # are in the csvFiles list. 
-csvFiles2018DF<-data.frame(csvFiles2018.2, nrow=length(csvFiles2018.2))
+csvFiles2018DF<-data.frame(csvFiles2018, nrow=length(csvFiles2018))
  # str(csvFilesDF)
   #summary(csvFilesDF)
 #the date and time are the first part of the file name, the first 13 characters
@@ -183,7 +185,7 @@ cospectraDates<-cbind(cospectra2018, RDateTime)
 ###COMBINE EDDYPRO OUT WITH THE COSPECTRA INFO----
 
 epOutSub <- select(epOut, RDateTime, wind_dir, ustar, zL, 
-                   w_var, co2_flux, ch4_flux, ch4_var, Tau, timeFact) 
+                   w_var, w_unrot, co2_flux, ch4_flux, ch4_var, Tau)#, timeFact) 
   
   
 #dateTime column for cospectraDates is RDateTime

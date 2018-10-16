@@ -172,7 +172,8 @@ hoboU14$Vol<-hoboU14$height*(2.5/2)^2*pi  #large diameter tube
 
 ###3: smooth with rolling average----
 
-,
+zwat<-zoo::rollapply(hoboU12$Vol, width = 12,FUN = mean)
+hoboU12$volSmth<-c(rep(NA, 5), zwat, rep(NA, 6))
 
 zwat<-zoo::rollapply(hoboU14$Vol, width = 12,FUN = mean)
 hoboU14$volSmth<-c(rep(NA, 5), zwat, rep(NA, 6))
@@ -205,7 +206,7 @@ hoboU14$date.timeHH<-lubridate::round_date(hoboU14$date.time, "5 minutes")
 range(hoboU12$date.timeHH)
 nrow(hoboU12)
 timeframe0.5<-seq.POSIXt(from = hoboU12$date.timeHH[4],
-                         to = hoboU12$date.timeHH[102466],by = "30 min")
+                         to = hoboU12$date.timeHH[112835],by = "30 min")
 
 #head(timeframe)
 df12<-as.data.frame(timeframe0.5)
@@ -302,7 +303,7 @@ ggplot(filter(df14, date.time>"2017-06-15"&date.time<"2017-10-01"),
        aes(date.time, volEb0.5))+
   geom_point(alpha=0.3)
 
-ggplot(filter(df12, date.timeHH<"2017-08-01 00:00:00"), 
+ggplot(filter(df14, date.timeHH>"2018-05-01 00:00:00"), 
        aes(monthday, volEb2))+
   geom_point(alpha=0.5)
   #facet_grid(year~.)
@@ -557,6 +558,14 @@ dailyMassFlux12<-df12.gc %>%
 dailyMassFlux12$site<-"deep"
 dailyMassFlux12<-as.data.frame(dailyMassFlux12)
 
+dailyMassFlux12<-mutate(dailyMassFlux12,
+                        #date=as.Date(date.time),
+                        #site="shallow",
+                        year=year(date),
+                        monthday = format(date, format="%m-%d %H:%M")%>%
+                          as.POSIXct(monthday, format="%m-%d %H:%M", tz="UTC"))
+
+
 dailyMassFlux14<-df14.gc %>%
   group_by(date) %>%
   summarize(dailyEbCh4mgM2h = (mean(ebCh4mgM2h, na.rm=TRUE)), 
@@ -623,12 +632,12 @@ ggplot(dailyMassFlux14, aes(sedT, dailyEbCh4mgM2h))+
 
 dailyMassEbList<-list()
 dailyMassEbList[[1]]<-dailyMassFlux14
-dailyMassEbList[[2]]<-select(dailyMassFlux12, -TmprAdj, -sedTbuoy, -sedTsonde, -sondeTmpr)
+dailyMassEbList[[2]]<-dailyMassFlux12 #select(dailyMassFlux12, -TmprAdj, -sedTbuoy, -sedTsonde, -sondeTmpr)
 dailyMassEb<-do.call("rbind", dailyMassEbList)
 
-massP3<-ggplot(filter(dailyMassEb, date<"2017-11-05"), aes(date, dailyEbCh4mgM2h))+
+massP3<-ggplot(dailyMassEb, aes(monthday, dailyEbCh4mgM2h))+
   geom_point(alpha=0.4)+
-  facet_grid(site~.)+
+  facet_grid(site~year)+
   ylab("Daily CH4 Ebullition (mg m-2 hr-1)")+
   scale_x_date(labels=date_format("%b %d", tz="UTC"), 
                breaks=date_breaks("1 month"))
