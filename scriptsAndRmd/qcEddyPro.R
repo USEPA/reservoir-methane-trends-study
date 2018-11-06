@@ -53,6 +53,11 @@ epOutSubFilt<-epOutSub %>%
          monthday = format(RDateTime, format="%m-%d %H:%M")%>%
            as.POSIXct(monthday, format="%m-%d %H:%M", tz="UTC"))
 
+write.table(epOutSubFilt, 
+            file=("C:/R_Projects/actonFluxProject/output/acton30minFluxes.csv"),
+            sep=",",
+            row.names=FALSE)
+
 ggplot(epOutSubFilt, aes(monthday, ch4_flux/1000*16*60*60))+
   geom_point(alpha=0.1)+
   #geom_point(data=filter(epOutSubFilt, w_unrot>0.1), 
@@ -184,8 +189,10 @@ ggplot(epOutPow, aes(wind_dir, co2_flux/10^6*44*60*60))+
   geom_hline(yintercept=0)+
   coord_polar()+
   ylim(-2, 5)+
-  ylab("CO2 Flux (g CO2 m-2 hr-1)")+
+  ylab(expression(CO[2]~Flux~(g~CO[2]~m^-2~hr^-1)))+
   xlab("wind direction")+
+  theme_bw()+
+  scale_x_continuous(breaks=seq(0, 330, 30), limits=c(0, 360))
   scale_fill_discrete(name = "Time of Day",labels=c("night", "day", "NA"))
 
 #without 330-30 deg
@@ -212,10 +219,10 @@ ggplot(epOutPow, aes(wind_dir, ch4_flux/10^6*16*60*60*1000))+
   geom_hline(yintercept=0)+
   coord_polar()+
   ylim(-25, 70)+
-  ylab("CH4 Flux (mg CH4 m-2 hr-1)")+
   xlab("wind direction")+
-  scale_fill_discrete(labels=c("night", "day", "NA"))
-
+  ylab(expression(CH[4]~Flux~(mg~CH[4]~m^-2~hr^-1)))+
+  theme_bw()+
+  scale_x_continuous(breaks=seq(0, 330, 30), limits=c(0, 360))
 
 ##Daily Averages, convert from umol m-2 s-1 to mg m-2 HOUR-1:
 DailyEcFluxes<-epOutSubFilt %>%
@@ -320,7 +327,38 @@ daily_d<-ggplot(DailyEcFluxes, aes(RDateTime, meanCH4Flux))+
   theme_classic()+
   theme(axis.text.x=element_text(angle=45, hjust=1))
 
+#combined daily flux and daily sediment T plot for AGU poster:
+dailyAGU<-ggplot(dailyFluxRbr, aes(monthday, meanCH4Flux))+
+  geom_pointrange(mapping=aes(x=monthday, y=meanCH4Flux*24, 
+                              ymin=(meanCH4Flux*24-(randErrCh4Prop/sqrt(nCH4Flux))*24),
+                              ymax=(meanCH4Flux*24+(randErrCh4Prop/sqrt(nCH4Flux))*24), color=as.factor(year)),
+                   shape=16, size=0.4, alpha=0.3)+
+  geom_smooth(aes(monthday, meanCH4Flux*24, color=as.factor(year)), 
+              alpha=0.5, span=0.3, se=FALSE)+
+  ylab(expression(Daily~Mean~CH[4]~Flux~(mg~m^-2~d^-1)))+
+  xlab("")+
+  scale_color_manual(values=wes_palette(name="Darjeeling1", 2))+
+  #facet_grid(year~.)+
+  scale_x_date(breaks=date_breaks("1 month"),
+               labels=date_format("%d %b"))+
+  theme_bw()+
+  theme(axis.text.x=element_text(angle=45, hjust=1))
 
+dailyAGUtmpr<-ggplot(dailyFluxRbr, aes(monthday, rbrMeanT_1.6))+
+  geom_point(aes(color=as.factor(year)), shape=16, size=1, alpha=0.6)+
+  geom_smooth(aes(monthday, meanAirT, color=as.factor(year)),
+              alpha=0.5, span=0.3, se=FALSE)+
+  ylab(expression(Daily~Mean~T~(deg~C)))+
+  #ylim(0,30)+
+  xlab("")+
+  #facet_grid(year~.)+
+  scale_x_date(breaks=date_breaks("1 month"),
+               labels=date_format("%d %b"))+
+  scale_color_manual(values=wes_palette(name="Darjeeling1", 2))+
+  theme_bw()+
+  theme(axis.text.x=element_text(angle=45, hjust=1))
+
+dailyAGUtmpr+ylim(0, 30)
 #Cumulative EC CH4 rough estimate:
 
 cumuCH4timeframe<-filter(DailyEcFluxes, RDateTime>"2017-02-01 00:00", 
@@ -458,16 +496,18 @@ ch4plot+geom_pointrange(mapping=aes(x=RDateTime, y=meanCH4FluxAnn,
                         color="red", shape=21, fill="black", size=0.4, alpha=0.7)
 
 
-ggplot(filter(epOutSubFilt, RDateTime>"2018-07-01"),
+dockTow_W<-ggplot(filter(epOutSubFilt, RDateTime>"2017-05-01", RDateTime<"2017-10-01"),
               aes(wind_dir, w_unrot))+
   geom_point(alpha=0.1)+
+  stat_summary_bin(fun.y='mean', bins=24,
+                   color='red', size=2, geom='point')+
   geom_hline(aes(yintercept=0), color="red")+
-  xlim(0,360)+
+  #xlim(0,360)+
   ylim(-0.4, 0.4)+
   labs(x="Wind Direction", y="Unrotated Vertical Wind (m/s)")+
   coord_polar()+
   theme_bw()
-
+dockTow_W+scale_x_continuous(breaks=seq(0, 330, 30), limits=c(0, 360))
 
 ###inspired by WIK:
 DailyEcFluxes$HplusLE<-DailyEcFluxes$meanH+DailyEcFluxes$meanLE
@@ -507,4 +547,15 @@ lm18<-lm(formula = meanCH4Flux ~ HplusLE, data = fluxes.lm18)
 summary(lm18)
 
 
-
+#footprint plot
+ggplot(epOutPow)+
+  stat_summary_bin(data=epOutPow, aes(wind_dir, x_50),
+                   fun.y='median', bins=24,
+                   color='navy', size=2, geom='line', 
+                   na.rm=TRUE)+
+  stat_summary_bin(data=epOutPow, aes(wind_dir, x_70),
+                   fun.y='median', bins=24,
+                   color='blue', size=2, geom='line', 
+                   na.rm=TRUE)+
+  coord_polar()+
+  ylim(0,150)

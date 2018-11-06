@@ -12,7 +12,7 @@ txtFiles <- c(list.files(hoboWD2017,
   #saved with the proper format, and could not be loaded with this code. I manipulated
   #the format of that file to match the others. 
 
-txtFiles[30:55]
+txtFiles[30:57]
 
 #txtFiles<-txtFiles[txtFiles != "Acton Lake/U12/u12_csv/trap.05.26.2017.al.u12.csv"]
 
