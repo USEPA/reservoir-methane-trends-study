@@ -62,9 +62,18 @@ mylist4 <- lapply(mylist3, function(x) {
 
 # 5.  Coerce list into dataframe via rbind
  eqAreaData <- do.call("rbind", mylist4)  # Coerces list into dataframe.
+ 
+#the chamber msmts were taken on the retreival day during the 
+#2018 July and Sept GRTS surveys. Program this in:
+eqAreaData$chamDay<-ifelse(eqAreaData$Lake_Name=="Acton Lake 2018 July" | 
+                              eqAreaData$Lake_Name == "Acton Lake 2018 Sept",
+  "day 2", #value if true
+  "day 1" ) #value if false
+
+head(filter(eqAreaData, Lake_Name=="Acton Lake 2018 Sept"))
 
 # FORMAT DATAFRAME-----------
- eqAreaData <- mutate(eqAreaData, 
+ eqAreaData <- mutate(eqAreaData,
                       chmDeplyDtTm = as.POSIXct(paste(trim(deplyDt), # trim removes white space
                                                       trim(chmStTm), sep=""),
                                                 format = "%m/%d/%Y%H:%M",
@@ -77,8 +86,16 @@ mylist4 <- lapply(mylist3, function(x) {
                                                        trim(RtrvTim), sep=""),
                                                  format = "%m/%d/%Y%H:%M",
                                                  tz="UTC"))  
-
- # Columns that should be converted to numeric
+for(i in 1:nrow(eqAreaData)){
+         if(eqAreaData$chamDay[i]=="day 2"){
+         eqAreaData$chmDeplyDtTm[i]=as.POSIXct(paste(trim(eqAreaData$RtrvDat[i]), # trim removes white space
+                                   trim(eqAreaData$chmStTm[i]), sep=""),
+                             format = "%m/%d/%Y%H:%M",
+                             tz="UTC")}
+   # set tz!)
+}
+ 
+# Columns that should be converted to numeric
  cols <- c("chm_vol", "wtrDpth", "smDpthS", "Tmp_C_S", "DOPrc_S", "DO__L_S",   
            "SpCn__S", "pH_S", "ORP_S", "TrNTU_S", "chla_S", "smDpthD", "Tmp_C_D", "DOPrc_D", "DO__L_D",   
            "SpCn__D", "pH_D", "ORP_D", "TrNTU_D", "chla_D", "BrPrssr", "TtTrpVl", "LatSamp", "LongSmp")

@@ -241,11 +241,11 @@ OUT <- mutate(OUT,
 plot(with(OUT,ifelse(co2.best.model == "linear", co2.lm.r2, co2.ex.r2)))  # CO2: some low ones to investigate
 plot(with(OUT,ifelse(ch4.best.model == "linear", ch4.lm.r2, ch4.ex.r2)))  # CH4:  some low ones to investigate
 
-# If r2 of best model < 0.9, then set to NA
+# If r2 of best model < 0.9 for CH4; 0.8 for CO2, then set to NA
 OUT <- mutate(OUT, 
-              co2.drate.mg.h.best = ifelse((co2.lm.aic < co2.ex.aic | is.na(co2.ex.aic)) & co2.lm.r2 < 0.9, # if ex is best, but r2<0.9
+              co2.drate.mg.h.best = ifelse((co2.lm.aic < co2.ex.aic | is.na(co2.ex.aic)) & co2.lm.r2 < 0.8, # if ex is best, but r2<0.9
                                                 NA, # then NA
-                                           ifelse((co2.ex.aic < co2.lm.aic) & co2.ex.r2 < 0.9, # if lm is best, but r2<0.9
+                                           ifelse((co2.ex.aic < co2.lm.aic) & co2.ex.r2 < 0.8, # if lm is best, but r2<0.9
                                                   NA, # the NA
                                                   co2.drate.mg.h.best)), # otherwise assume value defined above
                                                   
@@ -268,7 +268,7 @@ OUT <- filter(OUT, !is.na(Lake_Name)) # Just one NA slipped in
 eqAreaData <- merge(eqAreaData, OUT, by.x = c("Lake_Name", "siteID"), 
       by.y = c("Lake_Name", "site"), all=TRUE)
 
-str(eqAreaData) # 35 observations
+str(eqAreaData) # 210 observations. 35 sites * 3 surveys * 2 years = 210. Only 90 msmts: 15*6
 
 # Any sites not have a diffusive rate?
 # Only a subset of Cowan Lake sites were sampled due to water in LGR.
@@ -313,10 +313,13 @@ ebResults <- do.call("rbind", myEbList) %>%  # This coerces the list into a data
          n2o.erate.mg.h = ebN2omgM2h)
 
 
-str(eqAreaData) # 35
-str(ebResults)  # 35 observations
+str(eqAreaData) # 210
+str(ebResults)  # 210 observations of 5 vars
+ebResults<-ebResults%>%
+  mutate(Lake_Name = as.character(Lake_Name),
+         siteID = as.character(siteID))
 eqAreaData <- merge(eqAreaData,ebResults, all = TRUE) 
-str(eqAreaData) # 35 observations
+str(eqAreaData) # 210 observations of 102 vars
 
 
 # CALCULATE TOTAL EMISSION RATES------------------
@@ -348,32 +351,34 @@ eqAreaDataSub$siteDistFromShore<-rep(c(67,  #U01
                                        268, #U16
                                        242, #U17
                                        170),#U18
-                                     3)
+                                     6)
  
 ggplot(eqAreaDataSub, aes(siteID, ebMlHrM2))+
   geom_point()
+
+#  facet_grid(Lake_Name~.)
 
 ggplot(eqAreaDataSub, aes(Tmp_C_S, ebMlHrM2))+
   geom_point(aes(color=Lake_Name))
 
 eqAreaDataSub$fsiteID <- orderSite(eqAreaDataSub, 
                                    choice1 = "ch4.d")
-ggplot(eqAreaDataSub, aes(fsiteID, ch4.drate.mg.h.best))+
+ggplot(eqAreaDataSub, aes(ch4.drate.mg.h.best, siteID))+
   geom_point(aes(color=Lake_Name))+
-  ylim(0, 26)+
+  xlim(0, 10)+
   ggtitle("CH4 Diffusive Emissions (mg CH4 m-2 hr-1)")
 eqAreaDataSub$fsiteID <- orderSite(eqAreaDataSub, 
                                    choice1 = "co2.d")
-ggplot(eqAreaDataSub, aes(fsiteID, co2.drate.mg.h.best))+
+ggplot(eqAreaDataSub, aes(co2.drate.mg.h.best, siteID))+
   geom_point(aes(color=Lake_Name))+
  # ylim(0, 26)+
   ggtitle("CO2 Diffusive Emissions (mg CO2 m-2 hr-1)")
 
 
-eqAreaDataSub$fsiteID <- orderSite(eqAreaDataSub, 
-                                   choice1 = "ch4.e")
+# eqAreaDataSub$fsiteID <- orderSite(eqAreaDataSub, 
+#                                    choice1 = "ch4.e")
 
-ggplot(eqAreaDataSub, aes(fsiteID, ch4.erate.mg.h))+
+ggplot(eqAreaDataSub, aes(ch4.erate.mg.h, siteID))+
   geom_point(aes(color=Lake_Name))+
   ggtitle("CH4 Ebullitive Emissions (mg CH4 m-2 hr-1)")
 

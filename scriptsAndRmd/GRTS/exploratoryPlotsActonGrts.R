@@ -7,8 +7,9 @@
 # Volumetric rates
 str(meanVariance.c$Lake_Name)
 
-meanVariance.c$Lake_Name2<-c("Acton Lake 07", "Acton Lake 08", "Acton Lake 10")
-
+meanVariance.c$Lake_Name2<-c("Acton 2017_07", "Acton 2017_08", "Acton 2017_10",
+                             "Acton 2018_07", "Acton 2018_08", "Acton 2018_09")
+meanVariance.c$year<-as.factor(c(rep("2017", 3), rep("2018",3)))
 str(meanVariance.c$ebMlHrM2_Estimate)
 
 ggplot(meanVariance.c,
@@ -16,7 +17,8 @@ ggplot(meanVariance.c,
   geom_point() +
   geom_errorbar(aes(ymax = ebMlHrM2_UCB95Pct, 
                      ymin = ebMlHrM2_LCB95Pct))+
-  ylim(0, 35)+
+  #facet_grid(year~.)
+  #ylim(0, 35)+
   labs(x="", y=expression(Volumetric~Ebullition~(mL~gas~m^{-2}~hr^{-1})))
   
 
@@ -35,36 +37,76 @@ ggplot(meanVariance.c,
     geom_point()+
   geom_errorbar(aes(ymax = ch4.erate.mg.h_UCB95Pct,
                     ymin = ch4.erate.mg.h_LCB95Pct))+
-  ylim(0, 15)+
+  #ylim(0, 15)+
   #xlim("Acton Lake 07", "Acton Lake 08")+
   labs(x="", y=expression(CH[4]~Ebullition~(mg~CH[4]~m^{-2}~hr^{-1})))
 
-ggsave('C:/R_Projects/actonFluxProject/figures/ch4EbDotChartAGU.tiff',  # export as .tif
+ggsave('C:/R_Projects/actonFluxProject/figures/ch4EbDotChart.tiff',  # export as .tif
        units="in",  # specify units for dimensions
        width=3,   # 1 column
        height=3, # Whatever works
        dpi=600,   # ES&T. 300-600 at PLOS One,
        compression = "lzw")
 
+meanVarEFW<-select(meanVariance.c, Lake_Name2, ch4.trate.mg.h_Estimate, ch4.trate.mg.h_UCB95Pct,
+                   ch4.trate.mg.h_LCB95Pct)%>%
+  filter(!is.na(ch4.trate.mg.h_UCB95Pct))
 
-#CH4 diff rates
-ggplot(meanVariance.c,
-       aes(Lake_Name2, ch4.drate.mg.m2.h_Estimate))+
+meanVarEFW[7,1]<-"Acton 2016_05"
+meanVarEFW[7,2]<-5.1
+meanVarEFW[7,3]<-5.1+1.5
+meanVarEFW[7,4]<-5.1-1.5
+
+ggplot(meanVarEFW,
+       aes(ch4.trate.mg.h_Estimate*24, Lake_Name2))+
   geom_point()+
-  geom_errorbar(aes(ymax = ch4.drate.mg.m2.h_UCB95Pct,
-                    ymin = ch4.drate.mg.m2.h_LCB95Pct))+
-  ylim(0, 15)+
- # xlim("Acton Lake 07", "Acton Lake 08")+
-  labs(x="", y=expression(CH[4]~Diffusion~(mg~CH[4]~m^{-2}~hr^{-1})))
-
-ggsave('C:/R_Projects/actonFluxProject/figures/ch4DiffDotChartAGU.tiff',  # export as .tif
+  geom_errorbarh(aes(xmax = ch4.trate.mg.h_UCB95Pct*24,
+                    xmin = ch4.trate.mg.h_LCB95Pct*24))+
+  xlim(0, 26*24)+
+  #xlim("Acton Lake 07", "Acton Lake 08")+
+  labs(y="", x=expression(CH[4]~Emission~(mg~CH[4]~m^{-2}~d^{-1})))
+ggsave('C:/R_Projects/actonFluxProject/figures/ch4TotDotChart.tiff',  # export as .tif
        units="in",  # specify units for dimensions
-       width=3,   # 1 column
-       height=3# Whatever works
+       width=4,   # 1 column
+       height=3, # Whatever works
        dpi=600,   # ES&T. 300-600 at PLOS One,
        compression = "lzw")
+#CH4 diff rates
+ggplot(meanVariance.c,
+       aes(ch4.drate.mg.m2.h_Estimate*24, Lake_Name2))+
+  geom_point()+
+  geom_errorbarh(aes(xmax = ch4.drate.mg.m2.h_UCB95Pct*24,
+                    xmin = ch4.drate.mg.m2.h_LCB95Pct*24))+
+  xlim(0, 100)+
+ # xlim("Acton Lake 07", "Acton Lake 08")+
+  labs(y="", x=expression(CH[4]~Diffusion~(mg~CH[4]~m^{-2}~d^{-1})))
 
+ggsave('C:/R_Projects/actonFluxProject/figures/ch4DiffDotChart.tiff',  # export as .tif
+       units="in",  # specify units for dimensions
+       width=4,   # 1 column
+       height=3, # Whatever works
+       dpi=600,   # ES&T. 300-600 at PLOS One,
+       compression = "lzw")
+#CO2 diff rates
+ggplot(meanVariance.c,
+       aes(Lake_Name2, co2.drate.mg.m2.h_Estimate))+
+  geom_point()+
+  geom_errorbar(aes(ymax = co2.drate.mg.m2.h_UCB95Pct,
+                    ymin = co2.drate.mg.m2.h_LCB95Pct))+
+  ylim(-115, 0)+
+  # xlim("Acton Lake 07", "Acton Lake 08")+
+  labs(x="", y=expression(CO[2]~Diffusion~(mg~CO[2]~m^{-2}~hr^{-1})))
 
+#source apportionment: percent emissions as ebulltion:
+meanVariance.c$percEb<-meanVariance.c$ch4.erate.mg.h_Estimate/meanVariance.c$ch4.trate.mg.h_Estimate*100
+ggplot(meanVariance.c,
+       aes(percEb, Lake_Name2))+
+  geom_point()+
+  xlim(50, 100)+
+  # xlim("Acton Lake 07", "Acton Lake 08")+
+  labs(x="% Emissions as Ebullition", y="")
+
+summary(meanVariance.c$percEb)
 #regressions of CH4 ebullition rates vs independent variables
 
 ggplot(eqAreaDataSub, aes(TrNTU_S, ch4.erate.mg.h))+
@@ -118,8 +160,8 @@ ggplot(meanVariance.c,
   geom_point()+
   geom_errorbar(aes(ymax = co2.drate.mg.m2.h_UCB95Pct,
                     ymin = co2.drate.mg.m2.h_LCB95Pct))+
-  ylim(-80, 0)+
-  xlim("Acton Lake 07", "Acton Lake 08")+
+  #ylim(-80, 0)+
+  #xlim("Acton Lake 07", "Acton Lake 08")+
   labs(x="", y=expression(CO[2]~Diffusion~(mg~CO[2]~m^{-2}~hr^{-1})))
 
 ggsave('C:/R_Projects/actonFluxProject/figures/co2DiffDotChartAGU.tiff',  # export as .tif

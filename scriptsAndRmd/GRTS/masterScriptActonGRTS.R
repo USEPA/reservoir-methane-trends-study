@@ -21,3 +21,5 @@ source("scriptsAndRmd/GRTS/grtsMeanVarianceActonGRTS.R") # 20s
 # Data analysis
 #source("scriptsAndRmd/descRes.R")
 source("scriptsAndRmd/exploratoryPlotsActonGrts.R")
+
+#for Acton manuscript: cumulativeEmissionsActonGrts.R

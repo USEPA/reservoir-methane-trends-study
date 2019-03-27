@@ -39,6 +39,9 @@ library(plotly)
 library(lubridate)
 library(zoo)
 library(openair)
+library(REddyProc)
+
+library(wesanderson)
 
 
 # TRIM FUNCTION--------------------------
@@ -399,4 +402,19 @@ myvif <- function(mod) {
 # The following key can be used to translate.
 
 
+
+###From Will Barnett's ANN prep script:
+## Function to look at how many 30-minute gaps exist per day
+plotGaps <- function(d, resp){
+  
+  # d <- fluxDat; resp = "RBRmeanT_1.6"
+  dayGaps <- ddply(d, .(date), function(x){
+    # x <- subset(fluxDat, date == "2017-02-01")
+    return(data.frame("Gaps"=sum(is.na(x[,resp]))))
+  })
+  p <- ggplot(dayGaps, aes_string(x = "date", y = "Gaps")) + geom_bar(stat = "identity") +
+    xlab("Date") + ylab("Number of 30-min Gaps per Day") + 
+    ggtitle(paste("Daily Gap Plot for: ", resp, sep=""))
+  return(p)
+}
 

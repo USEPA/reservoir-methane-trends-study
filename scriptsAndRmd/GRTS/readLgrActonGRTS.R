@@ -10,8 +10,11 @@
 
 # READ DATA-----------------
 # List of .txt files containing data
-txtFiles <- list.files("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/ebullition2017/data/GGA/acton", 
-                       pattern="*.txt$", recursive = TRUE) # $ matches end of string, excludes '...txt.zip' file
+txtFiles <- c(list.files("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/ebullition2017/data/GGA/acton", 
+                       pattern="*.txt$", recursive = TRUE), # $ matches end of string, excludes '...txt.zip' file
+              list.files("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/ebullition2018/GGA/",
+                         pattern="*.txt$", recursive=TRUE))
+              
 
 # Directories contain _s, _l, and _b files that don't contain data of interest.
 # Strip these files out.
@@ -29,26 +32,45 @@ txtFiles <- txtFiles[!grepl(pattern = "_s|_l|_b", x = txtFiles)] # exclude files
 ### them from the "txtFiles" vector
 
 # Find the size of the files
-txtFilesSize <- file.info(paste("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/ebullition2017/data/GGA/acton/", 
-                                txtFiles, sep = ""))
+txtFiles<-as.data.frame(txtFiles)
+txtFiles2017<-txtFiles[1:40, 1]
+txtFiles2018<-txtFiles[41:105, 1]
+txtFilesSize <- c(file.info(paste("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/ebullition2017/data/GGA/acton/", 
+                                txtFiles2017, sep = "")),
+                  file.info(paste("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/ebullition2018/GGA/", 
+                                  txtFiles2018, sep = "")))
 # Add the file size information to the txtFiles list %>% reformat %>% keep only files that aren't 0 kB
-txtFiles <- cbind(txtFiles, dplyr::select(txtFilesSize, size)) %>%
-mutate(txtFiles = as.character(txtFiles)) %>%
-  filter(size != 0) 
 
-txtFiles <- txtFiles$txtFiles # Needs to be a vector for loop below; so turn back into a vector
+txtFiles$size<-c(txtFilesSize[[1]], txtFilesSize[[8]])
+
+txtFiles<-filter(txtFiles, size != 0) 
+
+txtFilesdf<-txtFiles
+
+txtFiles <- as.character(txtFiles$txtFiles) # Needs to be a vector for loop below; so turn back into a vector
+str(txtFiles)
 
 ggaList <- list()  # Empty list to hold results
 
 for (i in 1:length(txtFiles)) {  # loop to read and format each file
-  gga.i <- read.table(paste("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/ebullition2017/data/GGA/acton/", 
-                            txtFiles[i], sep=""),
-                      sep=",",  # comma separate
-                      skip=1,  # Skip first line of file.  Header info
-                      colClasses = c("character", rep("numeric", 21), rep("NULL", 6)),
-                      as.is=TRUE, # Prevent conversion to factor
-                      header=TRUE, # Import column names
-                      fill=TRUE)  # Needed to deal with empty cells in last column
+  if(grepl("2017", txtFiles[i])){  
+         gga.i <-read.table(paste("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/ebullition2017/data/GGA/acton/", 
+                                   txtFiles[i], sep=""),
+                             sep=",",  # comma separate
+                             skip=1,  # Skip first line of file.  Header info
+                             colClasses = c("character", rep("numeric", 21), rep("NULL", 6)),
+                             as.is=TRUE, # Prevent conversion to factor
+                             header=TRUE, # Import column names
+                             fill=TRUE)} else{
+         gga.i <-read.table(paste("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/ebullition2018/GGA/", 
+                                   txtFiles[i], sep=""),
+                             sep=",",  # comma separate
+                             skip=1,  # Skip first line of file.  Header info
+                             colClasses = c("character", rep("numeric", 21), rep("NULL", 6)),
+                             as.is=TRUE, # Prevent conversion to factor
+                             header=TRUE, # Import column names
+                             fill=TRUE)
+  }  # Needed to deal with empty cells in last column
 
   # FORMAT DATA
 # gga.i <- gga.i[1:(which(gga.i$Time == "-----BEGIN PGP MESSAGE-----") - 1), ]  # Remove PGP message
@@ -77,11 +99,17 @@ for (i in 1:length(txtFiles)) {  # loop to read and format each file
 # Merge files
 gga <- do.call("rbind", ggaList)  # Coerces list into dataframe.
 
+write.table(gga,
+            file="C:/R_Projects/actonFluxProject/output/prelimData/gga.csv",
+            sep=",",
+            row.names=FALSE)
+
+
 
 
 # BASIC PLOTS-----------------
 ggplot(gga, aes(RDateTime, CH4._ppm)) + geom_point() + 
-   scale_x_datetime(date_labels ="%m/%d %H:%M")
+   scale_x_datetime(date_labels ="%m/%d/%y %H:%M")
 
 ggplot(gga, aes(RDateTime, CO2._ppm)) + geom_point() + 
   scale_x_datetime(date_labels ="%m/%d %H:%M")

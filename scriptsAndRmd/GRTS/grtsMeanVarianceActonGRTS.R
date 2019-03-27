@@ -6,7 +6,7 @@ myMeanVarianceList <- list() # empty list to catch mean and variance
 
 for (i in 1:length(unique(eqAreaData$Lake_Name))) {
   lake.i <- unique(eqAreaData$Lake_Name)[i]
-  data.i <- filter(eqAreaData, Lake_Name == lake.i)
+  data.i <- filter(eqAreaData, Lake_Name == lake.i)#, siteID !="U-06", siteID!="U-09")
   
   myMeanVarianceList[[i]] <- grtsMeanVariance(data.i)  # this function is sourced from masterLibrary.R
   myMeanVarianceList[[i]]$Pct$Lake_Name = lake.i  # add lake name to dataframe!
