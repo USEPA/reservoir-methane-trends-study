@@ -8,95 +8,33 @@ library(tidyverse)
 # Read individual files.
 
 # READ DATA-----------------
- gc.all<-read.table("L:/Lab/Lablan/GHG/GC/2017Data/gcMasterFile2017updated2018-03-15.txt",
+ gc.all.2017<-read.table("L:/Lab/Lablan/GHG/GC/2017Data/gcMasterFile2017updated2018-03-15.txt",
                     col.names=c("sample", "n2o.ppm", "co2.ppm", "ch4.ppm", "flag.n2o",
                                 "flag.co2", "flag.ch4", "o2.ar.percent", "n2.perc","o2.chk",
                                 "flag.n2", "flag.o2.ar"),
                     #colClasses=c("character", rep("num", 3), rep("int", 3), rep("num", 2),
                     #             rep("logi", 2)),
                     skip=1)
- gc.all$sample<-as.character(gc.all$sample) 
-
-# gc.1 <- read_excel("L:/Lab/Lablan/GHG/GC/2017Data/17_06_29_STD_ECD_FID_UNK.xlsx", 
-#                    trim_ws=TRUE, skip=59) 
-# gc.2 <- read_excel("L:/Lab/Lablan/GHG/GC/2017Data/17_07_25_UNK_STD_ECD_FID.xlsx", 
-#                    trim_ws=TRUE, skip=59)
-# gc.3 <- read_excel("L:/Lab/Lablan/GHG/GC/2017Data/17_08_02_UNK_STD_ECD_FID.xlsx", 
-#                    trim_ws=TRUE, skip=50)
-# gc.4 <- read_excel("L:/Lab/Lablan/GHG/GC/2017Data/17_08_04_UNK_STD_ECD_FID.xlsx", 
-#                    trim_ws=TRUE, skip=50)
-# gc.5 <- read_excel("L:/Lab/Lablan/GHG/GC/2017Data/17_08_16_Dgas_UNK_STD_ECD_FID.xlsx", 
-#                    trim_ws=TRUE, skip=62)
-# gc.6 <- read_excel("L:/Lab/Lablan/GHG/GC/2017Data/17_08_21_UNK_STD_ECD_FID.xlsx", 
-#                    trim_ws=TRUE, skip=62)
-# gc.7 <- read_excel("L:/Lab/Lablan/GHG/GC/2017Data/17_08_31_UNK_STD_ECD_FID2.xlsx", 
-#                    trim_ws=TRUE, skip=65)
-# gc.8 <- read_excel("L:/Lab/Lablan/GHG/GC/2017Data/17_09_14_UNK_STD_ECD_FID.xlsx", 
-#                    trim_ws=TRUE, skip=62)
-# gc.9 <- read_excel("L:/Lab/Lablan/GHG/GC/2017Data/17_09_19_STD_UNK_ECD_FID_TCD.xlsx", 
-#                    trim_ws=TRUE, skip=102)
-# gc.10 <- read_excel("L:/Lab/Lablan/GHG/GC/2017Data/17_09_28_UNK_STD_ECD_FID.xlsx", 
-#                     trim_ws=TRUE, skip=50)
-# gc.11 <- read_excel("L:/Lab/Lablan/GHG/GC/2017Data/17_10_11_UNK_STD_ECD_FID_Dgas.xlsx", 
-#                     trim_ws=TRUE, skip=67)
-# gc.12 <- read_excel("L:/Lab/Lablan/GHG/GC/2017Data/17_10_17_UNK_STD_ECD_FID_Dgas.xlsx", 
-#                    trim_ws=TRUE, skip=67)
-# gc.13 <- read_excel("L:/Lab/Lablan/GHG/GC/2017Data/17_12_20_STD_UNK_ECD_FID.xlsx", 
-#                     trim_ws=TRUE, skip=67)
-# gc.14 <- read_excel("L:/Lab/Lablan/GHG/GC/2017Data/18_01_03_AIR_UNK_STD_ECD_FID.xlsx", 
-#                     trim_ws=TRUE, skip=48)
-# gc.15 <- read_excel("L:/Lab/Lablan/GHG/GC/2017Data/18_01_16_UNK_STD_ECD_FID.xlsx", 
-#                     trim_ws=TRUE, skip=48)
-# gc.16 <- read_excel("L:/Lab/Lablan/GHG/GC/2017Data/18_01_22_UNK_STD_ECD_FID.xlsx", 
-#                     trim_ws=TRUE, skip=60)
-# gc.17 <- read_excel("L:/Lab/Lablan/GHG/GC/2017Data/18_01_31_STD_UNK_ECD_FID_TCD.xlsx", 
-#                     trim_ws=TRUE, skip=102)
-# # Merge gas data
-# gc.all <- Reduce(function(...) merge(..., all=T),
-#                   list(gc.1, gc.2, gc.3, gc.4, gc.5, gc.6, gc.7, gc.8, gc.9, gc.10, gc.11,
-#                        gc.12, gc.13, gc.14, gc.15, gc.16, gc.17))
-# 
-# # simplify names
-# names(gc.all) = gsub(pattern = c("\\(| |#|)|/|%|-|\\+"), replacement = ".", 
-#                      x = names(gc.all))
-# 
-# # Format gas data
-# gc.all <- select(gc.all, -Sample.code, -Sample.abb, -Sample.date,# Exlcude variables
-#                  -Area.CO2, -Area.Methane, -Area.Methane__1, -Area.N2O, 
-#                  -Area.Ar, -Area.O2.Ar, -Area.N2,
-#                  -N2O.chk, -CO2.chk, -CH4.chk, -N2.chk, -O2.Ar.chk)  %>%
-#   filter(!(grepl("STD", gc.all$Sample)), # remove standards
-#          !(grepl("Std", gc.all$Sample)), # remove standards
-#          !(grepl("std", gc.all$Sample)), # remove standards
-#          !(grepl("NLA", gc.all$Sample)), # remove NLA samples
-#          !(grepl("PEG", gc.all$Sample)), # remove Pegasus samples
-#          !(grepl("ACE", gc.all$Sample)), # remove Army Corps samples
-#          !(grepl("LPW", gc.all$Sample)), # remove Lake Powell samples
-#          Sample != "") %>%  # exclude blank rows
-#   rename(n2o.ppm = N2O..ppm., co2.ppm = CO2..ppm., ch4.ppm = CH4..ppm.,
-#          o2.ar.percent = O2.Ar...., n2.perc = N2...)  
-# 
-# names(gc.all) = tolower(names(gc.all))
-# 
+ gc.all.2018<-read.table("L:/Lab/Lablan/GHG/GC/2018Data/gcMasterFile2018updated2018-12-21.txt",
+                                 col.names=c("sample", "ch4.ppm", "co2.ppm", "n2o.ppm", "flag.n2o",
+                                             "flag.co2", "flag.ch4"),
+                                 #colClasses=c("character", rep("num", 3), rep("int", 3), rep("num", 2),
+                                 #             rep("logi", 2)),
+                                 skip=1)
+ 
+gc.all<-rbind(select(gc.all.2017, sample, n2o.ppm, co2.ppm, ch4.ppm, flag.n2o, flag.co2, flag.ch4),
+                       select(gc.all.2018, sample, n2o.ppm, co2.ppm, ch4.ppm, flag.n2o, flag.co2, flag.ch4))
+rm(gc.all.2017, gc.all.2018)
+gc.all$sample<-as.character(gc.all$sample) 
 gc.all$sampleNum<-gsub("([0-9]*).*","\\1",gc.all$sample) #extract numbers 
 gc.all$sampleNum<-substring(gc.all$sample, 4)
 # 
+#filter the lab LAN master file, which includes all samples run in 2017 and 2018, for Acton samples
+gc.all.Act<-dplyr::filter(gc.all, grepl("ACT",sample))
 # # Check for duplicates.
-filter(gc.all, duplicated(sample,fromLast = TRUE) | duplicated(sample,fromLast = FALSE)) %>% 
+filter(gc.all.Act, duplicated(sample,fromLast = TRUE) | duplicated(sample,fromLast = FALSE)) %>% 
    arrange(sample)
 # 
-# # Write consolidated data back to LabLan for Sarah
-# write.table(gc.all, 
-#             file = paste("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/gc/gcMasterFile2017",
-#                          "updated", Sys.Date(),
-#                          ".txt", sep = ""),
-#             row.names = FALSE, sep = "\t")
-# 
-# rm(gc.1)
-# rm(gc.2, gc.3)
-# rm(gc.4, gc.5, gc.6, gc.7, gc.8, gc.9, gc.10, gc.11)
-# rm(gc.12, gc.13, gc.14, gc.15, gc.16, gc.17)
-###Adapted/stolen from Jake's "readGc.R" code for the multiResSurvey
 # PREPARE EXETAINER CODES----------------------
 # Extract from eqAreaData
 xtrCodes <- filter(eqAreaData, EvalStatus == "sampled") %>%
@@ -129,12 +67,15 @@ filter(xtrCodes.m, duplicated(value,fromLast = TRUE) | duplicated(value,fromLast
 
 
 # MERGE EXETAINER CODES WITH GC DATA-----
+#acton 2018 exetainer codes have underscores in them, since they are one digit shorter
+#need to remove the underscore so they match the eqAreaData --> xtrCode code
+gc.all.Act$sampleNum<-sub("_", "", gc.all.Act$sampleNum)
 
-xtrCodes.gas <- merge(xtrCodes.m, gc.all, by.x = "value", by.y = "sampleNum", all = TRUE)
+xtrCodes.gas <- merge(xtrCodes.m, gc.all.Act, by.x = "value", by.y = "sampleNum", all = TRUE)
 
-str(xtrCodes.m)  #141 observations
-str(gc.all) # 208 observations #2/6/2018: 65824 obs; #4/11/2018: 4775 obs
-str(xtrCodes.gas) # 201 observations
+str(xtrCodes.m)  #141 obs; 12/27/2018: 291 obs
+str(gc.all.Act) # 208 observations #2/6/2018: 65824 obs; #4/11/2018: 4775 obs; 12/27/2018: 864 obs (Acton only)
+str(xtrCodes.gas) # 201 observations; 12/27/2018: 893 obs
 
 # Specific fixes
 # Still need to add codes for MIT trap redeployment
@@ -159,15 +100,15 @@ filter(xtrCodes.gas, is.na(xtrCodes.gas$co2.ppm)) %>% arrange(variable, value)
 
 # Take a look at values
 ggplot(filter(xtrCodes.gas, variable == "tp.xtr"), aes(siteID, n2o.ppm)) + 
-  geom_jitter() +
+  geom_jitter(alpha=0.3) +
   theme(axis.text.x = element_text(angle = 90))
 
 ggplot(filter(xtrCodes.gas, variable == "tp.xtr"), aes(siteID, ch4.ppm/10000)) + 
-  geom_jitter() +
+  geom_jitter(alpha=0.3) +
   theme(axis.text.x = element_text(angle = 90))
 
 ggplot(filter(xtrCodes.gas, variable == "tp.xtr"), aes(siteID, co2.ppm/10000)) + 
-  geom_jitter() +
+  geom_jitter(alpha=0.3) +
   theme(axis.text.x = element_text(angle = 90))
 
 # ggplot(filter(xtrCodes.gas, variable == "tp.xtr"), aes(Lake_Name, o2)) + 

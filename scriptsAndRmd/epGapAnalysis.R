@@ -150,10 +150,13 @@ print(c("Nighttime Rejection %:", round(numNAsNight/totNight*100, digits = 2)))
 ## 3=wind direction while at dock
 ## 4=site down
 
-epOutSub$date<-as.Date(epOutSub$date, format="%m/%d/%Y")
-str(epOutSub$date)
-epOutSub$time<-as.POSIXct(epOutSub$time, format="%H:%M", tz="UTC")
-str(epOutSub$time)
+epOutSub<-epOutSub%>%
+  mutate(date = as.Date(date, format="%m/%d/%Y"),
+         year = year(RDateTime),
+         time = as.POSIXct(time, format="%H:%M", tz="UTC"),
+         monthday = format(RDateTime, format="%m-%d %H:%M")%>%
+           as.POSIXct(monthday, format="%m-%d %H:%M", tz="UTC"))
+
 
 epOutSub$gapMap<-"Best Data"
 epOutSub$qc_ch4_factor<-as.factor(epOutSub$qc_ch4_flux)
@@ -168,7 +171,7 @@ for(j in 1:length(epOutSub$gapMap)){
     epOutSub$gapMap[j]="Failed QC"
   }
   else if(epOutSub$RDateTime[j]<"2018-05-01 00:00:00" & epOutSub$wind_dir[j]>195 & epOutSub$wind_dir[j]<330){
-    epOutSub$gapMap[j]="Wind"
+    epOutSub$gapMap[j]="Footprint"
   }
  
 }
@@ -201,15 +204,15 @@ summary(epOutSub$gapMapCO2Fact)
 gapAttFacet<-ggplot(epOutSub, aes(time, monthday))+
   geom_point(aes(color=Gap_Attribution), shape=15)+
   scale_shape_manual(values=c(15,15,15,15))+
-  scale_color_manual(values=c("#FF3333","#33CC99", "#CCCCCC", "#6699CC"))+
+  scale_color_manual(values=c("#FF3333","#33CC99","#6699CC", "#CCCCCC"))+
   scale_x_datetime(labels=date_format("%H:%M"))+
   scale_y_datetime(labels=date_format("%b"), breaks=date_breaks("1 month"))+
   facet_grid(.~year)+
   theme_classic()+
   scale_fill_discrete(name="CH4 Gap Attribution")+
   labs(y="Month of Year", x="Time of Day")
-gapAttFacet+xlim(c(as.POSIXct("2018-10-04 00:00", format="%H:%M"),
-                   as.POSIXct("2018-10-04 23:59", format="%H:%M")))+
+gapAttFacet+xlim(c(as.POSIXct("2018-10-16 00:00", format="%H:%M"),
+                   as.POSIXct("2018-10-16 23:59", format="%H:%M")))+
   scale_x_datetime(labels=date_format("%H:%M"))
 #2017
 ggplot(filter(epOutSub, RDateTime<"2018-01-01"), aes(time, date))+

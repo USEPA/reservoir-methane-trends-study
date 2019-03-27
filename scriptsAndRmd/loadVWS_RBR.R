@@ -2,8 +2,9 @@
 ##Need to load Vanni weather station, RBR thermistor, and Vanni buoy Tmpr
 ##Updated 20 Feb 2018 
 ###2. LOAD VANNI WEATHER STATION ----
+myWd<-  "L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance"
 myWd
-vanniMet<-read.table(paste(myWd, "/vanniWeatherStation/vws20160929_20181002_concat.csv", sep=""),
+vanniMet<-read.table(paste(myWd, "/vanniWeatherStation/vws20160929_20181109_concat.csv", sep=""),
                      sep=",",  # comma separate
                      skip=4,  # Skip first line of file.  Header info
                      colClasses = c("character", rep("numeric", 9), "character"),
@@ -14,10 +15,22 @@ vanniMet<-read.table(paste(myWd, "/vanniWeatherStation/vws20160929_20181002_conc
                                    "Bat"),
                      na.strings = "NaN",
                      fill=TRUE)
+# vanniMet<-read.table("C:/R_Projects/actonFluxProject/vws_20181101_20190301.csv",
+#                      sep=",",  # comma separate
+#                      skip=4,  # Skip first line of file.  Header info
+#                      colClasses = c("character", rep("numeric", 9), "character"),
+#                      as.is=TRUE, # Prevent conversion to factor
+#                      header=FALSE, # don't import column names
+#                      col.names = c("dateTimeW", "PAR", "WindDir", "WindSp", "AirT", 
+#                                    "RH", "Bpress", "DailyRain", "WaterLevel", "WaterT", 
+#                                    "Bat"),
+#                      na.strings = "NaN",
+#                      fill=TRUE)
 vanniMet$RDateTime<-as.POSIXct(vanniMet$dateTimeW,
                                format="%m/%d/%Y %H:%M",
                                tz = "UTC")
 vanniMetSub<-filter(vanniMet, RDateTime>"2016-09-29 00:45:00")
+#vanniMetSub<-filter(vanniMet, RDateTime>"2018-11-01 14:20:00")
 
 #Filter time periods when rain gauge was down, as indicated by long periods of zero rain:
   # ggplot(filter(vanniMetSub, RDateTime>"2017-05-10 00:00:00", RDateTime<"2018-07-20 00:00:00"))+
@@ -32,7 +45,7 @@ vanniMetSub<-vanniMetSub%>%
 #average 15-min readings into 30-min averages
 vanni30min<-vanniMetSub %>%
   group_by(RDateTime = cut(RDateTime, breaks = "30 min")) %>%
-  summarize(waterLevel.vws = mean(WaterLevel, na.rm=TRUE),
+  dplyr::summarize(waterLevel.vws = mean(WaterLevel, na.rm=TRUE),
             par.vws= mean(PAR, na.rm=TRUE),
             dailyRain.vws = max(DailyRain, na.rm=TRUE),
             waterT.vws=mean(WaterT, na.rm=TRUE),
@@ -50,7 +63,8 @@ vanni30min$RDateTime<-as.POSIXct(vanni30min$RDateTime,
                                   format = "%Y-%m-%d %H:%M:%S",
                                   tz="UTC")
 
-
+ggplot(vanni30min, aes(RDateTime, par.vws))+
+  geom_line(alpha=0.3)
 
 # ggplot(vanni30min, aes(RDateTime, waterLevel.vws))+
 #   geom_line()
@@ -77,8 +91,14 @@ vanni30min$levelAdj.vws<-vanni30min$levelAdj.vws+1
 #pressure produced by 1-m of water is 9800 Pa
 vanni30min$waterPressure.vws<-vanni30min$levelAdj.vws*9800  
 
+write.table(vanni30min,
+            file="C:/R_Projects/actonFluxProject/output/prelimData/vanni30min.csv",
+            sep=",",
+            row.names=FALSE)
+
+
 #3. LOAD rbr thermistor ----
-rbrT<-read.table(paste(myWd, "/RBR/Acton/L1_30minRBR/RBR20170510_20180827.csv", sep=""),
+rbrT<-read.table(paste(myWd, "/RBR/Acton/L1_30minRBR/RBR20170510_20181214.csv", sep=""),
                  sep=",",  # comma separate
                  skip=1,  # Skip first line of file.  Header info
                  colClasses = c("character", rep("numeric", 7)),
@@ -185,10 +205,14 @@ rbrTsub<-select(rbrT, RDateTime, RBRmeanT_0.1, RBRmeanT_0.25,
                 RBRmeanT_0.5,RBRmeanT_0.75,RBRmeanT_1,
                 RBRmeanT_1.25,RBRmeanT_1.6)
 
+write.table(rbrTsub,
+            file="C:/R_Projects/actonFluxProject/output/prelimData/rbrTsub.csv",
+            sep=",",
+            row.names=FALSE)
 
 rbrDaily<-rbrTsub%>%
   group_by(RDateTime = cut(RDateTime, breaks = "24 hour"))%>%
-           summarize(rbrMeanT_1.6 = mean(RBRmeanT_1.6, na.rm=TRUE),
+           dplyr::summarize(rbrMeanT_1.6 = mean(RBRmeanT_1.6, na.rm=TRUE),
                      rbrMeanT_1.25 = mean(RBRmeanT_1.25, na.rm=TRUE),
                      rbrMeanT_1 = mean(RBRmeanT_1, na.rm=TRUE),
                      rbrMeanT_0.75 = mean(RBRmeanT_0.75, na.rm=TRUE),
@@ -201,63 +225,92 @@ rbrDaily<-rbrTsub%>%
            monthday = format(RDateTime, format="%m-%d %H:%M")%>%
              as.POSIXct(monthday, format="%m-%d %H:%M", tz="UTC"))
            
-                                    
+  write.table(rbrDaily,
+              file="C:/R_Projects/actonFluxProject/output/prelimData/rbrDaily.csv",
+              sep=",",
+              row.names=FALSE)                                   
 
 #4. LOAD VANNI BUOY TMPR DATA ----
 
-buoyT<-read.table(paste(myWd, "/vanniBuoyTmpr.csv", sep=""),
+buoyFiles<-list.files(paste(myWd, "/vanniWeatherStation/buoyThermistor", 
+                            sep=""),
+                      pattern="*.csv")
+buoyT.List<-list()  
+for(i in 1:2){
+  buoyT.i<-read.table(paste(myWd, "/vanniWeatherStation/buoyThermistor/", buoyFiles[i], sep=""),
                   sep=",",  # comma separate
-                  skip=4,  # Skip first line of file.  Header info
-                  colClasses = c("character", rep("numeric", 11)),
+                  skip=1,  # Skip first line of file.  Header info
+                  colClasses = c(rep("character", 3), rep("numeric", 11)),
                   as.is=TRUE, # Prevent conversion to factor
                   header=FALSE, # don't import column names
-                  col.names = c("datetimeW", "buoyMeanT_0.1", "buoyMeanT_01",
+                  col.names = c("datetimeW", "dateW", "timeW", "buoyMeanT_0.1", 
+                                "buoyMeanT_0.5", "buoyMeanT_01", "buoyMeanT_01.5",
                                 "buoyMeanT_02", "buoyMeanT_03","buoyMeanT_04",
                                 "buoyMeanT_05","buoyMeanT_06","buoyMeanT_07",
-                                "buoyMeanT_08","buoyMeanT_09","buoyMeanT_10"),
+                                "buoyMeanT_08"),
                   na.strings = "NA",
                   fill=TRUE)
-buoyT$RDateTime<-as.POSIXct(buoyT$datetimeW,
+buoyT.i$RDateTime<-as.POSIXct(buoyT.i$datetimeW,
                            format="%m/%d/%Y %H:%M",
                            tz="UTC")
+buoyT.List[[i]]<-buoyT.i
+}
+
+buoyT<-do.call("rbind", buoyT.List)
+
+
 
 
 #tail(buoyTSub$RDateTime)
 buoyT30min<-buoyT %>%
   group_by(RDateTime = cut(RDateTime, breaks = "30 min")) %>%
-  summarize(buoyMeanT_0.1 = mean(buoyMeanT_0.1, na.rm=TRUE),
+  dplyr::summarize(buoyMeanT_0.1 = mean(buoyMeanT_0.1, na.rm=TRUE),
+            buoyMeanT_0.5 = mean(buoyMeanT_0.5, na.rm=TRUE),
             buoyMeanT_01 = mean(buoyMeanT_01, na.rm=TRUE),
+            buoyMeanT_01.5 = mean(buoyMeanT_01.5, na.rm=TRUE),
             buoyMeanT_02 = mean(buoyMeanT_02, na.rm=TRUE),
             buoyMeanT_03 = mean(buoyMeanT_03, na.rm=TRUE),
             buoyMeanT_04 = mean(buoyMeanT_04, na.rm=TRUE),
             buoyMeanT_05 = mean(buoyMeanT_05, na.rm=TRUE),
             buoyMeanT_06 = mean(buoyMeanT_06, na.rm=TRUE),
             buoyMeanT_07 = mean(buoyMeanT_07, na.rm=TRUE),
-            buoyMeanT_08 = mean(buoyMeanT_08, na.rm=TRUE),
-            buoyMeanT_09 = mean(buoyMeanT_09, na.rm=TRUE),
-            buoyMeanT_10 = mean(buoyMeanT_10, na.rm=TRUE))
+            buoyMeanT_08 = mean(buoyMeanT_08, na.rm=TRUE))
 buoyT30min$RDateTime<-as.POSIXct(buoyT30min$RDateTime,
                             format="%Y-%m-%d %H:%M:%S",
                             tz="UTC")
+buoyT30min<-buoyT30min%>%
+  mutate(buoyMeanT_08 = replace(buoyMeanT_08, 
+                                RDateTime>"2017-09-18 00:00:00" & RDateTime<"2017-09-25 00:00:00", NA),
+         buoyMeanT_08 = replace(buoyMeanT_08, 
+                                RDateTime>"2017-09-18 00:00:00" & RDateTime<"2017-09-25 00:00:00", NA),
+                  buoyMeanT_08 = replace(buoyMeanT_08, buoyMeanT_08>22.5, NA))
+       
+write.table(buoyT30min,
+            file="C:/R_Projects/actonFluxProject/output/prelimData/buoyT30min.csv",
+            sep=",",
+            row.names=FALSE)                 
 
-buoyTdaily<-buoyT %>%
+buoyTdaily<-buoyT30min %>%
   group_by(RDateTime = cut(RDateTime, breaks = "24 hour")) %>%
-  summarize(buoyMeanT_0.1 = mean(buoyMeanT_0.1, na.rm=TRUE),
+  dplyr::summarize(buoyMeanT_0.1 = mean(buoyMeanT_0.1, na.rm=TRUE),
+            buoyMeanT_0.5 = mean(buoyMeanT_0.5, na.rm=TRUE),
             buoyMeanT_01 = mean(buoyMeanT_01, na.rm=TRUE),
+            buoyMeanT_01.5 = mean(buoyMeanT_01.5, na.rm=TRUE),
             buoyMeanT_02 = mean(buoyMeanT_02, na.rm=TRUE),
             buoyMeanT_03 = mean(buoyMeanT_03, na.rm=TRUE),
             buoyMeanT_04 = mean(buoyMeanT_04, na.rm=TRUE),
             buoyMeanT_05 = mean(buoyMeanT_05, na.rm=TRUE),
             buoyMeanT_06 = mean(buoyMeanT_06, na.rm=TRUE),
             buoyMeanT_07 = mean(buoyMeanT_07, na.rm=TRUE),
-            buoyMeanT_08 = mean(buoyMeanT_08, na.rm=TRUE),
-            buoyMeanT_09 = mean(buoyMeanT_09, na.rm=TRUE),
-            buoyMeanT_10 = mean(buoyMeanT_10, na.rm=TRUE))
+            buoyMeanT_08 = mean(buoyMeanT_08, na.rm=TRUE))
 buoyTdaily$date<-as.Date(buoyTdaily$RDateTime,
                                  format="%Y-%m-%d %H:%M:%S",
                                  tz="UTC")
 
-
+write.table(buoyTdaily,
+            file="C:/R_Projects/actonFluxProject/output/prelimData/buoyTdaily.csv",
+            sep=",",
+            row.names=FALSE)
 #The Vanni buoy had power problems and the data set ends on 9/18/2017
 #Let's add the measurements from the deepest sonde readings to the dataset:
 
@@ -266,42 +319,100 @@ sondeDate<-c("5/10/2017",	"5/10/2017",	"5/26/2017", "5/26/2017",
             "6/26/2017",	"7/10/2017",	"7/10/2017",	"7/14/2017",	"7/14/2017",
             "7/26/2017",	"8/9/2017",	"8/9/2017",	"8/24/2017",	"8/24/2017",
             "8/31/2017",	"9/15/2017",	"9/21/2017",	"10/4/2017",
-            "10/20/2017",	"10/31/2017", "11/14/2017",	"12/11/2017")
+            "10/20/2017",	"10/31/2017", "11/14/2017",	"12/11/2017", 
+            "6/7/2018","6/15/2018","6/28/2018", "7/13/2018", "7/25/2018",
+            "8/9/2018", "8/28/2018", "9/13/2018", "10/3/2018", "10/18/2018", 
+            "10/30/2018", "7/10/2018", "8/13/2018", "9/19/2018", 
+            "11/15/2018", "11/30/2018")
 sondeDepth<-c(6.49,	7.6, 6.4,	7.01,	7.65,	7, 8,	7.1, 7,
               7,	8,	7,	8,	7,	7,	8,	7,	8,	7,	7,	7,	7,
-              7,	7,	7,	7)
+              7,	7,	7,	7,
+              8, 7.9, 7.9, 7.9, 7.9, 
+              7, 7.75, 8, 8, 7.9, 7.8, 7, 7.75, 7.9,
+              8, 8) #this last depth needs to be checked
 sondeTmpr<-c(11.6,	11.59,	13.59,	13.21,	12.63,	14.23,	13.57,
              14.24,	14.55,	16.6,	15.66,	17,	16.17,	17.69,	17.71,
              16.7,	18.76,	17.55,	18.7,	20,	19.84,	18.85,	17.86,
-             11.6,	8.83,	3.76)
+             11.6,	8.83,	3.76,
+             11.59, 12.35, 12.83, 13.66, 13.95, 15.84, 15.44, 16.6, 
+             17.05, 15.72, 11.69, 15.29, 15.06, 17.09, 6.42, 3.9)
 U12sonde<-data.frame(sondeDate, sondeDepth, sondeTmpr)
 U12sonde$date<-as.Date(U12sonde$sondeDate,
                              format="%m/%d/%Y")
-U12sonde<-U12sonde[c(2,5,7,9,11,13,14,16,18,19:26), ]
+U12sonde<-U12sonde[c(2,5,7,9,11,13,14,16,18,19:42), ]
 ggplot(U12sonde, aes(date, sondeTmpr))+
   geom_point()
 
+write.table(U12sonde,
+            file="C:/R_Projects/actonFluxProject/output/prelimData/U12sonde.csv",
+            sep=",",
+            row.names=FALSE)
 
 ####Load campbell data logger met data
-campMet<-read.table(paste(myWd, "/CR6/CR6Series_BioMet20180814.csv", sep=""),
+campMet<-read.table(paste(myWd, "/CR6/CR6Series_BioMet20181113.csv", sep=""),
                      sep=",",  # comma separate
                      skip=4,  # Skip first line of file.  Header info
-                     colClasses = c("character", rep("numeric", 10)),
+                     colClasses = c("character", rep("numeric", 16)),
                      as.is=TRUE, # Prevent conversion to factor
                      header=FALSE, # don't import column names
                      col.names = c("dateTimeW", "record", "battV_min", "PTemp_C_Avg", 
                                    "AirTC_avg", "AitTC_std", "Rain_mm_tot", "NR_Wm2_avg", 
-                                   "NR_Wm2_std", "RH", "RH_avg"),
+                                   "NR_Wm2_std", "RH", "RH_avg", "WS_ms_Avg", "WS_ms_Max",
+                                   "WS_ms_Std",	"WS_ms_S_WVT",	"WindDir_D1_WVT",	"WindDir_SD1_WVT"),
                      na.strings = "NAN",
                      fill=TRUE)
 campMet$RDateTime<-as.POSIXct(campMet$dateTimeW,
-                               format="%Y-%m-%d %H:%M:%S",
+                               format="%m/%d/%Y %H:%M",
                                tz = "UTC")
+NRTest<-read.table(paste(myWd, "/NRLite/netRadR.csv", sep=""),
+                    sep=",",  # comma separate
+                    skip=0,  # Skip first line of file.  Header info
+                    colClasses = c(rep("character", 2),
+                                   rep("numeric", 3), "character"),
+                    as.is=TRUE, # Prevent conversion to factor
+                    header=TRUE) # don't import column names
+                    
+NRTest$RDateTime<-as.POSIXct(NRTest$RDateTime,
+                              format="%m/%d/%Y %H:%M",
+                              tz = "UTC")
+NRTest$NR_Wm2_avg<-NRTest$netRad_mean
+ggplot(NRTest, aes(RDateTime, netRad_mean))+
+  geom_line()
 
 #filter periods when rain gauge was not measuring, but was being logged:
 campMet<-campMet%>%
   mutate(Rain_mm_tot = replace(Rain_mm_tot, RDateTime>"2018-04-15 00:00:00" & RDateTime<"2018-06-15 00:00:00", NA))
 
-# ggplot(campMet, aes(RDateTime, NR_Wm2_avg))+
-#   geom_line()+
-#   ylim(-200, 1000)
+write.table(campMet,
+            file="C:/R_Projects/actonFluxProject/output/prelimData/campMet.csv",
+            sep=",",
+            row.names=FALSE)
+ggplot(campMet, aes(RDateTime, NR_Wm2_avg))+
+  geom_line()+
+  ylim(-200, 1000)
+
+ggplot(filter(campMet, RDateTime>"2018-05-01", RDateTime<"2018-07-01"),
+       aes(RDateTime, NR_Wm2_avg))+
+  geom_line(alpha=0.3)
+
+NetRadList<-list()
+NetRadList[[1]]<-select(NRTest, RDateTime, NR_Wm2_avg)
+NetRadList[[2]]<-select(campMet, RDateTime, NR_Wm2_avg)
+NetRad<-do.call("rbind", NetRadList)
+
+ggplot(NetRad, aes(RDateTime, NR_Wm2_avg))+
+  geom_line()
+NetRad$date<-as.Date(NetRad$RDateTime)
+DailyNR<-NetRad %>%
+  group_by(date) %>%
+  dplyr::summarize(meanNR = (mean(NR_Wm2_avg, na.rm=TRUE)))
+DailyNR$RDateTime<-as.POSIXct(as.character(DailyNR$RDateTime),
+                             format="%Y-%M-%D %H:%M:%S",
+                             tz="UTC")
+ggplot(DailyNR, aes(date, meanNR))+
+  geom_line()+
+  ylim(-100, 500)
+
+df.rain<-left_join(select(campMet, RDateTime, Rain_mm_tot), 
+                   select(vanni30min, RDateTime, dailyRain.vws),
+                   by="RDateTime")

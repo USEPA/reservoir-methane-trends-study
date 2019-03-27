@@ -247,28 +247,28 @@ plot(with(OUT,ifelse(ch4.best.model == "linear", ch4.lm.r2, ch4.ex.r2)))  # CH4:
 
 # 3/29/2018: there aren't ex output for this run -- need to investigate further
 # If r2 of best model < 0.9, then set to NA
-# OUT <- mutate(OUT, 
-#               co2.drate.mg.h.best = ifelse((co2.lm.aic < co2.ex.aic | is.na(co2.ex.aic)) & co2.lm.r2 < 0.9, # if ex is best, but r2<0.9
-#                                                 NA, # then NA
-#                                            ifelse((co2.ex.aic < co2.lm.aic) & co2.ex.r2 < 0.9, # if lm is best, but r2<0.9
-#                                                   NA, # the NA
-#                                                   co2.drate.mg.h.best)), # otherwise assume value defined above
-#                                                   
-#               ch4.drate.mg.h.best = ifelse((ch4.lm.aic < ch4.ex.aic | is.na(ch4.ex.aic)) & ch4.lm.r2 < 0.9, # if ex is best, but r2<0.9
-#                                            NA, # then NA
-#                                            ifelse((ch4.ex.aic < ch4.lm.aic) & ch4.ex.r2 < 0.9, # if lm is best, but r2<0.9
-#                                                   NA, # the NA
-#                                                   ch4.drate.mg.h.best))) # otherwise assume value defined above
-##3/29/2018: For now, get rid of the aic comparison, and just filter by linear r2
-OUT <- mutate(OUT, 
-              co2.drate.mg.h.best = ifelse(co2.lm.r2 < 0.9, # if ex is best, but r2<0.9
-                                           NA, # then NA
-                                                  co2.drate.mg.h.best), # otherwise assume value defined above
-              
-              ch4.drate.mg.h.best = ifelse(ch4.lm.r2 < 0.9, # if ex is best, but r2<0.9
-                                           NA, # then NA
-                                                  ch4.drate.mg.h.best)) # otherwise assume value defined above
+OUT <- mutate(OUT,
+              co2.drate.mg.h.best = ifelse((co2.lm.aic < co2.ex.aic | is.na(co2.ex.aic)) & co2.lm.r2 < 0.9, # if ex is best, but r2<0.9
+                                                NA, # then NA
+                                           ifelse((co2.ex.aic < co2.lm.aic) & co2.ex.r2 < 0.9, # if lm is best, but r2<0.9
+                                                  NA, # the NA
+                                                  co2.drate.mg.h.best)), # otherwise assume value defined above
 
+              ch4.drate.mg.h.best = ifelse((ch4.lm.aic < ch4.ex.aic | is.na(ch4.ex.aic)) & ch4.lm.r2 < 0.9, # if ex is best, but r2<0.9
+                                           NA, # then NA
+                                           ifelse((ch4.ex.aic < ch4.lm.aic) & ch4.ex.r2 < 0.9, # if lm is best, but r2<0.9
+                                                  NA, # the NA
+                                                  ch4.drate.mg.h.best))) # otherwise assume value defined above
+##3/29/2018: For now, get rid of the aic comparison, and just filter by linear r2
+# OUT <- mutate(OUT, 
+#               co2.drate.mg.h.best = ifelse(co2.lm.r2 < 0.9, # if ex is best, but r2<0.9
+#                                            NA, # then NA
+#                                                   co2.drate.mg.h.best), # otherwise assume value defined above
+#               
+#               ch4.drate.mg.h.best = ifelse(ch4.lm.r2 < 0.9, # if ex is best, but r2<0.9
+#                                            NA, # then NA
+#                                                   ch4.drate.mg.h.best)) # otherwise assume value defined above
+# 
 
 # Inspect r2 after scrubbing r2<0.9
 plot(with(OUT[!is.na(OUT$co2.drate.mg.h.best),], 
@@ -280,10 +280,11 @@ plot(with(OUT[!is.na(OUT$ch4.drate.mg.h.best),],
 # STEP 3: MERGE DIFFUSION RATES WITH eqAreaData
 # First, strip NA from OUT
 OUT <- filter(OUT, !is.na(Sample_Time)) # Just one NA slipped in
-chamData <- merge(chamData, OUT, by.x = c("dateTimeSampled", "siteID"), 
+chamDataTest<-chamData[,1:7]
+chamData <- merge(chamDataTest, OUT, by.x = c("dateTimeSampled", "siteID"), 
       by.y = c("Sample_Time", "site"), all=TRUE)
 
-str(chamData) # 41 observations
+str(chamData) # 64 observations
 
 # Any sites not have a diffusive rate?
 # These are sites/observations where multiple chamber start times were recorded
@@ -304,26 +305,33 @@ chamData<-mutate(chamData,
                                               ch4.drate.mg.h.best),
                  ch4.drate.mg.h.best = ifelse(dateTimeSampled == "2017-08-24 12:07:29",
                                               NA,
-                                              ch4.drate.mg.h.best))
+                                              ch4.drate.mg.h.best),
+                 year=year(chmDeplyDtTm),
+                 monthday = format(chmDeplyDtTm, format="%m-%d %H:%M")%>%
+                   as.POSIXct(monthday, format="%m-%d %H:%M", tz="UTC"),
+                 siteID = replace(siteID, siteID == "U-12", "deep"),
+                 siteID = replace(siteID, siteID == "U-14", "shallow"))
 
 
-ggplot(chamData, aes(chmDeplyDtTm, co2.drate.mg.h.best))+
-  geom_jitter(aes(color=siteID), alpha=0.8, width=1.5*10^5)+
-  scale_x_datetime(breaks=date_breaks("2 weeks"),
+ggplot(filter(chamData, !is.na(year)), aes(monthday, co2.drate.mg.h.best))+
+  geom_point(aes(color=siteID), alpha=0.8)+
+  scale_x_datetime(breaks=date_breaks("6 weeks"),
                labels=date_format("%d %b"),
-               name="Date")
-ggplot(chamData, aes(chmDeplyDtTm, ch4.drate.mg.h.best))+
+               name="Date")+
+  facet_grid(year~.)
+ggplot(filter(chamData, !is.na(year)), aes(monthday, ch4.drate.mg.h.best))+
   geom_jitter(aes(color=siteID), alpha=0.8, width=1.5*10^5)+
-  scale_x_datetime(breaks=date_breaks("2 weeks"),
+  scale_x_datetime(breaks=date_breaks("6 weeks"),
                    labels=date_format("%d %b"),
-                   name="Date")
+                   name="Date")+
+  facet_grid(year~.)
 
 #subset data to write to a table for Tom and Tanner
-chamDataSub<-select(chamData, chmDeplyDtTm, siteID, co2.drate.mg.h.best, ch4.drate.mg.h.best)%>%
+chamDataSub<-select(chamData, chmDeplyDtTm, siteID, co2.drate.mg.h.best, ch4.drate.mg.h.best, year)%>%
                     filter(!is.na(co2.drate.mg.h.best))
 
 write.table(chamDataSub,
-            file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/gasTransferVelocity/chamberFluxes2017.csv",
+            file="C:/R_Projects/actonFluxProject/output/chamberFluxes2017_2018.csv",
             sep=",",
             row.names=FALSE,
             na="NA")

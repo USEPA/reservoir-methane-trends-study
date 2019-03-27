@@ -12,7 +12,7 @@ txtFiles <- c(list.files(hoboWD2017,
   #saved with the proper format, and could not be loaded with this code. I manipulated
   #the format of that file to match the others. 
 
-txtFiles[30:57]
+txtFiles[40:61]
 
 #txtFiles<-txtFiles[txtFiles != "Acton Lake/U12/u12_csv/trap.05.26.2017.al.u12.csv"]
 
@@ -94,3 +94,7 @@ for (i in 1:length(txtFiles)) {  # loop to read and format each file
 # Merge files
 hobo <- do.call("rbind", hoboList)  # Coerces list into dataframe.
 
+write.table(hobo,
+            file="C:/R_Projects/actonFluxProject/output/prelimData/hobo.csv",
+            sep=",",
+            row.names=FALSE)

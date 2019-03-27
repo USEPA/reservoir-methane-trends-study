@@ -44,11 +44,13 @@ for (i in 1:length(elogFiles)) {  # loop to read and format each file
 # Merge all of the loaded cospectra files
 netRad <- do.call("rbind", elogList)  # Coerces list into dataframe.
 head(netRad)
+tail(netRad)
 str(netRad)
 summary(netRad)
 
-ggplot(netRad, aes(RDateTime, netRad))+
-  geom_point()
+ggplot(filter(netRad, RDateTime>"2017-03-15"),
+       aes(RDateTime, netRad))+
+  geom_line()
 
 netRadSpring<-filter(netRad, RDateTime>"2017-03-15")
 

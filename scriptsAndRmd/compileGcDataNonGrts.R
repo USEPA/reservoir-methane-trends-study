@@ -3,23 +3,34 @@ library(tidyverse)
 library(readxl)
 
 #read master file from the lab LAN folder. Need to check for updates as new runs are added, corrections made, etc. 
-gc.all.NonGrts<-read.table("L:/Lab/Lablan/GHG/GC/2017Data/gcMasterFile2017updated2018-03-15.txt",
+gc.all.NonGrts.2017<-read.table("L:/Lab/Lablan/GHG/GC/2017Data/gcMasterFile2017updated2018-03-15.txt",
                    col.names=c("sample", "n2o.ppm", "co2.ppm", "ch4.ppm", "flag.n2o",
                                "flag.co2", "flag.ch4", "o2.ar.percent", "n2.perc", "o2.chk",
                                "flag.n2", "flag.o2.ar"),
                    #colClasses=c("character", rep("num", 3), rep("int", 3), rep("num", 2),
                    #             rep("logi", 2)),
-                   skip=1)
+                   skip=1) 
+gc.all.NonGrts.2018<-read.table("L:/Lab/Lablan/GHG/GC/2018Data/gcMasterFile2018updated2018-12-21.txt",
+                             col.names=c("sample", "ch4.ppm", "co2.ppm", "n2o.ppm", "flag.n2o",
+                                         "flag.co2", "flag.ch4"),
+                             #colClasses=c("character", rep("num", 3), rep("int", 3), rep("num", 2),
+                             #             rep("logi", 2)),
+                             skip=1)
+
+gc.all.NonGrts<-rbind(select(gc.all.NonGrts.2017, sample, n2o.ppm, co2.ppm, ch4.ppm, flag.n2o, flag.co2, flag.ch4),
+                  select(gc.all.NonGrts.2018, sample, n2o.ppm, co2.ppm, ch4.ppm, flag.n2o, flag.co2, flag.ch4))
+                  
 gc.all.NonGrts$sample<-as.character(gc.all.NonGrts$sample)
 gc.all.NonGrts$sampleNum<-gsub("([0-9]*).*","\\1",gc.all.NonGrts$sample) #extract numbers 
 gc.all.NonGrts$sampleNum<-substring(gc.all.NonGrts$sample, 4)
 
-#filter the lab LAN master file, which includes all samples run in 2017, for Acton samples
-gc.Acton<-dplyr::filter(gc.all.NonGrts, grepl("ACT",sample)) #346 observations
-                                                             #388 observations 3/1/2018 am
-                                                             #405 observations 3/1/2018 pm  
-                                                             #511 observations 3/15/2018
-
+#filter the lab LAN master file, which includes all samples run in 2017 and 2018, for Acton samples
+gc.Acton<-dplyr::filter(gc.all.NonGrts, grepl("ACT",sample)) #346 obs
+                                                             #388 obs 3/1/2018 am
+                                                             #405 obs 3/1/2018 pm  
+                                                             #511 obs 3/15/2018
+                                                             #741 obs 12/20/2018
+                                                             #864 obs 12/21/2018
 
 # # Check for duplicates.
 filter(gc.Acton, duplicated(sample,fromLast = TRUE) | duplicated(sample,fromLast = FALSE)) %>% 
@@ -27,14 +38,24 @@ filter(gc.Acton, duplicated(sample,fromLast = TRUE) | duplicated(sample,fromLast
 
 #load Excel spreadsheed with dissolved gas sample information recorded on the master Data Sheet by Pegasus folks
 #trap tab
-metaDataTrap<-read_excel("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/ebullition2017/data/masterDataSheetEbullition2017.xlsx",
+metaDataTrap2017<-read_excel("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/ebullition2017/data/masterDataSheetEbullition2017.xlsx",
                      sheet="trapData",
                      skip=0,
                      na=c("NA", ""),
                      trim_ws=TRUE,
-                     col_types=c("date", "text", "text", rep("numeric", 4), 
+                     col_types=c("date", rep("text", 2), rep("numeric", 4), 
                                  "text", "numeric", "numeric", "text", "date",
                                  "date", "text"))
+metaDataTrap2018<-read_excel("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/ebullition2018/masterDataSheetEbullition2018.xlsx",
+                             sheet="trapData",
+                             skip=0,
+                             na=c("NA", ""),
+                             trim_ws=TRUE,
+                             col_types=c("date", rep("text", 2), rep("numeric", 4), 
+                                         "text", "numeric", "numeric", "text", "date",
+                                         "date", "text"))
+metaDataTrap<-rbind(metaDataTrap2017, metaDataTrap2018)
+rm(metaDataTrap2017, metaDataTrap2018)
 #read_excel automatically formats the date as a POSIXct object, but we want it as a date
 metaDataTrap$site.visit.date<-as.Date(metaDataTrap$site.visit.date)
 metaDataTrap$trap.deply.time<-as.character(substr(metaDataTrap$trap.deply.time, 12,16))
@@ -44,11 +65,18 @@ metaDataTrap$site.visit.dateTime<-as.POSIXct(metaDataTrap$site.visit.dateTime,
                                              format="%Y-%m-%d %H:%M",
                                              tz="UTC")
 #dissolved gas tab -- added Acton dock samples to this on 3/19/2018
-metaDataDG<-read_excel("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/ebullition2017/data/masterDataSheetEbullition2017.xlsx",
+metaDataDG2017<-read_excel("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/ebullition2017/data/masterDataSheetEbullition2017.xlsx",
                      sheet="dissGasData",
                      skip=1,
                      na=c("NA", ""),
                      trim_ws=TRUE)
+metaDataDG2018<-read_excel("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/ebullition2018/masterDataSheetEbullition2018.xlsx",
+                           sheet="dissGasData",
+                           skip=1,
+                           na=c("NA", ""),
+                           trim_ws=TRUE)
+metaDataDG<-rbind(metaDataDG2017, select(metaDataDG2018, -X__1))
+rm(metaDataDG2017,metaDataDG2018)
 metaDataDG$sample.date<-as.Date(metaDataDG$sample.date)
 #original excel spreadsheet that Sarah put together that includes dock DG samples, doesn't include trap samples 
 #metaData<-read_excel("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/gasTransferVelocity/dissolvedGasSampleCodes.xlsx", 
@@ -58,13 +86,22 @@ metaDataDG$sample<-metaDataDG$exetainer.code
 metaDataDGact<-filter(metaDataDG, lake=="acton")
 
 #sonde tab -- pH needed for dissolved gas calc
-metaDataSonde<-read_excel("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/ebullition2017/data/masterDataSheetEbullition2017.xlsx",
+metaDataSonde2017<-read_excel("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/ebullition2017/data/masterDataSheetEbullition2017.xlsx",
                        sheet="sondeData",
                        skip=0,
                        na=c("NA", ""),
                        trim_ws=TRUE,
                        col_types=c("text", "text", "date", rep("numeric", 17)))
+metaDataSonde2018<-read_excel("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/ebullition2018/masterDataSheetEbullition2018.xlsx",
+                              sheet="sondeData",
+                              skip=0,
+                              na=c("NA", ""),
+                              trim_ws=TRUE,
+                              col_types=c("text", "text", "date", rep("numeric", 17)))
+metaDataSonde<-rbind(metaDataSonde2017, metaDataSonde2018)
+rm(metaDataSonde2017, metaDataSonde2018)
 #metaDataSonde$Sample.Date<-as.Date(metaDataDG$Sample.Date)
+metaDataSonde$Lake<-ifelse(metaDataSonde$Lake == "Acton", "acton", metaDataSonde$Lake)
 metaDataSonde<-filter(metaDataSonde, Lake=="acton")
 metaDataSonde$Site<-ifelse(metaDataSonde$Site == "u4", "u04", metaDataSonde$Site)
 metaDataSonde$Site<-ifelse(metaDataSonde$Site == "u5", "u05", metaDataSonde$Site)
@@ -74,23 +111,32 @@ metaDataSonde$Site<-ifelse(metaDataSonde$Site == "u8", "u08", metaDataSonde$Site
 metaDataSonde$Site<-ifelse(metaDataSonde$Site == "u9", "u09", metaDataSonde$Site)
 metaDataSonde$Site<-ifelse(metaDataSonde$Site == "u0", "u09", metaDataSonde$Site) #checked in the data sheet
 metaDataSonde$Site<-ifelse(metaDataSonde$Site == "u1", "u01", metaDataSonde$Site)
+metaDataSonde$Site<-ifelse(metaDataSonde$Site == "U12", "u12", metaDataSonde$Site)
+metaDataSonde$Site<-ifelse(metaDataSonde$Site == "U14", "u14", metaDataSonde$Site)
 ggplot(filter(metaDataSonde, Sample.depth.m<0.5), aes(Site, pH))+
   geom_point(alpha=0.8, aes(color=Sample.Date))
 
 metaDataSonde$salinity<-(metaDataSonde$`sp.Cond.us/cm`/1000)^1.0878*0.4665 #in ppt (?)
 metaDataSonde$Temp.K<-metaDataSonde$Temp.C+273.15
 
-
+write.table(metaDataSonde,
+            file="C:/R_Projects/actonFluxProject/output/prelimData/metaDataSonde.csv",
+            sep=",",
+            row.names=FALSE)
 metaDataTrapAct<-filter(metaDataTrap, lake=="acton")
 #the trap sheet has exetainer codes in comma delimited lists of up to three per cell
 #need to parse these before we join with the GC results
 # PREPARE EXETAINER CODES----------------------
 # Extract from eqAreaData
-xtrCodes <- select(metaDataTrapAct, site, site.visit.date, exetainer.code)  
- 
+xtrCodes2017 <- select(metaDataTrapAct, site, site.visit.date, exetainer.code)%>%
+  filter(site.visit.date<"2018-01-01")
+xtrCodes2018 <- select(metaDataTrapAct, site, site.visit.date, exetainer.code)%>%
+  filter(site.visit.date>"2018-01-01")  
 
 # Split codes into separate fields
-xtrCodes <- tidyr::separate(xtrCodes, exetainer.code, into = c("tp.xtr.1", "tp.xtr.2", "tp.xtr.3"), sep = ", ")
+xtrCodes2017 <- tidyr::separate(xtrCodes2017, exetainer.code, into = c("tp.xtr.1", "tp.xtr.2", "tp.xtr.3"), sep = ", ")
+xtrCodes2018 <- tidyr::separate(xtrCodes2018, exetainer.code, into = c("tp.xtr.1", "tp.xtr.2", "tp.xtr.3"), sep = ",")
+xtrCodes<-rbind(xtrCodes2017, xtrCodes2018)
 xtrCodes$site.visit.date<-as.character(xtrCodes$site.visit.date)
 #was getting an error using the melt command, turns out xtrCodes wasn't a dataframe:
 #https://stackoverflow.com/questions/16941111/r-cannot-melt-data-frame/35500964
@@ -103,43 +149,93 @@ xtrCodes.m <- reshape2::melt(xtrCodes, id.vars = c("site.visit.date", "site")) %
   filter(!is.na(value))  # remove NAs
 
 # Simplify variable names 
-xtrCodes.m[grepl(pattern = ".1|.2|.3", x = xtrCodes.m$variable), "variable"] <- 
-  gsub(pattern = ".1|.2|.3", replacement = "", x = xtrCodes.m[grepl(pattern = ".1|.2|.3", x = xtrCodes.m$variable), "variable"])
+xtrCodes.m[grepl(pattern = ".1|.2|.3|", x = xtrCodes.m$variable), "variable"] <- 
+  gsub(pattern = ".1|.2|.3|", replacement = "", x = xtrCodes.m[grepl(pattern = ".1|.2|.3|", x = xtrCodes.m$variable), "variable"])
 
 
 # Check for duplicates.  Should be none.
 filter(xtrCodes.m, duplicated(value,fromLast = TRUE) | duplicated(value,fromLast = FALSE)) %>% arrange(value)
+# site.visit.date site variable     value
+# 1      2017-06-26  u14   tp.xtr ACT170109
+# 2      2017-06-26  u14   tp.xtr ACT170109
+# 3      2017-06-26  u14   tp.xtr ACT170110
+# 4      2017-06-26  u14   tp.xtr ACT170110
+# 5      2017-06-26  u14   tp.xtr ACT170111
+# 6      2017-06-26  u14   tp.xtr ACT170111
+
+
+
 ##End exetainer code parsing
 
-actonDgJoin<-left_join(metaDataDGact, gc.Acton, by="sample") #2/22, 312 observations
-                                                             #3/19, 328 observations
+actonDgJoin<-left_join(metaDataDGact, gc.Acton, by="sample") #2/22/18, 312 observations
+                                                             #3/19/18, 328 observations
+                                                             #12/20/18, 580 obs      
 #xtrCodes is the melted info from metaDataTrapAct
+#gc.Acton$sample has underscores in the sample names, e.g. "ACT18_269"
+gc.Acton$sample<-sub("_", "", gc.Acton$sample)
 actonTrapJoin<-merge(xtrCodes.m, gc.Acton, by.x="value", by.y="sample")#3/19, 72 obs; after fixing trap data sheet: 80 obs
+      #12/20/18: 118 obs
 #site.visit.date is a character from using it in melt, create Rdate and change to a date
 actonTrapJoin$Rdate<-as.Date(actonTrapJoin$site.visit.date)
+actonTrapJoin<-actonTrapJoin%>%
+  mutate(year = year(Rdate),
+         monthday = format(Rdate, format="%m-%d"))
+actonTrapJoin$monthday<-as.Date(actonTrapJoin$monthday, format="%m-%d")
+actonTrapJoin$SiteDesc<-ifelse(actonTrapJoin$site == "u12", "deep", "shallow")
 
-ggplot(actonTrapJoin, aes(Rdate, ch4.ppm/10^4))+ #ppm/percent conversion 
-  geom_point(aes(color=site))+
-  scale_x_date(date_breaks = "1 week", date_labels="%b-%d")+
+ggplot(actonTrapJoin, aes(monthday, ch4.ppm/10^4))+ #ppm/percent conversion 
+  geom_point(aes(color=SiteDesc), alpha=0.5)+
+  scale_x_date(date_breaks = "1 month", date_labels="%b-%d")+
   theme(axis.text.x=element_text(angle=60, hjust=1))+
-  labs(x = "Date", y = "Trap Gas %CH4") 
+  facet_grid(year~.)+
+  labs(x = "Date", y = "Trap Gas %CH4")
+
+#Sample ACT18307 has a CH4 concentration of 17.4 ppm, and N2O of 2.64 ppm. 
+#Need to check log book -- may be a typo. Out of order -- more likely ACT18037. 
+
+actonTrapJoin<-actonTrapJoin%>%
+  mutate(ch4.ppm = replace(ch4.ppm, value=="ACT170165", NA), #note in the log book: sample contaminated with atmospheric air
+         ch4.ppm = replace(ch4.ppm, value=="ACT170166", NA), #note in the log book: sample contaminated with atmospheric air
+         ch4.ppm = replace(ch4.ppm, value=="ACT170167", NA)) #note in the log book: sample contaminated with atmospheric air
+         
+write.table(actonTrapJoin,
+            file="C:/R_Projects/actonFluxProject/output/prelimData/actonTrapJoin.csv",
+            sep=",",
+            row.names=FALSE)
+write.table(actonDgJoin,
+            file="C:/R_Projects/actonFluxProject/output/prelimData/actonDgJoin.csv",
+            sep=",",
+            row.names=FALSE)
 
 #take mean and sd of duplicate and triplicate samples
 actonTrapAgg<-actonTrapJoin %>%
   group_by(Rdate, site) %>%
-  summarize(meanCH4 = mean(ch4.ppm),
+  dplyr::summarize(meanCH4 = mean(ch4.ppm),
             meanCO2 = mean(co2.ppm),
             meanN2O = mean(n2o.ppm),
             sdCH4 = sd(ch4.ppm),
             sdCO2 = sd(co2.ppm),
             sdN2O = sd(n2o.ppm))
+actonTrapAgg$SiteDesc<-ifelse(actonTrapAgg$site == "u12", "deep", "shallow")
+actonTrapAgg<-actonTrapAgg%>%
+  mutate(year = year(Rdate),
+         monthday = format(Rdate, format="%m-%d"))
+actonTrapAgg$monthday<-as.Date(actonTrapAgg$monthday, format="%m-%d")
 
-ggplot(actonTrapAgg, aes(Rdate, meanCH4/10000))+
-  geom_line(aes(color=site))+
-  geom_errorbar(aes(color=site, ymin=((meanCH4-sdCH4)/10000), ymax =((meanCH4+sdCH4)/10000)))+
-  scale_x_date(date_breaks = "1 week", date_labels="%b-%d")+
+ggplot(actonTrapAgg, aes(monthday, meanCH4/10000))+
+  geom_jitter(aes(color=SiteDesc))+
+  geom_errorbar(aes(color=SiteDesc, ymin=((meanCH4-sdCH4)/10000), ymax =((meanCH4+sdCH4)/10000)))+
+  scale_x_date(date_breaks = "1 month", date_labels="%b-%d")+
+  facet_grid(year~.)+
   theme(axis.text.x=element_text(angle=60, hjust=1))+
-  labs(x = "Date", y = "Trap Gas %CH4")
+  labs(x = "Date", y = "Trap Gas %CH4")+
+  ylim(0, 100)+
+  theme_bw()
+
+write.table(actonTrapAgg,
+            file="C:/R_Projects/actonFluxProject/output/prelimData/actonTrapAgg.csv",
+            sep=",",
+            row.names=FALSE)
 
 write.table(actonTrapJoin,
             file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/survey/actonTrapGasComposition.csv",

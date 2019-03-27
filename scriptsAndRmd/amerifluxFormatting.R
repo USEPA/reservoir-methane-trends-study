@@ -169,7 +169,7 @@ tail(USactSub$RDateTime_END)
 #check for missing HH periods:
 USactSub$check<-c(18000, diff(as.numeric(USactSub$RDateTime_START), 1))
 summary(check)
-ggplot(filter(USactSub, RDateTime_START>"2017-05-01", RDateTime_START<"2017-07-01"),
+ggplot(filter(USactSub, RDateTime_START>"2017-01-01", RDateTime_START<"2017-12-01"),
        aes(RDateTime_START, check))+
   geom_point()
 

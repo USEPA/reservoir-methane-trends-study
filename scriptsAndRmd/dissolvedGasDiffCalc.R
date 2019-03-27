@@ -6,7 +6,7 @@
 
 airMeans<-filter(actonDgJoin, sample.type=="air") %>%
   group_by(site, sample.date) %>%
-  summarize(meanN2O.ppm = mean(n2o.ppm, na.rm=TRUE),
+  dplyr::summarize(meanN2O.ppm = mean(n2o.ppm, na.rm=TRUE),
             sdN2O.ppm = sd(n2o.ppm, na.rm=TRUE),
             meanCO2.ppm= mean(co2.ppm, na.rm=TRUE),
             sdCO2.ppm = sd(co2.ppm, na.rm=TRUE),
@@ -65,8 +65,8 @@ actonDGair<- mutate(actonDGair,
                      gasVolume = headspace.volume.ml,
                      waterVolume = water.volume.ml,
                      barometricPressure = BPfilled,
-                     waterTemp = headspace.equil.temp.c,
-                     headspaceTemp = headspace.equil.temp.c,
+                     waterTemp = as.numeric(headspace.equil.temp.c),
+                     headspaceTemp = as.numeric(headspace.equil.temp.c),
                      concentrationCO2Gas = co2.ppm,
                      concentrationCO2Air = meanCO2.ppm,
                      concentrationCO2Source = 0,    #need to go back and change for any non-He samples
@@ -143,7 +143,7 @@ write.table(actonDGoutput,
 
 ##Start with simple equation: k_600=2.07+0.215*U_10^1.7
 #take average of wind speed for mid-day winds: 10:00 - 14:00
-epOutWind<-select(epOut, date, time, RDateTime, wind_speed)
+epOutWind<-select(epOutOrder, date, time, RDateTime, wind_speed)
 epOutWind$time<-as.POSIXct(epOutWind$time, format("%H:%M"), tz="UTC")
 epOutWind$timeNum<-as.numeric(epOutWind$time)
 today<-as.numeric(as.POSIXct(Sys.Date(), tz="UTC"))
@@ -154,7 +154,7 @@ epOutWind$date<-as.Date(epOutWind$date, format = "%m/%d/%Y")
 
 dailyWind<-epOutWind %>%
   group_by(date) %>%
-  summarize(meanWind = (mean(wind_speed, na.rm=TRUE)))
+  dplyr::summarize(meanWind = (mean(wind_speed, na.rm=TRUE)))
 dailyWind$meanWind10<-dailyWind$meanWind*(10/2.8)^0.1 #log wid profile
 dailyWind$k600<-2.07+0.215*dailyWind$meanWind10^1.7
 
@@ -229,15 +229,15 @@ ggplot(filter(actonDGoutput, sample.depth.m==0.1 & site=="dock"), aes(sample.dat
 ##Aggregate by date and site
 actonDGfluxes<-filter(actonDGoutput, sample.depth.m==0.1) %>%
   group_by(sample.date, site) %>%
-  summarize(meanCH4Flux = (mean(ch4DGflux, na.rm=TRUE)),
+  dplyr::summarize(meanCH4Flux = (mean(ch4DGflux, na.rm=TRUE)),
             meanCO2Flux = (mean(co2DGflux, na.rm=TRUE)),
             meanN2OFlux = (mean(n2oDGflux, na.rm=TRUE)),
             sdCH4Flux = (sd(ch4DGflux, na.rm=TRUE)),
             sdCO2Flux = (sd(co2DGflux, na.rm=TRUE)),
             sdN2OFlux = (sd(n2oDGflux, na.rm=TRUE)))
-ggplot(actonDGfluxes, aes(sample.date, meanCO2Flux))+
+ggplot(actonDGfluxes, aes(sample.date, meanN2OFlux))+
   geom_point(aes(color=site))+
-  geom_errorbar(aes(ymax = meanCO2Flux+sdCO2Flux, 
-                    ymin = meanCO2Flux-sdCO2Flux,
+  geom_errorbar(aes(ymax = meanN2OFlux+sdN2OFlux, 
+                    ymin = meanN2OFlux-sdN2OFlux,
                     color=site))
   

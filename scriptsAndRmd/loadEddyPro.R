@@ -2,7 +2,7 @@
 myWd<-  "L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance"
 
 #######LOAD IN EDDYPRO OUTPUT------
-epFiles <- list.files(paste(myWd, "/L1eddyproOut/reprocessedSSfilter201803/fullOutput/raw", sep=""),
+epFiles <- list.files(paste(myWd, "/L1eddyproOut/reprocessedLI7500_2019/fullOutput/", sep=""),
                       pattern="*.csv$", recursive = TRUE) 
 epFiles
 epList <- list()  # Empty list to hold results
@@ -76,7 +76,7 @@ epHeader2<- c("filename",	"date",	"time",	"DOY",	"daytime",	"file_records",	"use
 
 #load files, test whether it is a long or short version by the co2 mixing ratio column
 for (i in 1:length(epFiles)) {  # loop to read and format each file
-    ep.i <- read.table(paste(myWd, "/L1eddyproOut/reprocessedSSfilter201803/fullOutput/raw/", 
+    ep.i <- read.table(paste(myWd, "/L1eddyproOut/reprocessedLI7500_2019/fullOutput/", 
                                     epFiles[i], sep=""),
                               sep=",",  # comma separate
                               skip=3,  # Skip first line of file.  Header info
@@ -87,7 +87,7 @@ for (i in 1:length(epFiles)) {  # loop to read and format each file
                               na.strings = "NaN",
                               fill=TRUE)  # Needed to deal with empty cells in last column
     if(mean(ep.i$co2_mixing_ratio, na.rm=TRUE)<300){
-      ep.i <- read.table(paste(myWd, "/L1eddyproOut/reprocessedSSfilter201803/fullOutput/raw/", 
+      ep.i <- read.table(paste(myWd, "/L1eddyproOut/reprocessedLI7500_2019/fullOutput/", 
                                epFiles[i], sep=""),
                          sep=",",  # comma separate
                          skip=3,  # Skip first line of file.  Header info
@@ -120,6 +120,117 @@ check<-select(epOutOrder, RDateTime)
 #check for duplicates:
 dupes<-filter(epOutOrder, duplicated(RDateTime,fromLast = TRUE) | duplicated(RDateTime,fromLast = FALSE)) %>% 
   arrange(RDateTime)
+
+write.table(epOutOrder,
+            file="C:/R_Projects/actonFluxProject/output/prelimData/epOutOrder.csv",
+            sep=",",
+            row.names=FALSE)
+
+epOutSub<-select(epOutOrder, RDateTime, date,	time, DOY, daytime, Tau,qc_Tau,H,	qc_H,	rand_err_H, LE,	qc_LE, rand_err_LE,
+                 co2_flux,	qc_co2_flux, rand_err_co2_flux, ch4_flux,	qc_ch4_flux, rand_err_ch4_flux,
+                 co2_mixing_ratio,	h2o_mixing_ratio, ch4_mixing_ratio,	
+                 air_temperature,	air_pressure,	air_density,	air_heat_capacity,
+                 ET,	water_vapor_density,	e,	es,	specific_humidity,	RH,	VPD,	Tdew,
+                 u_rot,	v_rot,	w_rot,	wind_speed, max_wind_speed,	wind_dir,	ustar,	TKE,	L,	zL,	
+                 bowen_ratio,	Tstar,	model,	x_peak,	x_offset,	x_10,	x_30,	x_50,	x_70,
+                 x_90, w_unrot)
+
+#make continous dataset
+# range(epOutSub$RDateTime)
+# #[1] "2016-10-01 12:30:00 UTC" "2018-11-13 17:00:00 UTC"
+# epOutSub.f<-filter(epOutSub, RDateTime>"2017-01-01 00:00")
+# range(epOutSub.f$RDateTime)
+# nrow(epOutSub)
+# #[1] 30648
+# timeframe30<-seq.POSIXt(from = epOutSub.f$RDateTime[1],
+#                         to = as.POSIXct("2019-01-01 00:00:00",
+#                                         format="%Y-%m-%d %H:%M:%S",
+#                                         tz = "UTC"),
+#                         by = "30 min")
+# 
+# epTest<-as.data.frame(timeframe30)
+# epTest$RDateTime<-epTest$timeframe30
+# epTest <- subset(epTest, !duplicated(RDateTime, fromLast=TRUE))
+# epREddy<-left_join(epTest, epOutSub.f, by="RDateTime")
+# #remove duplicate time rows
+# epREddy <- subset(epREddy, !duplicated(RDateTime, fromLast=TRUE))
+#   
+# epREddy<-epREddy%>%
+#   mutate(Year = year(RDateTime),
+#          Hour = as.numeric(times(strftime(RDateTime, format="%T", tz="UTC")))*24,
+#          DoY = as.numeric(strftime(RDateTime, format="%j", tz="UTC")))
+# 
+# #add varnames and units as attributes for prep to use with REddyProc
+# 
+# varnames.match<- c(RDateTime="RDateTime",	date = "date",	time = "time",DOY=	"DOY", daytime=	"daytime",	
+#              Tau ="Tau", qc_Tau =	"qc_Tau", H=	"H",	qc_H="qc_H",	rand_err_H="rand_err_H", 
+#              LE=	"LE",	qc_LE ="qc_LE",rand_err_LE=	"rand_err_LE",
+#              co2_flux="co2_flux",	qc_co2_flux="qc_co2_flux",	rand_err_co2_flux = "rand_err_co2_flux",
+#              ch4_flux = "ch4_flux",	qc_ch4_flux = "qc_ch4_flux",	rand_err_ch4_flux = "rand_err_ch4_flux",
+#              co2_mixing_ratio = "co2_mixing_ratio",	h2o_mixing_ratio = "h2o_mixing_ratio", ch4_mixing_ratio="ch4_mixing_ratio",
+#              air_temperature = "air_temperature", air_pressure = 	"air_pressure",
+#              air_density =	"air_density", air_heat_capacity = "air_heat_capacity",
+#              ET = "ET",	water_vapor_density ="water_vapor_density",	e= "e",	es = "es",	
+#              specific_humidity = "specific_humidity", RH=	"RH",	VPD="VPD",	Tdew="Tdew",
+#              u_rot = "u_rot",	v_rot = "v_rot",	w_rot = "w_rot",	wind_speed = "wind_speed",
+#              max_wind_speed = "max_wind_speed",	wind_dir = "wind_dir",	ustar = "ustar", TKE =	"TKE",L=	"L",	zL="zL",
+#              bowen_ratio = "bowen_ratio",	Tstar = "Tstar",	model = "model",	x_peak="x_peak",	
+#              x_offset = "x_offset",	x_10 = "x_10", x_30=	"x_30",	x_50 = "x_50",	x_70="x_70",
+#              x_90="x_90", w_unrot =	"w_unrot", Year = "Year", Hour = "Hour", DoY = "DoY")
+# 
+# units.match<-c(	RDateTime="-", date = "-", time =	"-", DOY =	"-", daytime = 	"1=daytime",
+#                 Tau = "kgm-1s-2",qc_Tau =	"-",	H ="Wm-2", qc_H =	"-", rand_err_H = "Wm-2",	LE = "Wm-2", qc_LE =	"-", rand_err_LE=	"Wm-2",	
+#                 co2_flux = "µmolm-2s-1", qc_co2_flux = "-",rand_err_co2_flux = "µmolm-2s-1",	
+#                 ch4_flux = "µmolm-2s-1",qc_ch4_flux = "-",rand_err_ch4_flux = "µmolm-2s-1",	
+#                 co2_mixing_ratio = "ppm",h2o_mixing_ratio = "mmol mol-1", ch4_mixing_ratio = "ppm", 
+#                 air_temperature = "K",	air_pressure = "Pa", air_density = 	"kgm-3",	air_heat_capacity = "Jkg-1K-1",
+#                 ET = "mm",	water_vapor_density = "kgm-3",	e= "Pa",	es="Pa",	specific_humidity = "kgkg-1", RH=	"%", VPD=	"Pa",	
+#                 Tdew= "K",	u_rot = "ms-1",v_rot =	"ms-1",	w_rot = "ms-1",
+#                 wind_speed = "ms-1",	max_wind_speed = "ms-1",	wind_dir = "deg_from_north",
+#                 ustar = "ms-1", TKE =	"m+2s-2",	L = "m",	zL = "-",	bowen_ratio = "-",	Tstar = "K",	model = "0=KJ/1=KM/2=HS",	#footprint model
+#                 x_peak = "m", x_offset = "m",x_10 =	"m", x_30 =	"m",	x_50 = "m",x_70 =	"m", x_90=	"m",	w_unrot = "ms-1", 
+#                 Year = "-", Hour = "-", DoY = "-"
+# )
+# 
+# #epREddy<-Hmisc::upData(epREddy, labels = varnames.match)
+# epREddy<-Hmisc::upData(epREddy, units = units.match)
+
+#attr(epOutSub) = as.list(units[match(names(epOutSub), names(units.match))])
+#attr(epOutSub, "units")<-units
+
+
+# varnames<- c(RDateTime="RDateTime",	date = "date",	"time",	"DOY",	"daytime",	"Tau",	"qc_Tau",	"H",	"qc_H",	"rand_err_H",	"LE",	"qc_LE",	"rand_err_LE",
+#               "co2_flux",	"qc_co2_flux",	"rand_err_co2_flux",	"ch4_flux",	"qc_ch4_flux",	"rand_err_ch4_flux",
+#              "co2_mixing_ratio",	"h2o_mixing_ratio", "ch4_mixing_ratio",
+#               "air_temperature",	"air_pressure",	"air_density",	"air_heat_capacity",
+#               "ET",	"water_vapor_density",	"e",	"es",	"specific_humidity",	"RH",	"VPD",	"Tdew",
+#               "u_rot",	"v_rot",	"w_rot",	"wind_speed","max_wind_speed",	"wind_dir",	"ustar",	"TKE",	"L",	"zL",
+#               "bowen_ratio",	"Tstar",	"model",	"x_peak",	"x_offset",	"x_10",	"x_30",	"x_50",	"x_70",
+#               "x_90",	"w_unrot")
+# 
+# units<-c(	RDateTime="-", date = "-",	"-",	"-",	"1=daytime",
+#           "kgm-1s-2",	"-",	"Wm-2",	"-","Wm-2",	"Wm-2",	"-",	"Wm-2",	#rand_err_LE
+#           "µmolm-2s-1","-","µmolm-2s-1",	"mmolm-2s-1","-","mmolm-2s-1",	#rand_err_ch4_flux
+#           "ppm","mmol mol-1", "ppm", "K",	"Pa",	"kgm-3",	"Jkg-1K-1",	#air_heat_capacity
+#           "mm",	"kgm-3",	"Pa",	"Pa",	"kgkg-1",	"%",	"Pa",	#VPD
+#           "K",	"ms-1",	"ms-1",	"ms-1",
+#           "ms-1",	"ms-1",	"deg_from_north",
+#           "ms-1",	"m+2s-2",	"m",	"#",	"#",	"K",	"0=KJ/1=KM/2=HS",	#footprint model
+#           "m", "m",	"m",	"m",	"m",	"m",	"m",	"ms-1", "-", "-", "-"
+#           )
+
+# test<-c(varnames, units)
+# rEddy<-matrix(test, nrow=55)
+# trEddy<-t(rEddy)
+# write(rEddy, file="C:/R_Projects/actonFluxProject/output/test.txt",
+#       sep="/t")
+# mylist<-list()
+
+# write.table(epOutSub,
+#             file=("C:/R_Projects/actonFluxProject/output/rEddyFile.csv"),
+#                         sep=",",
+#                         row.names=FALSE)
+
 # ####PLOT########
 #   ggplot(epOut, aes(RDateTime, co2_mixing_ratio))+
 #    geom_point(alpha=0.1)+

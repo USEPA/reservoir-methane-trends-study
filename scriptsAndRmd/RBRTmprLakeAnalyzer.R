@@ -49,7 +49,7 @@ filepath <- "L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/
 rbrList<-list()  ###list to hold raw 1Hz data
   #the "for(i in X)" logic means that the loop will execute for i in the range of X. So if X is one number, it will only load that number
   #EDIT the number "X" to correspond to the number of the file in the list to be loaded
-  for(i in 9){    #length(txtFiles59)){
+  for(i in 4:5){    #length(txtFiles59)){
     rbr.i<-read.table(paste(filepath,"rbr_10cm/",txtFiles59[i], sep=""),
                       colClasses=c("POSIXct","numeric"),
                       sep = ",",
@@ -60,7 +60,7 @@ RBR59<-do.call(rbind, rbrList)
 
 rbrList<-list()  ###list to hold raw 1Hz data
   #CAUTION: this one is going to be low because of the weirdness with the 59/61 mixup
-for(i in 6){    #length(txtFiles61)){
+for(i in 11:12){    #length(txtFiles61)){
   rbr.i<-read.table(paste(filepath,"rbr_25cm/",txtFiles61[i], sep=""),
                     colClasses=c("POSIXct","numeric"),
                     sep = ",",
@@ -70,7 +70,7 @@ for(i in 6){    #length(txtFiles61)){
 RBR61<-do.call(rbind, rbrList)
 
 rbrList<-list()  ###list to hold raw 1Hz data
-for(i in 10){    #1:length(txtFiles62)){
+for(i in 11:12){    #1:length(txtFiles62)){
   rbr.i<-read.table(paste(filepath,"rbr62/",txtFiles62[i], sep=""),
                     colClasses=c("POSIXct","numeric"),
                     sep = ",",
@@ -80,7 +80,7 @@ for(i in 10){    #1:length(txtFiles62)){
 RBR62<-do.call(rbind, rbrList)
 
 rbrList<-list()  ###list to hold raw 1Hz data
-for(i in 10){    #1:length(txtFiles63)){
+for(i in 11:12){    #1:length(txtFiles63)){
   rbr.i<-read.table(paste(filepath,"rbr63/",txtFiles63[i], sep=""),
                     colClasses=c("POSIXct","numeric"),
                     sep = ",",
@@ -90,7 +90,7 @@ for(i in 10){    #1:length(txtFiles63)){
 RBR63<-do.call(rbind, rbrList)
 
 rbrList<-list()  ###list to hold raw 1Hz data
-for(i in 10){    #1:length(txtFiles64)){
+for(i in 11:12){    #1:length(txtFiles64)){
   rbr.i<-read.table(paste(filepath,"rbr64/",txtFiles64[i], sep=""),
                     colClasses=c("POSIXct","numeric"),
                     sep = ",",
@@ -100,7 +100,7 @@ for(i in 10){    #1:length(txtFiles64)){
 RBR64<-do.call(rbind, rbrList)
 
 rbrList<-list()  ###list to hold raw 1Hz data
-for(i in 10){    #1:length(txtFiles65)){
+for(i in 11:12){    #1:length(txtFiles65)){
   rbr.i<-read.table(paste(filepath,"rbr65/",txtFiles65[i], sep=""),
                     colClasses=c("POSIXct","numeric"),
                     sep = ",",
@@ -110,10 +110,10 @@ for(i in 10){    #1:length(txtFiles65)){
 RBR65<-do.call(rbind, rbrList)
 
 rbrList<-list()  ###list to hold raw 1Hz data
-for(i in 11){    #in 1:length(txtFiles66)){
+for(i in 13:14){    #in 1:length(txtFiles66)){
   rbr.i<-read.table(paste(filepath,"rbr66/",txtFiles66[i], sep=""),
                     colClasses=c("POSIXct","numeric"),
-                    sep = " ",
+                    sep = ",",
                     header=TRUE)  
   rbrList[[i]]<-rbr.i
 }
@@ -133,6 +133,16 @@ tail(RBR61)
 tail(RBR62)
 tail(RBR66)
 
+RBR59<-filter(RBR59, Time<"2019-01-01")
+RBR61<-filter(RBR61, Time<"2019-01-01")
+RBR62<-filter(RBR62, Time<"2019-01-01")
+RBR63<-filter(RBR63, Time<"2019-01-01")
+RBR64<-filter(RBR64, Time<"2019-01-01")
+RBR65<-filter(RBR65, Time<"2019-01-01")
+RBR66<-filter(RBR66, Time<"2019-01-01")
+
+
+
 #rm(RBR61)
 
 ####end-----
@@ -144,13 +154,13 @@ tail(RBR66)
 ## truncate the beinning in order to have unitofrm time series going
 ## forward
 
-RBR59filt<-filter(RBR59, RBR59$Time>"2017-11-29 09:30:00")
-RBR61filt<-filter(RBR61, RBR61$Time>"2017-11-29 09:30:00") #the RBRs started logging at 10:30, but didn't get deployed until 1:48 EDT, which is 12:48 EST
-RBR62filt<-filter(RBR62, RBR62$Time>"2017-11-29 09:30:00")
-RBR63filt<-filter(RBR63, RBR63$Time>"2017-11-29 09:30:00")
-RBR64filt<-filter(RBR64, RBR64$Time>"2017-11-29 09:30:00")
-RBR65filt<-filter(RBR65, RBR65$Time>"2017-11-29 09:30:00")
-RBR66filt<-filter(RBR66, RBR66$Time>"2017-11-29 12:00:00")
+RBR59filt<-filter(RBR59, RBR59$Time>"2018-08-14 08:30:00")
+RBR61filt<-filter(RBR61, RBR61$Time>"2018-08-14 08:30:00") #the RBRs started logging at 10:30, but didn't get deployed until 1:48 EDT, which is 12:48 EST
+RBR62filt<-filter(RBR62, RBR62$Time>"2018-08-14 08:30:00")
+RBR63filt<-filter(RBR63, RBR63$Time>"2018-08-14 08:30:00")
+RBR64filt<-filter(RBR64, RBR64$Time>"2018-08-14 08:30:00")
+RBR65filt<-filter(RBR65, RBR65$Time>"2018-08-14 08:30:00")
+RBR66filt<-filter(RBR66, RBR66$Time>"2018-08-14 08:30:00")
 
 reducedRbr59<- RBR59filt %>%
   group_by(Time = cut(Time, breaks = "30 min")) %>%
@@ -212,43 +222,47 @@ head(reducedRbr66)
 tail(reducedRbr62)
 tail(reducedRbr66)
 
-reducedRbr59sub<-filter(reducedRbr59, RDateTime<"2017-12-12 12:00:00")
-reducedRbr61sub<-filter(reducedRbr61, RDateTime<"2017-12-12 12:00:00")
-reducedRbr62sub<-filter(reducedRbr62, RDateTime<"2017-12-12 12:00:00")
-reducedRbr63sub<-filter(reducedRbr63, RDateTime<"2017-12-12 12:00:00")
-reducedRbr64sub<-filter(reducedRbr64, RDateTime<"2017-12-12 12:00:00")
-reducedRbr65sub<-filter(reducedRbr65, RDateTime<"2017-12-12 12:00:00")
+ggplot(reducedRbr64sub, aes(RDateTime, meanT))+
+  geom_line()
+
+reducedRbr59sub<-filter(reducedRbr59, RDateTime<"2018-12-13 08:00:00")
+reducedRbr61sub<-filter(reducedRbr61, RDateTime<"2018-12-13 08:00:00")
+reducedRbr62sub<-filter(reducedRbr62, RDateTime<"2018-12-13 08:00:00")
+reducedRbr63sub<-filter(reducedRbr63, RDateTime<"2018-12-13 08:00:00")
+reducedRbr64sub<-filter(reducedRbr64, RDateTime<"2018-12-13 08:00:00")
+reducedRbr65sub<-filter(reducedRbr65, RDateTime<"2018-12-13 08:00:00")
+reducedRbr66sub<-filter(reducedRbr66, RDateTime<"2018-12-13 08:00:00")
 
 
 #EDIT the filenames to reflect the monitopring period
 write.table(reducedRbr59sub, 
-            file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/L1_30minRBR/RBR59/RBR59_20171129_20171211.csv",
+            file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/L1_30minRBR/RBR59/RBR59_20180814_201181213.csv",
             sep=",",
             row.names=FALSE)
 write.table(reducedRbr61sub, 
-            file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/L1_30minRBR/RBR61/RBR61_20171129_20171211.csv",
+            file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/L1_30minRBR/RBR61/RBR61_20180814_201181213.csv",
             sep=",",
             row.names=FALSE)
 write.table(reducedRbr62sub, 
-            file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/L1_30minRBR/RBR62/RBR62_20171129_20171211.csv",
+            file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/L1_30minRBR/RBR62/RBR62_20180814_201181213.csv",
             sep=",",
             row.names=FALSE)
 write.table(reducedRbr63sub, 
-            file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/L1_30minRBR/RBR63/RBR63_20171129_20171211.csv",
+            file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/L1_30minRBR/RBR63/RBR63_20180814_201181213.csv",
             sep=",",
             row.names=FALSE)
 write.table(reducedRbr64sub, 
-            file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/L1_30minRBR/RBR64/RBR64_20171129_20171211.csv",
+            file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/L1_30minRBR/RBR64/RBR64_20180814_201181213.csv",
             sep=",",
             row.names=FALSE)
 write.table(reducedRbr65sub, 
-            file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/L1_30minRBR/RBR65/RBR65_20171129_20171211.csv",
+            file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/L1_30minRBR/RBR65/RBR65_20180814_201181213.csv",
             sep=",",
             row.names=FALSE)
 
 
 write.table(reducedRbr66sub, 
-            file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/L1_30minRBR/RBR66/RBR66_20171129_20171211.csv",
+            file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/L1_30minRBR/RBR66/RBR66_20180814_201181213.csv",
             sep=",",
             row.names=FALSE)
 
@@ -269,19 +283,19 @@ ggplot(reducedRbr63sub, aes(RDateTime, meanT))+
 
 ########Step 2.5: Load and concatenate all of the 30-minute files---------
 txtFiles30min59 <- list.files("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/L1_30minRBR/RBR59", 
-                         pattern="*.csv$", recursive = TRUE) 
+                              pattern="*.csv$", recursive = TRUE) 
 txtFiles30min61 <- list.files("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/L1_30minRBR/RBR61", 
-                         pattern="*.csv$", recursive = TRUE) 
+                              pattern="*.csv$", recursive = TRUE) 
 txtFiles30min62 <- list.files("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/L1_30minRBR/RBR62", 
-                         pattern="*.csv$", recursive = TRUE) 
+                              pattern="*.csv$", recursive = TRUE) 
 txtFiles30min63 <- list.files("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/L1_30minRBR/RBR63", 
-                         pattern="*.csv$", recursive = TRUE) 
+                              pattern="*.csv$", recursive = TRUE) 
 txtFiles30min64 <- list.files("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/L1_30minRBR/RBR64", 
-                         pattern="*.csv$", recursive = TRUE) 
+                              pattern="*.csv$", recursive = TRUE) 
 txtFiles30min65 <- list.files("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/L1_30minRBR/RBR65", 
-                         pattern="*.csv$", recursive = TRUE) 
+                              pattern="*.csv$", recursive = TRUE) 
 txtFiles30min66 <- list.files("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/L1_30minRBR/RBR66", 
-                         pattern="*.csv$", recursive = TRUE) 
+                              pattern="*.csv$", recursive = TRUE) 
 
 filepath <- "L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/"
 rbrList<-list()
@@ -314,8 +328,8 @@ for(i in 1:length(txtFiles30min62)){
 }
 RBR62hh<-do.call(rbind, rbrList)
 
-ggplot(RBR61hh, aes(RDateTime, meanT))+
-  geom_point()
+ggplot(filter(RBR61hh, RDateTime>"2018-08-01"), aes(RDateTime, meanT))+
+  geom_line()
 #2018 is there
 
 rbrList<-list()
@@ -365,22 +379,36 @@ ggplot(RBR65hh, aes(RDateTime, meanT))+
 
 #### Step 3: join all of the reduced data frames into one data frame, and format for the rLakeAnalyzer --------
 
-RBR59hh<-mutate(RBR59hh, meanT_0.1 = meanT)%>%
-  select(RDateTime, meanT_0.1)
-RBR61hh<-mutate(RBR61hh, meanT_0.25 = meanT)%>%
-  select(RDateTime, meanT_0.25)
-RBR62hh<-mutate(RBR62hh, meanT_0.5 = meanT)%>%
-  select(RDateTime, meanT_0.5)
-RBR63hh<-mutate(RBR63hh, meanT_0.75 = meanT)%>%
-  select(RDateTime, meanT_0.75)
-RBR64hh<-mutate(RBR64hh, meanT_1 = meanT)%>%
-  select(RDateTime, meanT_1)
-RBR65hh<-mutate(RBR65hh, meanT_1.25 = meanT)%>%
-  select(RDateTime, meanT_1.25)
-RBR66hh<-mutate(RBR66hh, meanT_1.6 = meanT)%>%
-  select(RDateTime, meanT_1.6)
+RBR59hh<-mutate(RBR59hh, 
+                wtrT_0.1 = meanT,
+                meanT_0.1 = meanT)%>%
+  select(RDateTime, wtrT_0.1, meanT_0.1)
+RBR61hh<-mutate(RBR61hh, 
+                wtrT_0.25 = meanT,
+                meanT_0.25 = meanT)%>%
+  select(RDateTime, wtrT_0.25, meanT_0.25)
+RBR62hh<-mutate(RBR62hh, 
+                wtrT_0.5 = meanT,
+                meanT_0.5 = meanT)%>%
+  select(RDateTime, wtrT_0.5, meanT_0.5)
+RBR63hh<-mutate(RBR63hh, 
+                wtrT_0.75 = meanT,
+                meanT_0.75 = meanT)%>%
+  select(RDateTime, wtrT_0.75, meanT_0.75)
+RBR64hh<-mutate(RBR64hh, 
+                wtrT_1 = meanT,
+                meanT_1 = meanT)%>%
+  select(RDateTime, wtrT_1, meanT_1)
+RBR65hh<-mutate(RBR65hh, 
+                wtrT_1.25 = meanT,
+                meanT_1.25 = meanT)%>%
+  select(RDateTime, wtrT_1.25, meanT_1.25)
+RBR66hh<-mutate(RBR66hh, 
+                wtrT_1.6 = meanT,
+                meanT_1.6 = meanT)%>%
+  select(RDateTime, wtrT_1.6, meanT_1.6)
 
-RBRList<- list(RBR59hh, RBR61hh, RBR62hh, RBR63hh, RBR64hh, RBR65hh, RBR66hh)
+#RBRList<- list(RBR59hh, RBR61hh, RBR62hh, RBR63hh, RBR64hh, RBR65hh, RBR66hh)
 
 # mergedRBRAvg<-Reduce(function(x, y) merge(x, y, all=TRUE),
 #                      list(RBR59hh, RBR61hh, RBR62hh, RBR63hh, RBR64hh, RBR65hh, RBR66hh))
@@ -397,10 +425,46 @@ mergedRBRAvg<-left_join(mergedRBRAvg, RBR61hh, by="RDateTime")
 mergedRBRAvg<-left_join(mergedRBRAvg, RBR59hh, by="RDateTime")
   
 
-ggplot(mergedRBRAvg, aes(RDateTime, meanT_0.25))+
-  geom_point()
+ggplot(mergedRBRAvg, aes(RDateTime, wtrT_0.75))+
+  geom_point(alpha=0.05)
 
 mergedRBRAvg$datetime<-mergedRBRAvg$RDateTime #making mergedRBRAvg match usace.dam from Jake's readUsaceSonde.R
+
+###Filter time period where RBRs were aground/out of the water
+mergedRBRAvg<-mergedRBRAvg%>%
+  mutate(meanT_1.6 = replace(meanT_1.6, datetime>"2018-02-26 07:30:00" & datetime<"2018-03-15 12:30:00", NA),
+         wtrT_1.6 = replace(wtrT_1.6, datetime>"2018-02-26 07:30:00" & datetime<"2018-03-15 12:30:00", NA))
+mergedTest <- subset(mergedRBRAvg, !duplicated(datetime))%>%
+  select(datetime, wtrT_0.1, wtrT_0.25, wtrT_0.5, wtrT_0.75, wtrT_1, 
+         wtrT_1.25, wtrT_1.6)
+mergedRBRAvg<-select(mergedRBRAvg, datetime, meanT_0.1, meanT_0.25, meanT_0.5, meanT_0.75, 
+         meanT_1, meanT_1.25, meanT_1.6)
+
+
+ggplot(mergedTest, aes(datetime, wtrT_1.6))+
+  geom_point(alpha=0.05)
+
+rLakeAnalyzer::wtr.lineseries(mergedTest)
+plotTicks<-seq(from=as.Date(mergedTest$datetime[1]),
+               to = as.Date(mergedTest$datetime[24721]),
+               by = "2 months")
+rLakeAnalyzer::wtr.heat.map(mergedTest,
+                            #zlim=c(2, 32),
+                            key.title = title(main = "Celsius", cex.main = 1, line=1),
+                            plot.title = title(ylab = "Depth (m)",
+                                               main="Shallow Site T Profile"),
+                            # plot.axes = {axis.Date(side = 1, 
+                            #                        x=mergedTest$datetime,
+                            #                        at=plotTicks,
+                            #                        format="%b-%y");
+                            #   axis(2)},
+                            borders="black")
+
+write.table(mergedRBRAvg, 
+            file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/L1_30minRBR/RBR20170510_20181214.csv",
+            sep=",",
+            row.names=FALSE)
+
 
 # m.RBR <- select(mergedRBRAvg, -c(Time, RDateTime)) %>%        #making m.RBR match m.usace.dam from Jake's readUsaceSonde.R
 #   melt(id.vars=c("depth", "datetime")) #in m.usace.dam, "datetime" is in POSIXct time format. Apparently vital for wtr.heat.map to run. 
@@ -427,15 +491,11 @@ ggplot(filter(c.RBR, datetime>"2018-01-26 00:00:00" & datetime<"2018-03-27 00:00
   head(c.RBR)
 tail(RBR66hh$Time)
 
-###Filter time period where RBRs were out of the water
-mergedRBRAvg<-mergedRBRAvg%>%
-  mutate(meanT_1.6 = replace(meanT_1.6, datetime>"2018-02-26 07:30:00" & datetime<"2018-03-15 12:30:00", NA))%>%
-  select(datetime, meanT_0.1, meanT_0.25, meanT_0.5, meanT_0.75, 
-         meanT_1, meanT_1.25, meanT_1.6)
+
 
 #Write to table:
 write.table(mergedRBRAvg, 
-            file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/L1_30minRBR/RBR20170510_20180827.csv",
+            file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/RBR/Acton/L1_30minRBR/RBR20170510_20181214.csv",
             sep=",",
             row.names=FALSE)
          
