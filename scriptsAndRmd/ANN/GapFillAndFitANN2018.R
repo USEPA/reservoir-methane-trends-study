@@ -14,40 +14,82 @@ library(dplyr); library(zoo)
 #which covariates to use:
 covarSedT <- TRUE
 covarAirT <- TRUE
-covarUstar <- FALSE
 covarWindSp <- TRUE
 covarStatP <- TRUE
 covarDelStatP <- TRUE
-covarTrapEb <- TRUE
 covarFuzzy <- TRUE
 
+covarTrapEb <- FALSE
+covarUstar <- TRUE
+covarLE <- TRUE
+covarH <- TRUE
+covarWD <- TRUE
+covarSite<- TRUE
+covarPAR <- TRUE
+covarSTAB <- FALSE
+
 #start and end of data set:
-startdate <- "2018-06-07 00:00:00" #start of good data 
+#startdate <- "2017-01-26 00:00:00" #start of good data 
 #startdate <- "2018-05-06 00:00:00" #instruments on aquatic tower
+#startdate<- "2018-01-01 00:00:00" #runVer 5.6, modified aquatic tower attempt
+startdate<-"2017-01-01 00:00:00" #runVer 5.7
 #enddate <- "2018-08-07 00:00:00" #end of RBR data
-enddate<-"2018-10-01 00:00:00"
-
+#enddate<-"2018-11-01 00:00:00"
+#enddate<-"2018-04-19 00:00:00" #end of dock data
+enddate<-"2018-11-13 12:00:00"
 #run number/version
+range(ANNdata$RDateTime)
 
-runVer<-"4.2"
+runVer<-"5.8"
 #4.0 is Feb 2017 thru Oct 2018 with everything but trap ebullition as 
 ##drivers. Also, RBR temp is gapfilled from August to Oct 2018 
 #4.1 is May 2018 thru Oct 2018 with sedT, airT, windSp, statP, delStatP, and fuzzy time as drivers
 #4.2 has same drivers as 4.1 plus TrapEb as driver; time period is dictated by active trap data availability: 2018-06-07 thru 2018-10-10
 
+#"Standard" drivers: sedT, air T, windSp, statP, delStatP, fuzzy
+#5.0 has the 2-yr MDC gapfilled LE, H, and uStar, plus WD, minus ebullition, plus a tower site indicator
+#5.1 same as 5.0, minus the site binary 
+#5.2 has PAR
+#5.3 is the shorter, "field season" dataset, which includes the ebullition and lake stability drivers
+#5.4 is the dock collected dataset
+#5.5: aquatic tower dataset: 2018-05-06 thru 2018-11-01
 ### Load data ------
 #fluxDat <- read.csv("output/exampleDatasetANN.csv")
-fluxDat<-read.csv("output/annDataset_trapeb201702201810.csv")
-
-## Make date into Date class.
-fluxDat$date <- as.Date(fluxDat$date, format = "%m/%d/%Y")
-## Make RDateTime into POSIXct class
+#fluxDat<-read.csv("output/annDataset_trapeb201702201810.csv")
+#fluxDat<-read.csv("output/annDataset_MDC.csv")
+fluxDat<-read.csv("output/annDataset_MDC_20172018.csv") #gapfilled LE, H, ustar, range Jan 1 2017 - Dec 31 2018
 fluxDat$datetime <- as.POSIXct(fluxDat$RDateTime, tz = "Etc/GMT+5")
 
 
 
+fluxDatFilled<-read.csv("output/annDatasetMDC_filled.csv")
+fluxDatFilled<-read.csv("output/annDataset_MDCfilled1718.csv")
+fluxDatFilled$datetime <-as.POSIXct(fluxDatFilled$datetime, tz="UTC")
+
+#combining fuzzyRAD with other gap filled drivers if the session needed 
+#to be restarted so that the fuzzy code would run:
+fluxDatFilled<-left_join(fluxDatFilled, select(fluxDat, datetime, fuzzyRAD),
+                         by="datetime")
+#get PAR from the vanni weather station data frame, loaded from "loadPrelimOutputs.R" script
+vanni30min$datetime<-vanni30min$RDateTime
+fluxDatFilled<-left_join(fluxDatFilled, select(vanni30min, datetime, par.vws),
+                         by="datetime")
+sum(is.na(fluxDatFilled$par.vws))
+fluxDatFilled$FilledPAR<-fluxDatFilled$par.vws
+# test5.2<-left_join(fluxDatFilled, select(vanni30min, datetime, par.vws), by="datetime")
+# sum(is.na(test5.2$par.vws)) #0!!!
+# fluxDatFilled$FilledPAR<-test5.2$par.vws
+
+## Make date into Date class.
+
+## Make RDateTime into POSIXct class
+
+fluxDat$date <- as.Date(fluxDat$datetime)
+
+
 ## There are duplicate rows for some reason. Get rid of them.
 fluxDat <- subset(fluxDat, !duplicated(datetime))
+fluxDat <-dplyr::filter(fluxDat, datetime>startdate, datetime<enddate)
 
 ## Subset to variables that matter. Ignore gaps and date/time for now.
 ## sediment temp (RBRmeanT_1.6) ; static pressure (staticPress);
@@ -85,11 +127,11 @@ plotGaps <- function(d, resp){
 ## compared to sediment temperature
 if(covarSedT){
 plotGaps(fluxDat, "RBRmeanT_1.6")
-#ggplot(fluxDat, aes(x= waterT.vws, y = RBRmeanT_1.6)) + geom_point() +
- # geom_smooth(method="lm")
+ggplot(fluxDat, aes(x= waterT.vws, y = RBRmeanT_1.6)) + geom_point() +
+geom_smooth(method="lm")
 ## The fit looks quite good.
 sedLM <- lm(RBRmeanT_1.6 ~ waterT.vws, data = fluxDat)
-#summary(sedLM) # Very good r2
+summary(sedLM) # Very good r2
 ## Note: We're extrapolating sed temp when Water T is les than 3
 ## degrees Celsius. There are days in February where water temp is 1-C.
 ## Should sediment temp be predicted to be in the 5 range?
@@ -101,11 +143,12 @@ fluxDat$FilledSedT <- ifelse(is.na(fluxDat$RBRmeanT_1.6),
                                sedPreds, 
                                fluxDat$RBRmeanT_1.6)
 sum(is.na(fluxDat$FilledSedT)) # 0
+plotGaps(fluxDat, "FilledSedT")
 }
 
 ######## Air Temperature Gap-Filling
 if(covarAirT){
-#plotGaps(fluxDat, "air_temperature")
+plotGaps(fluxDat, "air_temperature")
 sum(is.na(fluxDat$air_temperature))
 ## Use Miami-WS air temp, which is way more complete
 sum(is.na(fluxDat$airT.vws))
@@ -126,7 +169,10 @@ fluxDat$FilledAirT <- ifelse(is.na(fluxDat$air_temperature),
 sum(is.na(fluxDat$FilledAirT)) # Take the median
 indNA <- which(is.na(fluxDat$FilledAirT))
 fluxDat$FilledAirT[indNA] <- mean(c(fluxDat[(indNA-1),"FilledAirT"],fluxDat[(indNA+1),"FilledAirT"]))
+sum(is.na(fluxDat$FilledAirT))
+fluxDat$FilledAirT[indNA] <- mean(c(fluxDat[(indNA-48),"FilledAirT"],fluxDat[(indNA+48),"FilledAirT"])) #from surrounding days
 sum(is.na(fluxDat$FilledAirT)) # 0
+plotGaps(fluxDat, "FilledAirT")
 }
 
 ######### U star Gap-Filling and Analysis
@@ -135,25 +181,54 @@ if(covarUstar){
 #### For preliminary results, don't use u-star.
 #### Use wind speed as a surrogate, since this is readily available
 #### from the Miami weather station
-# ######## U-Star Gap-Filling
+# ######## U-Star, LE, and H Gap-Filling
 # ## Try the window moving average imputation method
-tsTmp <- ts(fluxDat$ustar)
-plotNA.distribution(tsTmp)
+sum(is.na(fluxDat$ustar_filled)) #0
+  plotGaps(fluxDat, "ustar_filled") #all in winter 2018
+  indNA <- which(is.na(fluxDat$ustar_filled))
+  fluxDat$FilledUstar<-fluxDat$ustar_filled
+  fluxDat$FilledUstar[indNA] <- 0.2 #mean(c(fluxDat$ustar))
+  sum(is.na(fluxDat$FilledUstar))  
+
+  fluxDat$FilledLE<-fluxDat$LE_filled
+  sum(is.na(fluxDat$FilledLE)) #138 
+  indNA <- which(is.na(fluxDat$FilledLE))
+  #fluxDat$LE_filled[indNA] <- mean(c(fluxDat[(indNA-2),"LE_filled"],fluxDat[(indNA+2),"LE_filled"]))
+  plotGaps(fluxDat, "FilledLE") #big chunk in Jan/Feb 2017
+  plotGaps(filter(fluxDat, date<"2017-04-01"), "FilledLE")
+  summary(filter(fluxDat, date<"2017-03-01")) #mean = 16.2
+  fluxDat$FilledLE[indNA]<-16.2
+  
+ 
+  sum(is.na(fluxDat$H_filled)) #140 
+  plotGaps(fluxDat, "H_filled")
+  fluxDat$FilledH<-fluxDat$H_filled
+  summary(filter(fluxDat, date<"2017-03-01")) #mean = -1.4
+  indNA <- which(is.na(fluxDat$H_filled))
+  fluxDat$FilledH<-fluxDat$H_filled
+  fluxDat$FilledH[indNA] <- -1.4 #median value
+  sum(is.na(fluxDat$FilledH)) 
+
+summary(fluxDat$H_filled)  
+    
+tsTmp <- ts(fluxDat$H_filled)
+plotNA.distribution(tsTmp) #some gaps during tower resiting
 plotGaps(fluxDat, "ustar")
+plotGaps(fluxDat, "ustar_filled") #no gaps
 ######disgnostic plots of ustar behavior-----
-#time series of u_star
-ggplot(filter(fluxDat, datetime>"2018-05-06 00:00:00"), aes(datetime, ustar))+
+#time series of u_star_f
+ggplot(filter(fluxDat, datetime>"2018-05-06 00:00:00"), aes(datetime, ustar_f))+
   geom_point(alpha=0.2)
 #polar plot of ustar:
 ggplot(filter(fluxDat, datetime>"2018-05-06 00:00:00"),
-       aes(wind_dir, ustar))+
+       aes(wind_dir, ustar_f))+
   geom_point(alpha=0.1)+
   coord_polar()+
   ylim(-0.2, 0.6)+
   geom_hline(yintercept=0.1)
 #ch4 flux as a f(ustar)
-ggplot(filter(fluxDat, datetime>"2018-05-06 00:00:00", ustar<0.6),
-       aes(ustar, ch4_flux))+
+ggplot(filter(fluxDat, datetime>"2018-05-06 00:00:00", ustar_f<0.6),
+       aes(ustar_f, ch4_flux))+
   geom_point(alpha=0.2)+
   stat_summary_bin(fun.y='mean', bins=20,
                    color='red', size=0.5, geom='point')+
@@ -161,10 +236,10 @@ ggplot(filter(fluxDat, datetime>"2018-05-06 00:00:00", ustar<0.6),
                    color='red', size=0.5)+
   geom_vline(xintercept = 0.07)
 #co2 flux as f(ustar):
-ustar_co2<-ggplot(filter(fluxDat, datetime>"2018-05-06 00:00:00", ustar<0.6),
-                  aes(ustar, co2_flux))+
+ustar_co2<-ggplot(filter(fluxDat, datetime>"2018-05-06 00:00:00", ustar_f<0.6),
+                  aes(ustar_f, co2_flux))+
   geom_point(alpha=0.2)+
-  #ylim()+
+  ylim(-200, 200)+
   stat_summary_bin(fun.y='mean', bins=20,
                    color='red', size=0.5, geom='point')+
   stat_summary_bin(fun.data='mean_se', bins=20,
@@ -227,8 +302,8 @@ df <- data.frame("Wind_Speed" = rep(fluxDat$wind_speed,2),
                  "Pred_Wind_Speed" = c(windPreds1, windPreds2),
                  "Model" = rep(c("Miami_Wind_Sp","Miami_Wind_Sp_And_Dir"), each = length(windPreds1)))
 ## Plot of the predictions
-ggplot(df, aes(x = Wind_Speed, y = Pred_Wind_Speed)) + geom_point() +
-  facet_wrap(facets = ~ Model) + geom_abline(slope = 1, intercept = 0, colour = "red")
+# ggplot(df, aes(x = Wind_Speed, y = Pred_Wind_Speed)) + geom_point() +
+#   facet_wrap(facets = ~ Model) + geom_abline(slope = 1, intercept = 0, colour = "red")
 ## Use Miami wind speed and wind direction to fill in eddy flux tower wind speed
 fluxDat$FilledWindSpeed <- ifelse(is.na(fluxDat$wind_speed),
                                   windPreds2,
@@ -238,6 +313,28 @@ indNA <- which(is.na(fluxDat$FilledWindSpeed))
 fluxDat$FilledWindSpeed[indNA] <- mean(c(fluxDat[(indNA-1),"FilledWindSpeed"],fluxDat[(indNA+1),"FilledWindSpeed"]))
 sum(is.na(fluxDat$FilledWindSpeed)) # 0
 }
+
+####Wind Direction Gap-Filling
+if(covarWD){
+  sum(is.na(fluxDat$wind_dir)) #6154
+  sum(is.na(fluxDat$windDir.vws)) #16
+  ggplot(filter(fluxDat, datetime<"2018-05-01"), aes(windDir.vws, wind_dir))+
+    geom_point(alpha=0.3)+
+    geom_smooth(method = "lm")
+  #not great, but better than other options
+  windDirLM <- lm(wind_dir~ windDir.vws, data = fluxDat)
+  summary(windDirLM)
+  WDpreds <- predict(windDirLM, 
+                      newdata = data.frame("windDir.vws"=fluxDat$windDir.vws))
+  fluxDat$FilledWD <- ifelse(is.na(fluxDat$wind_dir),
+                               WDpreds, 
+                               fluxDat$wind_dir)
+  ggplot(fluxDat, aes(datetime, FilledWD))+
+    geom_point(alpha=0.2)+
+    geom_point(data=fluxDat, aes(datetime, wind_dir), alpha=0.1, color="red")
+}
+
+fluxDatFilled$FilledWD<-fluxDat$FilledWD
 
 ######## Static Pressure Gap-Filling
 if(covarStatP){
@@ -270,6 +367,13 @@ if(covarDelStatP){
 fluxDat$FilledStaticPressChg <- c(NA, diff(fluxDat$FilledStaticPress))
 }
 
+####### Site Location
+if(covarSite){
+  fluxDatFilled$FilledSite<-ifelse(fluxDatFilled$datetime<"2018-05-01",
+                             1, #dock
+                             0) #aquatic tower
+}
+
 ######################################
 #####S. Waldo Additions 6/20/18#######
 ##### gap-filling active trap data ###
@@ -282,18 +386,27 @@ range(fluxDat$ebCh4_deep, na.rm=TRUE)
 plotGaps(fluxDat, "ebCh4_deep")
 plotGaps(fluxDat, "ebCh4_shallow")
 
-ggplot(filter(fluxDat, datetime>"2018-06-07 00:00:00" & datetime<"2018-10-10 00:00:00"),
+ggplot(filter(fluxDat, datetime>"2017-05-07 00:00:00" & datetime<"2017-11-10 00:00:00"),
        aes(datetime, ebCh4_deep))+
   geom_line(alpha=0.3)+
   geom_line(aes(datetime, ebCh4_shallow, color="red"), alpha=0.7)
 
 #make a new fluxDat data frame with just the ebullition time periods
+fluxDatEb<-filter(fluxDat, !is.na(fluxDat$ebCh4_deep), !is.na(fluxDat$ebCh4_shallow))
+
+ggplot(fluxDatEb, aes(datetime, ebCh4_deep))+
+  geom_line(alpha=0.3)+
+  geom_line(aes(datetime, ebCh4_shallow, color="red"), alpha=0.7)
+
+fluxDatEbFilled<-left_join(select(fluxDatEb, datetime, ebCh4_deepGf, ebCh4_shalGf),
+                           fluxDatFilled, by = "datetime")
+
 fluxDat<-filter(fluxDat, datetime>"2018-06-07 15:00:00", datetime<"2018-10-05 00:00:00")
 #fluxDatEb<-filter(fluxDatEb, datetime<"2017-06-26 13:00:00" | datetime>"2017-07-14 14:00:00")
 plotGaps(fluxDat, "ebCh4_deep")
 plotGaps(fluxDat, "ebCh4_shallow")
-sum(is.na(fluxDat$ebCh4_deep)) #1526; 2018: 1880
-sum(is.na(fluxDat$ebCh4_shallow)) #686; 2018: 2371
+sum(is.na(fluxDatEb$ebCh4_deep)) #1526; 2018: 1880
+sum(is.na(fluxDatEb$ebCh4_shallow)) #686; 2018: 2371
 
 #gap fill small gaps via linear interpolation
 
@@ -326,7 +439,9 @@ if(covarFuzzy){
 # tmpRows$datetime[tmpRows$date == "2018-08-07"] <- tmpRows$datetime[tmpRows$date == "2018-08-07"] + 24*60*60
 
 #updated so it is flexible for changing input ANN datasets:
+fluxDat$date<-as.Date(fluxDat$datetime)
 rDate<-range(fluxDat$date)  
+
 tmpRows <-subset(fluxDat, date %in% as.Date(c(rDate[1], rDate[2])))
 tmpRows$date <- ifelse(tmpRows$date == rDate[1], rDate[1]-1,
                        rDate[2]+1)
@@ -386,11 +501,17 @@ fluxDat$fuzzyRAD <- as.numeric(fzzyFill)
 #fluxDat <- subset(fluxDat, date >= as.Date("2017-02-01") &
 #                    date <= as.Date("2018-08-06"))
 #generalized for changing input dataset:
-fluxDat <- subset(fluxDat, date >= as.Date(rDate[1]) &
+ fluxDat <- subset(fluxDat, date >= as.Date(rDate[1]) &
                     date <= as.Date(rDate[2]))
 sum(is.na(fluxDat$fuzzyRAD)) # 0
 }
 
+#2019 03 05 ANN Runs to execute:
+#1. Complete dataset (2017 - 2018), using LE, H, ustar, sedT, deltaStaticP, 
+#   WS, WD, AirT, fuzzy radiation, static pressure, site location indicator, 
+#   degree of stratification
+#2. Same as above, minus site location indicator   
+#3. Subset of data, truncated to match the active trap observations
 
 #######################################
 ############# ANN Fitting #############
@@ -398,11 +519,15 @@ sum(is.na(fluxDat$fuzzyRAD)) # 0
 plotGaps(fluxDat, "ch4_flux")
 sum(is.na(fluxDat$ch4_flux)) / nrow(fluxDat) # 2018 dataset: 67% missing, vs 75% for 2017
 
-fluxDatToUse<-subset(fluxDat, fluxDat$datetime>(startdate) & fluxDat$datetime<(enddate))
+#fluxDatToUse<-subset(fluxDat, fluxDat$datetime>(startdate) & fluxDat$datetime<(enddate))
+fluxDatToUse<-subset(fluxDatFilled, fluxDatFilled$datetime>(startdate) & fluxDatFilled$datetime<(enddate))
+
 plotGaps(fluxDatToUse, "ch4_flux")
 sum(is.na(fluxDatToUse$ch4_flux)) / nrow(fluxDatToUse) #28% missing, 38% with ustar filter of 0.07
 range(fluxDatToUse$datetime)
-
+# covarFuzzy=FALSE
+# covarWD=FALSE
+# covarPAR=FALSE
 ## Data prep
 annCols <- c("ch4_flux",
              if(covarSedT){"FilledSedT"},
@@ -412,9 +537,30 @@ annCols <- c("ch4_flux",
              if(covarStatP){"FilledStaticPress"},
              if(covarDelStatP){"FilledStaticPressChg"},
              if(covarUstar){"FilledUstar"},
-             if(covarTrapEb){"ebCh4_shallow"},
-             if(covarTrapEb){"ebCh4_deep"})
+             if(covarTrapEb){"ebCh4_shalGf"},
+             if(covarTrapEb){"ebCh4_deepGf"},
+             if(covarLE){"FilledLE"},
+             if(covarH){"FilledH"}, 
+             if(covarWD){"FilledWD"},
+             if(covarSite){"FilledSite"},
+             if(covarPAR){"FilledPAR"})
 annDat <- fluxDatToUse[,annCols]
+#annDat <- fluxDatFilled[,annCols]
+#fluxDatFilled1718<-select(fluxDat, datetime, co2_flux, annCols)
+#test5.2$FilledPAR<-test5.2$par.vws
+#annDat<-fluxDatEbFilled[,annCols]
+# write.table(fluxDatFilled1718,
+#             file=("C:/R_Projects/actonFluxProject/output/annDataset_MDCfilled1718.csv"),
+#             sep=",",
+#             row.names=FALSE)
+###Realizing I need parameters from annDat to evaluate each run
+###Should save here
+write.table(annDat,
+            file=(paste("C:/R_Projects/actonFluxProject/output/annDat", 
+                        runVer, ".csv", sep="")),
+                  sep=",",
+                  row.names=FALSE)
+
 annDat <- subset(annDat, complete.cases(annDat[,2:ncol(annDat)]))
 maxs <- apply(annDat, 2, max, na.rm=TRUE)
 mins <- apply(annDat, 2, min, na.rm=TRUE)
@@ -518,7 +664,7 @@ if(fitModels){
   simList <- apply(annGrid,1, function(x){
     fitANN(x[1],x[2])
   })
-  proc.time() - ptm # 2762 seconds --> 45 minutes
+  proc.time() - ptm # 2762 seconds --> ~5.5 hours
   save(simList, file = paste("output/annSimulationList", runVer, ".RData", sep=""))
 }
 

@@ -20,45 +20,52 @@ tail(rbrTsub$RDateTime)
 #5. FILTER AND SELECT THE EDDY PRO OUTPUT ----
 ###for a subset of time for the test set for Will:
 
-epOutANN<-epOutOrder
-#head(epOut$RDateTime)
-epOutANN<-filter(epOutANN, RDateTime>("2017-02-01 00:30:00")
-                 & RDateTime < ("2018-10-01 12:00:00"))
-head(epOutANN$RDateTime)
-tail(epOutANN$RDateTime)
+# epOutANN<-epOutOrder
+# #head(epOut$RDateTime)
+# epOutANN<-filter(epOutANN, RDateTime>("2017-02-01 00:30:00")
+#                  & RDateTime < ("2018-10-01 12:00:00"))
+# head(epOutANN$RDateTime)
+# tail(epOutANN$RDateTime)
 
 ##Select the variables we want:
 ##5/3/2018: changed air_pressure to air_p_mean -- air_pressure has a weird constant 98000 in it
-epOutANN<-select(epOutANN, RDateTime, date,	time,Tau,qc_Tau,H,	qc_H,	LE,	qc_LE,
+##3/5/2019 changed back -- air_pressure is better: measured by LI7500, agrees better with VWS
+## ALSO changed the data source to the rEddyProc output with filled LE, H, and Ustar
+epOutANN<-select(EddyDataWithPosix.S, RDateTime, date,	time,Tau,qc_Tau,H, 
+                 H_filled,	qc_H,	
+                 LE, LE_filled,	qc_LE,
                 co2_flux,	qc_co2_flux,ch4_flux,	qc_ch4_flux, rand_err_ch4_flux, rand_err_co2_flux,
                 co2_mixing_ratio,	h2o_mixing_ratio, ch4_mixing_ratio,	
-                air_temperature,	air_p_mean,	air_density,	air_heat_capacity,
+                air_temperature,	air_pressure,	air_density,	air_heat_capacity,
                 ET,	water_vapor_density,	e,	es,	specific_humidity,	RH,	VPD,	Tdew,
-                u_rot,	v_rot,	w_rot,	wind_speed, max_wind_speed,	wind_dir,	ustar,	TKE,	L,	zL,	
+                u_rot,	v_rot,	w_rot,	wind_speed, max_wind_speed,	wind_dir,	ustar,
+                ustar_filled, TKE,	L,	zL,	
                 bowen_ratio,	Tstar,	model,	x_peak,	x_offset,	x_10,	x_30,	x_50,	x_70,
                 x_90)
 
-
-epOutANN$qc_ch4_factor<-as.factor(epOutANN$qc_ch4_flux)
-summary(epOutANN$qc_ch4_factor)
-tot<-length(epOutANN$ch4_flux)
-noObs<-sum(length(which(is.na(epOutANN$ch4_flux))))
-print(c("Site Down %:", round(noObs/tot*100, digits=2)))
-
-##Can filter fluxes for QAQC parameters and replace with NAs using mutate: 
-## 8/16/18: added in a time frame for the wind dir filtering:
-##          ->only apply this filter before May of 2018
-epOutANN<-epOutANN %>% mutate(ch4_flux=replace(ch4_flux, qc_ch4_flux==2, NA)) %>%
-  mutate(ch4_flux=replace(ch4_flux, ustar<0.07 & RDateTime>"2018-05-01 00:00:00", NA)) %>%
-  mutate(co2_flux=replace(co2_flux, qc_co2_flux==2, NA))%>%
-  mutate(co2_flux=replace(co2_flux, ustar<0.07 & RDateTime>"2018-05-01 00:00:00", NA)) %>%
-  mutate(H=replace(H, qc_H==2, NA))%>%
-  mutate(LE=replace(LE, qc_LE==2, NA))%>%
-  mutate(ch4_flux=replace(ch4_flux, wind_dir>195 & wind_dir<330 & RDateTime<"2018-05-01 00:00:00", NA))%>%
-  mutate(ch4_flux=replace(ch4_flux, abs(ch4_flux)>500, NA))%>%
-  mutate(co2_flux=replace(co2_flux, wind_dir>195 & wind_dir<330 & RDateTime<"2018-05-01 00:00:00", NA))%>%
-  mutate(H=replace(H, wind_dir>195 & wind_dir<330 & RDateTime<"2018-05-01 00:00:00", NA))%>%
-  mutate(LE=replace(LE, wind_dir>195 & wind_dir<330 & RDateTime<"2018-05-01 00:00:00", NA))
+####Do all this in qcEddyPro.R before running this script####
+# epOutANN$qc_ch4_factor<-as.factor(epOutANN$qc_ch4_flux)
+# summary(epOutANN$qc_ch4_factor)
+# 
+# epOutANN<-epOutSubFilt
+# tot<-length(epOutANN$ch4_flux)
+# noObs<-sum(length(which(is.na(epOutANN$ch4_flux))))
+# print(c("Site Down %:", round(noObs/tot*100, digits=2)))
+# 
+# ##Can filter fluxes for QAQC parameters and replace with NAs using mutate: 
+# ## 8/16/18: added in a time frame for the wind dir filtering:
+# ##          ->only apply this filter before May of 2018
+# epOutANN<-epOutANN %>% mutate(ch4_flux=replace(ch4_flux, qc_ch4_flux==2, NA)) %>%
+#   mutate(ch4_flux=replace(ch4_flux, ustar<0.07 & RDateTime>"2018-05-01 00:00:00", NA)) %>%
+#   mutate(co2_flux=replace(co2_flux, qc_co2_flux==2, NA))%>%
+#   mutate(co2_flux=replace(co2_flux, ustar<0.07 & RDateTime>"2018-05-01 00:00:00", NA)) %>%
+#   mutate(H=replace(H, qc_H==2, NA))%>%
+#   mutate(LE=replace(LE, qc_LE==2, NA))%>%
+#   mutate(ch4_flux=replace(ch4_flux, wind_dir>195 & wind_dir<330 & RDateTime<"2018-05-01 00:00:00", NA))%>%
+#   mutate(ch4_flux=replace(ch4_flux, abs(ch4_flux)>500, NA))%>%
+#   mutate(co2_flux=replace(co2_flux, wind_dir>195 & wind_dir<330 & RDateTime<"2018-05-01 00:00:00", NA))%>%
+#   mutate(H=replace(H, wind_dir>195 & wind_dir<330 & RDateTime<"2018-05-01 00:00:00", NA))%>%
+#   mutate(LE=replace(LE, wind_dir>195 & wind_dir<330 & RDateTime<"2018-05-01 00:00:00", NA))
 
 ggplot(epOutANN, aes(RDateTime, ch4_flux))+
   geom_point(alpha=0.2)
@@ -132,19 +139,21 @@ ANNdata<-left_join(ANNdata, df12.gcSub, by="RDateTime")
 #ANNdata<-merge(ANNdata, df12.gcSub, by.x="RDateTime", by.y="date.timeHH")
 
 #7. CREATE SECONDARY VARIABLES: OVERLYING STATIC PRESSURE, W ----
-ANNdata$staticPress<-(ANNdata$waterPressure.vws+ANNdata$air_p_mean)/1000
-head(ANNdata$staticPress)
+ANNdata$staticPress<-(ANNdata$waterPressure.vws+ANNdata$air_pressure)/1000 #air_pressure and water_pressure are in units of Pa
+head(ANNdata$staticPress) #units of kPa
 summary(ANNdata$staticPress)
 ANNdata<-select(ANNdata, -qc_ch4_factor)
 ANNdata$staticPress.vws<-(ANNdata$waterPressure.vws+ANNdata$bPress.vws)/1000
 
+ANNdata<-as.data.frame(ANNdata)
+
 write.table(ANNdata, 
-             file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/exampleDatasetANN.csv",
+             file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/exampleDatasetANN_20172018.csv",
              sep=",",
              row.names=FALSE)
 #write it to the C: drive so that it can go on Git
 write.table(ANNdata, 
-            file=("C:/R_Projects/actonFluxProject/output/annDataset_trapeb201702201810.csv"),
+            file=("C:/R_Projects/actonFluxProject/output/annDataset_MDC_20172018.csv"),
             sep=",",
             row.names=FALSE)
 
@@ -168,7 +177,7 @@ ggplotRegression <- function (fit) {
 sedimentTproxy<-lm(RBRmeanT_1.6 ~ waterT.vws, data = ANNdata)
 ggplotRegression(sedimentTproxy)
 
-airPressureProxy<-lm(air_p_mean ~ bPress.vws, data=ANNdata)
+airPressureProxy<-lm(air_pressure ~ bPress.vws, data=ANNdata)
 ggplotRegression(airPressureProxy)
     ##weird line of air_pressure at 98000 fixed by using air_p_mean
     #EC_airP<-ggplot(ANNdata, aes(RDateTime, air_pressure))+
