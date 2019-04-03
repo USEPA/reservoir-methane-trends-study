@@ -148,12 +148,12 @@ ANNdata$staticPress.vws<-(ANNdata$waterPressure.vws+ANNdata$bPress.vws)/1000
 ANNdata<-as.data.frame(ANNdata)
 
 write.table(ANNdata, 
-             file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/exampleDatasetANN_20172018.csv",
+             file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/exampleDatasetANN_20172018_filt2.csv",
              sep=",",
              row.names=FALSE)
 #write it to the C: drive so that it can go on Git
 write.table(ANNdata, 
-            file=("C:/R_Projects/actonFluxProject/output/annDataset_MDC_20172018.csv"),
+            file=("C:/R_Projects/actonFluxProject/output/annDataset_MDC_20172018_filt2.csv"),
             sep=",",
             row.names=FALSE)
 

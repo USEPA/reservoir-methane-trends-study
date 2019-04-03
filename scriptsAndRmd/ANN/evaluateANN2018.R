@@ -1,11 +1,16 @@
 
 ####Run if starting from scratch#########
+library(reshape2)
+library(neuralnet); library(ggplot2); library(suncalc); 
+library(plyr); library(imputeTS); library(caret); library(nnet)
+library(dplyr); library(zoo)
 
-runVer<-"5.7" 
+runVer<-"5.9" 
 
 annDat<-read.csv(paste("C:/R_Projects/actonFluxProject/output/annDat",
                        runVer, ".csv", sep=""))
-fluxDatFilled<-read.csv("output/annDatasetMDC_filled.csv")
+
+fluxDatFilled<-read.csv("output/annDataset_20190403.csv")
 fluxDatFilled$datetime <-as.POSIXct(fluxDatFilled$datetime, tz="etc/GMT+5")
 
 # Do training, testing validation sets 
@@ -126,7 +131,7 @@ d$diff_gCH4m2hh = d$Preds*60*30*16/10^6 - d$Flux*60*30*16/10^6
 BiasErr<-sum(d$diff)/nrow(d)
 BiasErr_gCH4m2hh<-sum(d$diff_gCH4m2hh)/nrow(d)
 BiasErr*sum(is.na(fluxDatFilled$ch4_flux))
-cmlBias<-round(BiasErr*sum(is.na(fluxDatToUse$ch4_flux)), digits=3)
+cmlBias<-round(BiasErr*sum(is.na(fluxDatFilled$ch4_flux)), digits=3)
 #cmlBias<-round(BiasErr_gCH4m2hh*sum(is.na(fluxDatFilled$ch4_flux)), digits = 3)
 
 ## Plot variable importance bar chart

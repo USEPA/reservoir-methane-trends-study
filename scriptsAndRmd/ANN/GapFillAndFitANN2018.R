@@ -40,7 +40,7 @@ enddate<-"2018-11-13 12:00:00"
 #run number/version
 range(ANNdata$RDateTime)
 
-runVer<-"5.8"
+runVer<-"5.9"
 #4.0 is Feb 2017 thru Oct 2018 with everything but trap ebullition as 
 ##drivers. Also, RBR temp is gapfilled from August to Oct 2018 
 #4.1 is May 2018 thru Oct 2018 with sedT, airT, windSp, statP, delStatP, and fuzzy time as drivers
@@ -57,25 +57,37 @@ runVer<-"5.8"
 #fluxDat <- read.csv("output/exampleDatasetANN.csv")
 #fluxDat<-read.csv("output/annDataset_trapeb201702201810.csv")
 #fluxDat<-read.csv("output/annDataset_MDC.csv")
-fluxDat<-read.csv("output/annDataset_MDC_20172018.csv") #gapfilled LE, H, ustar, range Jan 1 2017 - Dec 31 2018
+fluxDat<-read.csv("output/annDataset_MDC_20172018_filt2.csv") #gapfilled LE, H, ustar, range Jan 1 2017 - Dec 31 2018, filt2 indicates outlier value filter applied
 fluxDat$datetime <- as.POSIXct(fluxDat$RDateTime, tz = "Etc/GMT+5")
-
+## There are duplicate rows for some reason. Get rid of them.
+fluxDat <- subset(fluxDat, !duplicated(datetime))
 
 
 fluxDatFilled<-read.csv("output/annDatasetMDC_filled.csv")
 fluxDatFilled<-read.csv("output/annDataset_MDCfilled1718.csv")
+fluxDatFilled<-read.csv("output/annDataset_20190403.csv")
 fluxDatFilled$datetime <-as.POSIXct(fluxDatFilled$datetime, tz="UTC")
+
+fluxDat<-left_join(fluxDat, select(fluxDatFilled, datetime, FilledSedT, FilledAirT, FilledWindSpeed, 
+                                   FilledStaticPress, FilledStaticPressChg, FilledWD), by="datetime")
+fluxDatFilled<-left_join(fluxDatFilled, select(fluxDat, datetime, fuzzyRAD), by="datetime")
+#now just need LE, H, ustar, PAR
 
 #combining fuzzyRAD with other gap filled drivers if the session needed 
 #to be restarted so that the fuzzy code would run:
-fluxDatFilled<-left_join(fluxDatFilled, select(fluxDat, datetime, fuzzyRAD),
-                         by="datetime")
+# fluxDatFilled<-left_join(fluxDatFilled, select(fluxDat, datetime, fuzzyRAD),
+#                          by="datetime")
+
 #get PAR from the vanni weather station data frame, loaded from "loadPrelimOutputs.R" script
 vanni30min$datetime<-vanni30min$RDateTime
 fluxDatFilled<-left_join(fluxDatFilled, select(vanni30min, datetime, par.vws),
                          by="datetime")
 sum(is.na(fluxDatFilled$par.vws))
 fluxDatFilled$FilledPAR<-fluxDatFilled$par.vws
+
+
+fluxDat$FilledPAR<-fluxDat$par.vws
+sum(is.na(fluxDat$par.vws))
 # test5.2<-left_join(fluxDatFilled, select(vanni30min, datetime, par.vws), by="datetime")
 # sum(is.na(test5.2$par.vws)) #0!!!
 # fluxDatFilled$FilledPAR<-test5.2$par.vws
@@ -87,8 +99,8 @@ fluxDatFilled$FilledPAR<-fluxDatFilled$par.vws
 fluxDat$date <- as.Date(fluxDat$datetime)
 
 
-## There are duplicate rows for some reason. Get rid of them.
-fluxDat <- subset(fluxDat, !duplicated(datetime))
+
+range(fluxDat$datetime)
 fluxDat <-dplyr::filter(fluxDat, datetime>startdate, datetime<enddate)
 
 ## Subset to variables that matter. Ignore gaps and date/time for now.
@@ -196,14 +208,14 @@ sum(is.na(fluxDat$ustar_filled)) #0
   #fluxDat$LE_filled[indNA] <- mean(c(fluxDat[(indNA-2),"LE_filled"],fluxDat[(indNA+2),"LE_filled"]))
   plotGaps(fluxDat, "FilledLE") #big chunk in Jan/Feb 2017
   plotGaps(filter(fluxDat, date<"2017-04-01"), "FilledLE")
-  summary(filter(fluxDat, date<"2017-03-01")) #mean = 16.2
+  summary(filter(fluxDat, datetime<"2017-03-01")) #mean = 16.2
   fluxDat$FilledLE[indNA]<-16.2
   
  
   sum(is.na(fluxDat$H_filled)) #140 
   plotGaps(fluxDat, "H_filled")
   fluxDat$FilledH<-fluxDat$H_filled
-  summary(filter(fluxDat, date<"2017-03-01")) #mean = -1.4
+  summary(filter(fluxDat, datetime<"2017-03-01")) #mean = -1.4
   indNA <- which(is.na(fluxDat$H_filled))
   fluxDat$FilledH<-fluxDat$H_filled
   fluxDat$FilledH[indNA] <- -1.4 #median value
@@ -369,9 +381,12 @@ fluxDat$FilledStaticPressChg <- c(NA, diff(fluxDat$FilledStaticPress))
 
 ####### Site Location
 if(covarSite){
-  fluxDatFilled$FilledSite<-ifelse(fluxDatFilled$datetime<"2018-05-01",
+  fluxDatFilled$FilledSite<-ifelse(fluxDatFilled$datetime<"2018-04-18",
                              1, #dock
                              0) #aquatic tower
+  fluxDat$FilledSite<-ifelse(fluxDat$datetime<"2018-04-18",
+                                   1, #dock
+                                   0) #aquatic tower
 }
 
 ######################################
@@ -519,13 +534,13 @@ sum(is.na(fluxDat$fuzzyRAD)) # 0
 plotGaps(fluxDat, "ch4_flux")
 sum(is.na(fluxDat$ch4_flux)) / nrow(fluxDat) # 2018 dataset: 67% missing, vs 75% for 2017
 
-#fluxDatToUse<-subset(fluxDat, fluxDat$datetime>(startdate) & fluxDat$datetime<(enddate))
+fluxDatToUse<-subset(fluxDat, fluxDat$datetime>(startdate) & fluxDat$datetime<(enddate))
 fluxDatToUse<-subset(fluxDatFilled, fluxDatFilled$datetime>(startdate) & fluxDatFilled$datetime<(enddate))
 
 plotGaps(fluxDatToUse, "ch4_flux")
 sum(is.na(fluxDatToUse$ch4_flux)) / nrow(fluxDatToUse) #28% missing, 38% with ustar filter of 0.07
 range(fluxDatToUse$datetime)
-# covarFuzzy=FALSE
+ covarFuzzy=FALSE
 # covarWD=FALSE
 # covarPAR=FALSE
 ## Data prep
@@ -546,13 +561,14 @@ annCols <- c("ch4_flux",
              if(covarPAR){"FilledPAR"})
 annDat <- fluxDatToUse[,annCols]
 #annDat <- fluxDatFilled[,annCols]
-#fluxDatFilled1718<-select(fluxDat, datetime, co2_flux, annCols)
+
+fluxDatFilled2018<-select(fluxDat, datetime, co2_flux, annCols)
 #test5.2$FilledPAR<-test5.2$par.vws
 #annDat<-fluxDatEbFilled[,annCols]
-# write.table(fluxDatFilled1718,
-#             file=("C:/R_Projects/actonFluxProject/output/annDataset_MDCfilled1718.csv"),
-#             sep=",",
-#             row.names=FALSE)
+write.table(fluxDatFilled,
+            file=("C:/R_Projects/actonFluxProject/output/annDataset_20190403.csv"),
+            sep=",",
+            row.names=FALSE)
 ###Realizing I need parameters from annDat to evaluate each run
 ###Should save here
 write.table(annDat,
