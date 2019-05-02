@@ -54,7 +54,7 @@ runVer<-"6.02"
 #5.5: aquatic tower dataset: 2018-05-06 thru 2018-11-01
 ### Load data ------
 
-fluxDatFilled<-read.csv("output/annDataset_20190403.csv")
+fluxDatFilled<-read.csv("output/annDataset_20190429.csv")
 fluxDatFilled$datetime <-as.POSIXct(fluxDatFilled$datetime, tz="UTC")
 
 ## Make date into Date class.
