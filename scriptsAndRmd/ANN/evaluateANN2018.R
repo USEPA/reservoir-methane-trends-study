@@ -5,7 +5,7 @@ library(neuralnet); library(ggplot2); library(suncalc);
 library(plyr); library(imputeTS); library(caret); library(nnet)
 library(dplyr); library(zoo)
 
-runVer<-"5.9" 
+runVer<-"6.0" 
 
 annDat<-read.csv(paste("C:/R_Projects/actonFluxProject/output/annDat",
                        runVer, ".csv", sep=""))
@@ -193,14 +193,34 @@ fluxDatFilled<-fluxDatFilled%>%
          ch4_cumulativeUQ = cumsum(ch4_predsUQ*60*30*16/10^6))
 
 #fluxDatFilled$datetime[16320] #2018-01-01 00:00
-fluxDatFilled$datetime[17557]
-col2018<-17557
+fluxDatFilled$datetime[17510]
+col2018<-17510
 totEm2017<-round(fluxDatFilled$ch4_cumulative[col2018], digits = 2)
 totEm2017LQ<-round(fluxDatFilled$ch4_cumulativeLQ[col2018], digits = 2)
 totEm2017UQ<-round(fluxDatFilled$ch4_cumulativeUQ[col2018], digits = 2)
 totEm2018<-round(fluxDatFilled$ch4_cumulative[nrow(fluxDatFilled)] - totEm2017, digits=2)
 totEm2018LQ<-round(fluxDatFilled$ch4_cumulativeLQ[nrow(fluxDatFilled)] - totEm2017LQ, digits=2)
 totEm2018UQ<-round(fluxDatFilled$ch4_cumulativeUQ[nrow(fluxDatFilled)] - totEm2017UQ, digits=2)
+
+fluxDatFilledMan<-select(fluxDatFilled, datetime, ch4_cumulative)
+fluxDatFilledMan$year<-year(fluxDatFilledMan$datetime)
+
+offset18<-fluxDatFilledMan[17510,2] #2018-01-01       43.94513 2018
+april18<-fluxDatFilledMan[21830,2] #2018-04-01       45.19465 2018
+oct18<-fluxDatFilledMan[30614,2] #2018-10-01       103.6851 2018
+tot18<-fluxDatFilledMan[32807,2]
+
+paste("2018 Warm Season Flux was ", round((oct18-april18)/(tot18-offset18)*100, digits=1), 
+      "% of total annual CH4 Emissions", sep="")
+
+april17<-fluxDatFilledMan[4310,2]
+oct17<-fluxDatFilledMan[13094,2]
+tot17<-offset18
+
+
+
+paste("2017 Warm Season Flux was ", round((oct17-april17)/(tot17)*100, digits=1), 
+      "% of total annual CH4 Emissions", sep="")
 
 #plot of measured and filled
 ggplot(fluxDatFilled,

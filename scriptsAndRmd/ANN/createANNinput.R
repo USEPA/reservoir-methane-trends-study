@@ -3,18 +3,22 @@
     ### data, and the Vanni buoy T data, turns 15-min Vanni data into 30-min averages,
     ### and accounts for the offset in the VWS Level time series. Returns columns:
     ### vanni30min for the VWS, rbrTsub for the RBRs, and bouyT30min
-  ## "scriptsAndRmd/loadEddyPro.R" loads and runs QA/QC on the eddypro output
+  ## "scriptsAndRmd/loadEddyPro.R" loads the eddypro output
+    ### then run qcEddyPro.R
+    ### then run REddyProc.R to gap fill LE, H, and ustar using MDC. This creats the EddyDataWithPosix.S dataframe
+  ## 'scriptsAndRmd/readHobo.R' loads the active funnel trap files
+    ### 'scriptsAndRmd/compileGcDataNonGrts.R' reads in GC data, excel data sheet info
+    ### 'scriptsAndRmd/calculateEbEmissions.R' calculates the active funnel trap fluxes
 
 ##Updated 20 Feb 2018 -- let's make the example ANN dataset June 1 thru Aug 31 
 ##Updated 21 Mar 2018 -- putting together a longer ANN dataset that includes all sediment T observations
                         # so 5/10/2017 - 11/29/2017
 ##working on this 16 Aug 2018 -- want to combine 2017 and 2018 datasets
-head(rbrTsub$RDateTime)
-tail(rbrTsub$RDateTime)
 
-
-
-
+## 29 April 2019: version 6.0
+    # Reprocessed EC dataset with fixes for CH4 absolute limits, 
+    # H2O IRGA dynamic metadata
+    # EC time series runs from January 13, 2017 thru Nov something
 
 
 #5. FILTER AND SELECT THE EDDY PRO OUTPUT ----
@@ -148,12 +152,12 @@ ANNdata$staticPress.vws<-(ANNdata$waterPressure.vws+ANNdata$bPress.vws)/1000
 ANNdata<-as.data.frame(ANNdata)
 
 write.table(ANNdata, 
-             file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/exampleDatasetANN_20172018_filt2.csv",
+             file="L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/exampleDatasetANN_mdc_20190429.csv",
              sep=",",
              row.names=FALSE)
 #write it to the C: drive so that it can go on Git
 write.table(ANNdata, 
-            file=("C:/R_Projects/actonFluxProject/output/annDataset_MDC_20172018_filt2.csv"),
+            file=("C:/R_Projects/actonFluxProject/output/annDataset_mdc_20190429.csv"),
             sep=",",
             row.names=FALSE)
 

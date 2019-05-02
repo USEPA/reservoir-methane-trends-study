@@ -36,10 +36,10 @@ startdate<-"2017-01-01 00:00:00" #runVer 5.7
 #enddate <- "2018-08-07 00:00:00" #end of RBR data
 #enddate<-"2018-11-01 00:00:00"
 #enddate<-"2018-04-19 00:00:00" #end of dock data
-enddate<-"2018-11-13 12:00:00"
+enddate<-"2018-11-15 12:00:00"
 
 #run number/version
-runVer<-"5.9"
+runVer<-"6.02"
 #4.0 is Feb 2017 thru Oct 2018 with everything but trap ebullition as 
 ##drivers. Also, RBR temp is gapfilled from August to Oct 2018 
 #4.1 is May 2018 thru Oct 2018 with sedT, airT, windSp, statP, delStatP, and fuzzy time as drivers
@@ -103,7 +103,9 @@ df <- data.frame("Index" = 1:nrow(scaledDat),
                  "Cluster" = kClusters$cluster)
 
 ## Do training set first
-set.seed(1111)
+#set.seed(1111)
+set.seed(1112) #6.01
+set.seed(1113) #6.02
 trainProp <- 0.5
 sizeClust <- as.vector(table(df$Cluster))
 nSampsClust <- ceiling(trainProp*sizeClust)
@@ -115,7 +117,10 @@ trainList <- dlply(df, .(Cluster), function(x){
 trainInds <- unlist(trainList)
 trainDat <- scaledDat[trainInds,]
 ## Same routine for testing set
-set.seed(2222)
+#set.seed(2222)
+set.seed(2223) #6.01
+set.seed(2224) #6.02
+
 testProp <- 0.5 # We're taking half of what's left, so 25% of the total.
 # Take out the 'training' indices and sample from what's left.
 dfTest <- df[-trainInds,]
@@ -159,6 +164,7 @@ validationDat <- scaledDat[-c(trainInds,testInds),]
 
 ## Set up a simulation with varying hidden layers and seeds.
 seeds <- 101:150
+
 layers <- 5:20
 trainSet <- subset(trainDat, !is.na(ch4_flux))
 testSet <- subset(testDat, !is.na(ch4_flux))

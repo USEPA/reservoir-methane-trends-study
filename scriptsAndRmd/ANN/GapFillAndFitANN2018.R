@@ -32,15 +32,15 @@ covarSTAB <- FALSE
 #startdate <- "2017-01-26 00:00:00" #start of good data 
 #startdate <- "2018-05-06 00:00:00" #instruments on aquatic tower
 #startdate<- "2018-01-01 00:00:00" #runVer 5.6, modified aquatic tower attempt
-startdate<-"2017-01-01 00:00:00" #runVer 5.7
+startdate<-"2017-01-01 00:00:00" #runVer 5.7, 6.0
 #enddate <- "2018-08-07 00:00:00" #end of RBR data
 #enddate<-"2018-11-01 00:00:00"
 #enddate<-"2018-04-19 00:00:00" #end of dock data
-enddate<-"2018-11-13 12:00:00"
+enddate<-"2018-11-15 12:00:00" #6.0
 #run number/version
 range(ANNdata$RDateTime)
 
-runVer<-"5.9"
+runVer<-"6.0"
 #4.0 is Feb 2017 thru Oct 2018 with everything but trap ebullition as 
 ##drivers. Also, RBR temp is gapfilled from August to Oct 2018 
 #4.1 is May 2018 thru Oct 2018 with sedT, airT, windSp, statP, delStatP, and fuzzy time as drivers
@@ -53,20 +53,39 @@ runVer<-"5.9"
 #5.3 is the shorter, "field season" dataset, which includes the ebullition and lake stability drivers
 #5.4 is the dock collected dataset
 #5.5: aquatic tower dataset: 2018-05-06 thru 2018-11-01
+
+#6.0: reprocessed EP for abs limits, h2o irga dynamic metadata; timeframe: 1/1/17 - 11/12/18
 ### Load data ------
 #fluxDat <- read.csv("output/exampleDatasetANN.csv")
 #fluxDat<-read.csv("output/annDataset_trapeb201702201810.csv")
 #fluxDat<-read.csv("output/annDataset_MDC.csv")
-fluxDat<-read.csv("output/annDataset_MDC_20172018_filt2.csv") #gapfilled LE, H, ustar, range Jan 1 2017 - Dec 31 2018, filt2 indicates outlier value filter applied
+#fluxDat<-read.csv("output/annDataset_MDC_20172018_filt2.csv") #gapfilled LE, H, ustar, range Jan 1 2017 - Dec 31 2018, filt2 indicates outlier value filter applied
+fluxDat<-read.csv("output/annDataset_mdc_20190429.csv")
 fluxDat$datetime <- as.POSIXct(fluxDat$RDateTime, tz = "Etc/GMT+5")
+#fluxDat$datetime <- as.POSIXct(fluxDat$datetime, tz = "Etc/GMT+5")
+
 ## There are duplicate rows for some reason. Get rid of them.
 fluxDat <- subset(fluxDat, !duplicated(datetime))
 
 
-fluxDatFilled<-read.csv("output/annDatasetMDC_filled.csv")
-fluxDatFilled<-read.csv("output/annDataset_MDCfilled1718.csv")
-fluxDatFilled<-read.csv("output/annDataset_20190403.csv")
+#having trouble producing a new fuzzy radiation column:
+fuzzyRAD.df<-read.csv("output/annDat5.9.csv")
+fuzzyRAD.df2<-read.csv("output/fluxDataFilled5.6.csv")
+fuzzyRAD.df3<-read.csv("output/fluxDataFilled5.9.csv")
+fuzzyRAD.df3$datetime<-as.POSIXct(fuzzyRAD.df3$datetime, tz="Etc/GMT+5")
+range(fuzzyRAD.df3$datetime)
+
+
+#fluxDatFilled<-read.csv("output/annDatasetMDC_filled.csv")
+#fluxDatFilled<-read.csv("output/annDataset_MDCfilled1718.csv")
+#fluxDatFilled<-read.csv("output/annDataset_20190403.csv")
+fluxDatFilled<-read.csv("output/annDataset_20190429.csv")
+
 fluxDatFilled$datetime <-as.POSIXct(fluxDatFilled$datetime, tz="UTC")
+
+
+fluxDatFilled<-left_join(fluxDatFilled, select(fuzzyRAD.df3, datetime, fuzzyRAD), by="datetime")
+sum(is.na(fluxDatFilled$fuzzyRAD))
 
 fluxDat<-left_join(fluxDat, select(fluxDatFilled, datetime, FilledSedT, FilledAirT, FilledWindSpeed, 
                                    FilledStaticPress, FilledStaticPressChg, FilledWD), by="datetime")
@@ -82,8 +101,12 @@ fluxDatFilled<-left_join(fluxDatFilled, select(fluxDat, datetime, fuzzyRAD), by=
 vanni30min$datetime<-vanni30min$RDateTime
 fluxDatFilled<-left_join(fluxDatFilled, select(vanni30min, datetime, par.vws),
                          by="datetime")
+fluxDat<-left_join(fluxDat, select(vanni30min, datetime, par.vws),
+                         by="datetime")
 sum(is.na(fluxDatFilled$par.vws))
+sum(is.na(fluxDat$par.vws))
 fluxDatFilled$FilledPAR<-fluxDatFilled$par.vws
+fluxDat$FilledPAR<-fluxDat$par.vws
 
 
 fluxDat$FilledPAR<-fluxDat$par.vws
@@ -209,7 +232,7 @@ sum(is.na(fluxDat$ustar_filled)) #0
   plotGaps(fluxDat, "FilledLE") #big chunk in Jan/Feb 2017
   plotGaps(filter(fluxDat, date<"2017-04-01"), "FilledLE")
   summary(filter(fluxDat, datetime<"2017-03-01")) #mean = 16.2
-  fluxDat$FilledLE[indNA]<-16.2
+  fluxDat$FilledLE[indNA]<-16.3
   
  
   sum(is.na(fluxDat$H_filled)) #140 
@@ -322,8 +345,10 @@ fluxDat$FilledWindSpeed <- ifelse(is.na(fluxDat$wind_speed),
                                   fluxDat$wind_speed)
 sum(is.na(fluxDat$FilledWindSpeed)) # Take the median
 indNA <- which(is.na(fluxDat$FilledWindSpeed))
-fluxDat$FilledWindSpeed[indNA] <- mean(c(fluxDat[(indNA-1),"FilledWindSpeed"],fluxDat[(indNA+1),"FilledWindSpeed"]))
+fluxDat$FilledWindSpeed[indNA] <- mean(c(fluxDat[(indNA-48),"FilledWindSpeed"],fluxDat[(indNA+48),"FilledWindSpeed"]))
+fluxDat$FilledWindSpeed[indNA]<-mean(fluxDat$FilledWindSpeed, na.rm=TRUE)
 sum(is.na(fluxDat$FilledWindSpeed)) # 0
+plotGaps(fluxDat, "FilledWindSpeed")
 }
 
 ####Wind Direction Gap-Filling
@@ -344,7 +369,11 @@ if(covarWD){
   ggplot(fluxDat, aes(datetime, FilledWD))+
     geom_point(alpha=0.2)+
     geom_point(data=fluxDat, aes(datetime, wind_dir), alpha=0.1, color="red")
-}
+  sum(is.na(fluxDat$FilledWD))
+  indNA <- which(is.na(fluxDat$FilledWD))
+  fluxDat$FilledWD[indNA] <- mean(c(fluxDat[(indNA-1),"FilledWD"],fluxDat[(indNA+1),"FilledWD"]))
+    }
+
 
 fluxDatFilled$FilledWD<-fluxDat$FilledWD
 
@@ -540,7 +569,7 @@ fluxDatToUse<-subset(fluxDatFilled, fluxDatFilled$datetime>(startdate) & fluxDat
 plotGaps(fluxDatToUse, "ch4_flux")
 sum(is.na(fluxDatToUse$ch4_flux)) / nrow(fluxDatToUse) #28% missing, 38% with ustar filter of 0.07
 range(fluxDatToUse$datetime)
- covarFuzzy=FALSE
+ covarFuzzy=TRUE
 # covarWD=FALSE
 # covarPAR=FALSE
 ## Data prep
