@@ -40,4 +40,8 @@ library(scales)  # load from masterLibrary
 library(stringr)
 library(mefa)
 
+#for adding attributes and other metadata to a dataframe -- prep for REddyProc
+library(Hmisc)
+library(REddyProc) #for processing 30-min EC fluxes
+
 source("scriptsAndRmd/def.calc.sdg.R")

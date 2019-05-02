@@ -406,9 +406,6 @@ NetRad$date<-as.Date(NetRad$RDateTime)
 DailyNR<-NetRad %>%
   group_by(date) %>%
   dplyr::summarize(meanNR = (mean(NR_Wm2_avg, na.rm=TRUE)))
-DailyNR$RDateTime<-as.POSIXct(as.character(DailyNR$RDateTime),
-                             format="%Y-%M-%D %H:%M:%S",
-                             tz="UTC")
 ggplot(DailyNR, aes(date, meanNR))+
   geom_line()+
   ylim(-100, 500)

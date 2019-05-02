@@ -81,7 +81,7 @@ diurnalP.17<-timeVariation(diurnal.17, pollutant=c("Eddy_Covariance",
                            normalise=FALSE, cols=c("#009966", "#FFCC00"))
 plot(diurnalP.17, subset="hour") 
 
-epOutSubRbr<-left_join(epOutSub, rbrT, by="RDateTime")%>%
+epOutSubRbr<-left_join(epOutSub, rbrTsub, by="RDateTime")%>%
   mutate(sedT= RBRmeanT_1.6,
          date=RDateTime,
          airP = air_pressure/1000)%>%
@@ -166,6 +166,37 @@ ggplot(filter(dailyMassFlux12, date>"2017-04-01",date<"2018-12-01"),
   geom_point(aes(date, sedTbuoy), color="red", alpha=0.5)
 geom_point(aes(date, sedTbuoy), color="blue", alpha=0.5)
 
+###footprint
+# ggplot(filter(epOutSubFilt, RDateTime<"2017-09-01", !is.na(ch4_flux)), aes(wind_dir, x_10))+
+#   #geom_point(alpha=0.3)+, aes(color=ch4_flux))+
+#   stat_summary_bin()+
+#   coord_polar()+
+#   ylim(0, 50)
+# 
+# epOutFtPtDock<-filter(epOutSubFilt, RDateTime<"2018-05-01", !is.na(ch4_flux))%>%
+#   select(RDateTime, ch4_flux, wind_dir, x_peak, x_offset, 
+#                   x_10, x_30, x_50, x_70, x_90)
+# 
+# epOutFPdock<-filter(epOutSubFilt, RDateTime<"2018-05-01 00:00", !is.na(ch4_flux))
+# 
+# ggplot(epOutFPdock, aes(wind_dir, x_50))+
+#   geom_point()+
+#   coord_polar()
+# 
+# epOutFPdock<-epOutFPdock%>%
+#   mutate(x_10mean=stats.bin(wind_dir, x_10, breaks=48))
+# epOutFPdock$x50_mean<-stats.b
+# 
+# epOutFtPtDock<-epOutFtPtDock[order(epOutFtPtDock$wind_dir),]  
+# 
+# zwat<-zoo::rollapply(epOutFtPtDock$x_10, width = 300,FUN = mean)
+# epOutFtPtDock$x_10_smth<-c(rep(NA, 149), zwat, rep(NA, 150))
+# 
+# ggplot(epOutFtPt, aes(wind_dir, x_10_smth))+
+#   geom_line()+
+#   coord_polar()
+
+#footprint$aq50mean<-stat_summary_bin(filter(epOutSubFilt, RDateTime>"2018-06-01", !is.na(ch4_flux)), aes(wind_dir, x_50))
 
 #making a sedT column from the sedTsonde and sedTbuoy columns  
 dailyMassFlux12$sedT<-ifelse(is.na(dailyMassFlux12$sedTbuoy),
@@ -206,15 +237,29 @@ waterTcompare$siteT<-"(d) Shallow"
 
 waterTcompare<-filter(waterTcompare, RDateTime>"2017-01-01")
 
+ggplot(filter(epOutSubFilt, RDateTime>"2018-05-01", RDateTime<"2018-06-15"), 
+       aes(RDateTime, ch4_flux/1000*16*60*60))+
+  geom_point(alpha=0.4)+
+  scale_x_datetime(date_breaks="1 week", labels=date_format("%b-%d"),
+                   date_minor_breaks = "1 day")
+
 ggplot(waterTcompare,
        aes(monthday, sedT))+
-  geom_point(aes(color=as.factor(year)))
+  geom_line(aes(color=as.factor(year)), alpha=0.7)+
+  scale_x_date(date_breaks=("3 month"), date_minor_breaks=("1 month"))+
+  geom_vline(aes(xintercept=as.numeric(as.Date("2019-05-10"))))+
+  geom_vline(aes(xintercept=as.numeric(as.Date("2019-06-06"))))
+#spring burst 2019: May 10 - June 6
+epBurst<-filter(epOutSubFilt, RDateTime>"2018-05-10", RDateTime<"2018-06-06")
+mean(epBurst$ch4_flux/1000*16*60*60, na.rm=TRUE)
 
 dailyECfluxSedT<-left_join(DailyEcFluxes, select(waterTcompare, -siteT, -date, -year, -monthday), by="RDateTime")
 
 dailyMassFlux14<-left_join(dailyMassFlux14, select(waterTcompare, sedT, date), by="date") 
 dailyMassFlux12$siteT<-"(e) Deep"
 ggplot(dailyMassFlux14, aes(sedT, dailyEbCh4mgM2h))+
+  geom_point()
+ggplot(dailyMassFlux12, aes(sedT, dailyEbCh4mgM2h))+
   geom_point()
 
 # buoyTdaily<-mutate(buoyTdaily,
@@ -224,6 +269,116 @@ ggplot(dailyMassFlux14, aes(sedT, dailyEbCh4mgM2h))+
 #                    year = year(date),
 #                    monthday = format(date, format = "%m-%d %H:%M"))
 # buoyTdaily$monthday<-as.Date(buoyTdaily$monthday, format = "%m-%d %H:%M")
+
+# thresh<-tree(dailyEbCh4mgM2h~sedT, data=dailyMassFlux14,
+#              control=tree.control(nobs = 293, minsize=100))
+# print(thresh)
+# plot(thresh)
+# text(thresh)
+
+peaEC17<-filter(dailyECfluxSedT, !is.na(meanCH4Flux), !is.na(sedT), date<"2018-01-01")%>%
+  select(sedT, meanCH4Flux)
+  write.table(peaEC17, 
+            file="C:/R_Projects/actonFluxProject/Threshold test/ec17.prn",
+            sep=" ",
+            row.names=FALSE)
+  #output from big2dks: 
+  #D = 0.195937 the dks value (the test statistic)
+  #p = 0.000200 the p value (how many of the rerandomizations generated a bigger test stat than your data did)
+  #the x and y coordinate where the "greatest" 
+  #difference in the bivariate distribution occurs (if one exists)
+  xEC17 = 19.171816
+  yEC17 = 2.666880
+  ggplot(peaEC17, aes(sedT, meanCH4Flux))+
+    geom_point(alpha=0.3)+
+    geom_vline(xintercept = xEC17)+
+    geom_hline(yintercept = yEC17)
+  
+peaEC18<-filter(dailyECfluxSedT, !is.na(meanCH4Flux), !is.na(sedT), date>"2018-01-01")%>%
+    select(sedT, meanCH4Flux)
+  write.table(peaEC18, 
+              file="C:/R_Projects/actonFluxProject/Threshold test/ec18.prn",
+              sep=" ",
+              row.names=FALSE)
+  #output from big2dks: 
+  #D = 0.220929 the dks value (the test statistic)
+  #p = 0.000200 the p value (how many of the rerandomizations generated a bigger test stat than your data did)
+  #the x and y coordinate where the "greatest" 
+  #difference in the bivariate distribution occurs (if one exists)
+  xEC18 = 19.454376
+  yEC18 = 4.355505
+  ggplot(peaEC18, aes(sedT, meanCH4Flux))+
+    geom_point(alpha=0.3)+
+    geom_vline(xintercept = xEC18)+
+    geom_hline(yintercept = yEC18)
+
+peaShal17<-filter(dailyMassFlux14, !is.na(dailyEbCh4mgM2h), !is.na(sedT), date<"2018-01-01")%>%
+  select(sedT, dailyEbCh4mgM2h)
+  write.table(peaShal17, 
+            file="C:/R_Projects/actonFluxProject/Threshold test/shal17.prn",
+            sep=" ",
+            row.names=FALSE)
+    #output from big2dks: 
+    #D = 0.165917 the dks value (the test statistic)
+    #p = 0.000200 the p value (how many of the rerandomizations generated a bigger test stat than your data did)
+    #the x and y coordinate where the "greatest" 
+    #difference in the bivariate distribution occurs (if one exists)
+    xShal17 = 22.150902
+    yShal17 = 3.2414
+  ggplot(peaShal17, aes(sedT, dailyEbCh4mgM2h))+
+    geom_point(alpha=0.3)+
+    geom_vline(xintercept = xShal17)+
+    geom_hline(yintercept = yShal17)
+
+peaShal18<-filter(dailyMassFlux14, !is.na(dailyEbCh4mgM2h), !is.na(sedT), date>"2018-01-01")%>%
+  select(sedT, dailyEbCh4mgM2h)
+  write.table(peaShal18, 
+            file="C:/R_Projects/actonFluxProject/Threshold test/shal18.prn",
+            sep=" ",
+            row.names=FALSE)
+    #output from big2dks: 
+    #D = 0.190676
+    #p = 0.000200
+    xShal18 = 23.013876
+    yShal18 = 1.573
+  ggplot(peaShal18, aes(sedT, dailyEbCh4mgM2h))+
+    geom_point(alpha=0.3)+
+    geom_vline(xintercept = xShal18)+
+    geom_hline(yintercept = yShal18)
+
+peaDeep17<-filter(dailyMassFlux12, !is.na(dailyEbCh4mgM2h), !is.na(sedT), date<"2018-01-01")%>%
+  select(sedT, dailyEbCh4mgM2h)
+  write.table(peaDeep17, 
+            file="C:/R_Projects/actonFluxProject/Threshold test/deep17.prn",
+            sep=" ",
+            row.names=FALSE)
+#output from big2dks: 
+#D = 0.204766
+#p = 0.000200
+xDeep17 = 17.883177
+yDeep17 = 5.518
+ggplot(peaDeep17, aes(sedT, dailyEbCh4mgM2h))+
+  geom_point(alpha=0.3)+
+  geom_vline(xintercept = xDeep17)+
+  geom_hline(yintercept = yDeep17)
+
+peaDeep18<-filter(dailyMassFlux12, !is.na(dailyEbCh4mgM2h), !is.na(sedT), date>"2018-01-01")%>%
+  select(sedT, dailyEbCh4mgM2h)
+  write.table(peaDeep18, 
+            file="C:/R_Projects/actonFluxProject/Threshold test/deep18.prn",
+            sep=" ",
+            row.names=FALSE)
+    #output from big2dks: 
+    #D =   0.138327
+    #p =  0.000200
+    xDeep18 = 13.296844
+    yDeep18 =   3.096822
+ggplot(peaDeep18, aes(sedT, dailyEbCh4mgM2h))+
+  geom_point(alpha=0.3)+
+  geom_vline(xintercept = xDeep18)+
+  geom_hline(yintercept = yDeep18)
+  xlim(11, 20)
+
 
 
 myTmprList <- list()
@@ -275,7 +430,7 @@ dailyECfluxSedT<-dailyECfluxSedT%>%
   mutate(date = RDateTime,
          dailyEbCh4mgM2h = meanCH4Flux,
          sdEbCh4mgM2h = sdCH4Flux,
-         site = "(a) Eddy Covariance",
+         site ="(a) Eddy Covariance",
          siteT = NA
   )
 dailyECfluxSedT<-as.data.frame(dailyECfluxSedT)
@@ -289,6 +444,23 @@ dailyMassEbList[[2]]<-select(dailyMassFlux12, -TmprAdj, -sedTbuoy, -sedTsonde, -
 dailyMassEbList[[3]]<-select(dailyECfluxSedT, date, dailyEbCh4mgM2h, sdEbCh4mgM2h, site, year, monthday, sedT, siteT)
 dailyMassEb<-do.call("rbind", dailyMassEbList)
 
+xthresholds<-c(xEC17, xEC18, xShal17, xShal18, xDeep17, xDeep18)
+ythresholds<-c(yEC17, yEC18, yShal17, yShal18, yDeep17, yDeep18)
+
+twoDKS<-data.frame(site=c(rep("(a) Eddy Covariance", 2), rep("(b) Shallow Trap", 2),
+                          rep("(c) Deep Trap", 2)),
+                   year=c("2017", "2018","2017", "2018","2017", "2018"),
+                   hintercept=xthresholds,
+                   yintercept=ythresholds)
+twoDKS<-twoDKS%>%
+  mutate(site=as.character(site),
+         year=as.character(year))
+#Figure 2: similar to mass P3 agu, but with hh fluxes, two years, and vertical lines for spring burst
+
+
+
+massFluxHH<-list()
+massFluxHH[[1]]
 
 
 massP3agu<-ggplot(dailyMassEb, aes(monthday, dailyEbCh4mgM2h))+
@@ -365,8 +537,40 @@ massP2<-ggplot(filter(dailyMassEb, date>"2018-05-01", date<"2018-11-01",
                labels=date_format("%b"))+
   theme_bw()
 ggplot(dailyMassEb, aes(sedT, dailyEbCh4mgM2h))+
-  geom_point(aes(color=site), alpha=0.5)+
-  facet_grid(year~.)+
+  geom_point(aes(color=site), alpha=0.3)+
+  facet_grid(year~.)
+  #xlim(14.5, 15)
+  scale_y_log10()
+
+  
+ggplot(dailyMassEb, aes(sedT, dailyEbCh4mgM2h))+
+    geom_point(aes(color=site), alpha=0.3)+
+  geom_smooth(method='nls', formula=y~a*exp(b*x), se=FALSE)+
+  #stat_summary_bin(geom="point", aes(color=site))+
+    facet_grid(site~year, scales="free" )
+
+#by hand: only deep trap 2017 passes computation
+
+ggplot(filter(dailyMassEb, site=="(a) Eddy Covariance", year == 2018),
+       aes(sedT, dailyEbCh4mgM2h))+
+  geom_point()+
+  geom_smooth(method='nls', formula=y~a*exp(b*x), se=FALSE)
+
+ggplot(filter(dailyMassEb, site=="(c) Deep Trap", year == 2018),
+       aes(sedT, dailyEbCh4mgM2h))+
+  geom_point()+
+  geom_smooth(method='nls', formula=y~a*exp(b*x), se=FALSE)
+
+
+
+  #xlim(14.5, 15)
+  scale_y_log10()  
+
+ggplot(dailyMassEb, aes(1/(sedT+273.15), log(dailyEbCh4mgM2h)))+
+  #geom_point(aes(color=site), alpha=0.5)+
+  stat_summary_bin(geom="point")+
+  facet_grid(site~year, scales="free")
+  
   #xlim(14.5, 15)+
   scale_y_log10()
 
@@ -417,19 +621,28 @@ ggplot(dailyMassEb, aes(sedT, log10eb))+
 ggsave("flux_Q10s.tiff", path="//AA.AD.EPA.GOV/ORD/CIN/USERS/MAIN/Q-Z/swaldo/Net MyDocuments/conference_materials/agu2018/figures",
        width=6, height=5)
 
+dailyMassEb$year<-as.factor(dailyMassEb$year)
+
+########################################################
+###facet plot with 2DKS thresholds#####
 ggplot(dailyMassEb, aes(sedT, dailyEbCh4mgM2h))+
-  geom_point(aes(color=as.factor(year)), alpha=0.5)+
-  facet_grid(site~year, scales = "free")+
+  geom_point(alpha=0.3)+#, aes(color=as.factor(year)), show.legend=FALSE)+
+  facet_grid(as.factor(site)~year)+#, scales = "free")+
   #stat_smooth(method="lm")+
-  xlim(10, 30)+
+  #xlim(10, 30)+
   labs(x="Sediment Temperature (deg C)", y=expression(CH[4]~emission~(mg~m^-2~hr^-1)))+
-  scale_color_manual(values=wes_palette(name="Darjeeling1", 2))+
+  #scale_color_manual(values=wes_palette(name="Darjeeling1", 2))+
   # labs(title=paste("Deep 2017 R2 = ",signif(summary(lmDeepQ10_2017)$adj.r.squared, 2),
   #                  "Deep 2017 Slope =",signif(lmDeepQ10_2017$coef[[2]],2 ),
   #                  "Shal 2017 R2 = ",signif(summary(lmShalQ10_2017)$adj.r.squared, 2),
   #                   " Shal 2017 Slope =",signif(lmShalQ10_2017$coef[[2]], 2)))+
-  theme_bw()
-ggsave("flux_sedTthresholds.tiff", path="//AA.AD.EPA.GOV/ORD/CIN/USERS/MAIN/Q-Z/swaldo/Net MyDocuments/conference_materials/agu2018/figures",
+  theme_bw()+
+  guides(fill=FALSE)+
+  scale_fill_discrete(guide=FALSE)+
+  geom_hline(data=twoDKS, aes(yintercept=yintercept), alpha=0.5, linetype=2)+
+  geom_vline(data=twoDKS, aes(xintercept=hintercept), alpha=0.5, linetype=2)
+
+ggsave("flux_sedTthresholds2DKS.tiff", path="C:/R_Projects/actonFluxProject/figures",
        width=6, height=5)
 
 Q10.deep17<-10^(10*lmDeepQ10_2017$coef[[2]])

@@ -2,7 +2,9 @@
 myWd<-  "L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance"
 
 #######LOAD IN EDDYPRO OUTPUT------
-epFiles <- list.files(paste(myWd, "/L1eddyproOut/reprocessedLI7500_2019/fullOutput/", sep=""),
+# epFiles <- list.files(paste(myWd, "/L1eddyproOut/reprocessedLI7500_2019/fullOutput/", sep=""),
+#                      pattern="*.csv$", recursive = TRUE) 
+epFiles <- list.files(paste(myWd, "/L1eddyproOut/reprocessed_absLims/fullOutput/", sep=""),
                       pattern="*.csv$", recursive = TRUE) 
 epFiles
 epList <- list()  # Empty list to hold results
@@ -76,7 +78,8 @@ epHeader2<- c("filename",	"date",	"time",	"DOY",	"daytime",	"file_records",	"use
 
 #load files, test whether it is a long or short version by the co2 mixing ratio column
 for (i in 1:length(epFiles)) {  # loop to read and format each file
-    ep.i <- read.table(paste(myWd, "/L1eddyproOut/reprocessedLI7500_2019/fullOutput/", 
+#  ep.i <- read.table(paste(myWd, "/L1eddyproOut/reprocessedLI7500_2019/fullOutput/", 
+    ep.i <- read.table(paste(myWd, "/L1eddyproOut/reprocessed_absLims/fullOutput/", 
                                     epFiles[i], sep=""),
                               sep=",",  # comma separate
                               skip=3,  # Skip first line of file.  Header info
@@ -87,7 +90,8 @@ for (i in 1:length(epFiles)) {  # loop to read and format each file
                               na.strings = "NaN",
                               fill=TRUE)  # Needed to deal with empty cells in last column
     if(mean(ep.i$co2_mixing_ratio, na.rm=TRUE)<300){
-      ep.i <- read.table(paste(myWd, "/L1eddyproOut/reprocessedLI7500_2019/fullOutput/", 
+     # ep.i <- read.table(paste(myWd, "/L1eddyproOut/reprocessedLI7500_2019/fullOutput/", 
+       ep.i <- read.table(paste(myWd, "/L1eddyproOut/reprocessed_absLims/fullOutput/", 
                                epFiles[i], sep=""),
                          sep=",",  # comma separate
                          skip=3,  # Skip first line of file.  Header info
@@ -116,10 +120,10 @@ epOut$RDateTime <- as.POSIXct(paste(epOut$date, epOut$time,sep=""),
 ###Problem was that some dates were mm/dd/yyyy, some were mm-dd-yyyy. Sigh. 
 #order chronologically:  
 epOutOrder<-epOut[order(epOut$RDateTime),]
-check<-select(epOutOrder, RDateTime)
 #check for duplicates:
 dupes<-filter(epOutOrder, duplicated(RDateTime,fromLast = TRUE) | duplicated(RDateTime,fromLast = FALSE)) %>% 
   arrange(RDateTime)
+rm(dupes)
 
 write.table(epOutOrder,
             file="C:/R_Projects/actonFluxProject/output/prelimData/epOutOrder.csv",

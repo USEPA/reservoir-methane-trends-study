@@ -7,6 +7,7 @@ library(chron)
 library(tidyverse)
 
 rLakeBuoyT<-buoyT30min
+rLakeRbrT<-rbrTsub
 
 rLakeBuoyT<-rLakeBuoyT%>%
   dplyr::rename(datetime = RDateTime,
@@ -19,6 +20,48 @@ rLakeBuoyT<-rLakeBuoyT%>%
          wtrT_6 = buoyMeanT_06,
          wtrT_7 = buoyMeanT_07,
          wtrT_8 = buoyMeanT_08)
+
+rLakeRbrT<-rLakeRbrT%>%
+  dplyr::rename(datetime = RDateTime,
+                wtrT_0 = RBRmeanT_0.1,
+                wtrT_0.25 = RBRmeanT_0.25,
+                wtrT_0.5 = RBRmeanT_0.5,
+                wtrT_0.75 = RBRmeanT_0.75,
+                wtrT_1.0 = RBRmeanT_1,
+                wtrT_1.25 = RBRmeanT_1.25,
+                wtrT_1.6 = RBRmeanT_1.6)
+
+bvf<-ts.buoyancy.freq(rLakeRbrT, at.thermo=FALSE, na.rm=TRUE)
+bvf$year<-year(bvf$datetime)
+bvf$monthday<- format(bvf$datetime, format="%m-%d %H:%M")%>%
+  as.POSIXct(monthday, format="%m-%d %H:%M", tz="UTC")
+
+ggplot(filter(bvf, monthday>"2019-04-01"), aes(monthday, N2_1.125))+
+  geom_line(alpha=1)+
+  facet_grid(year~.)+
+  geom_vline(xintercept=as.POSIXct("2019-05-30 00:00:00", 
+                                   format="%Y-%m-%d %H:%M:%S", tz="UTC"))
+
+dailyBVF<-bvf%>%
+  group_by(datetime=cut(datetime, breaks="24 hour"))%>%
+  dplyr::summarize(maxBV = max(N2_1.125, na.rm=TRUE))
+dailyBVF$RDateTime<-as.Date(dailyBVF$datetime)
+
+DailyEcFluxes<-left_join(DailyEcFluxes, dailyBVF, by="RDateTime")
+
+ggplot(DailyEcFluxes, aes(maxBV, meanCH4Flux))+
+  geom_point()
+
+ggplot(DailyEcFluxes, aes(monthday, meanCH4Flux))+
+  geom_point(alpha=0.5)+
+  geom_line(data=DailyEcFluxes, aes(monthday, maxBV*1000), color="red")+
+  facet_grid(year~.)
+
+bvf$RDateTime<-bvf$datetime
+epOutSubFilt<-left_join(epOutSubFilt, bvf, by="RDateTime")
+
+ggplot(epOutSubFilt, aes(N2_1.125, ch4_flux))+
+  geom_point(alpha=0.3)
 
 rLakeBuoyT<-select(rLakeBuoyT, -buoyMeanT_0.5, -buoyMeanT_01.5)
 
@@ -150,10 +193,10 @@ actonBathy<-load.bathy(paste(filepath,"ActonLake_Depth_SArea.csv", sep=""))
 ######## Wind Speed Gap-Filling
 ## Wind speed column is wind_speed
 ## Miami weather station analog is windSp.vws
-sum(is.na(epOutSub$wind_speed)) #5578
+sum(is.na(epOutOrder$wind_speed)) #5578
 sum(is.na(vanni30min$windSp.vws)) #62
 
-wind_df<-left_join(select(epOutSub, RDateTime, wind_speed), 
+wind_df<-left_join(select(epOutOrder, RDateTime, wind_speed), 
                    select(vanni30min, RDateTime, windSp.vws),
                    by="RDateTime")
 # ## Quick plot

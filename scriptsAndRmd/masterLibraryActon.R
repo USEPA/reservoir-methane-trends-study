@@ -43,7 +43,8 @@ library(openair)
 
 
 library(wesanderson)
-
+library(Peacock.test)
+library(tree)
 
 # TRIM FUNCTION--------------------------
 # returns string w/o leading or trailing whitespace

@@ -34,19 +34,69 @@ EddyProc.C <- sEddyProc$new('Acton', EddyDataWithPosix.S,
                             c('co2_flux', 'ch4_flux',
                               'LE', 'H', 'wind_dir',
                               'air_temperature','VPD', 'ustar'))
-rm(EddyProc.C)
-#pre gap-filled plots:
+
+#gap-filling with MDC:
+#####USTAR#####
 flux.var='ustar'
+EddyProc.C$sFillInit(Var.s=flux.var, 
+                     QFVar.s="none",
+                     FillAll.b=TRUE) #25046 real gaps of 35040 values, with two full years (Jan 1 - Jan 1)
+EddyProc.C$sFillMDC(WinDays.i = 10,
+                    Verbose.b=TRUE)
+#EddyProc.C$sMDSGapFill(Var.s='ch4_flux', FillAll.b = TRUE
+FilledEddyData.S <- EddyProc.C$sExportResults()
+EddyDataWithPosix.S$ustar_filled<-FilledEddyData.S$VAR_f
+
+###LATENT HEAT#####
+rm(EddyProc.C)
+EddyProc.C <- sEddyProc$new('Acton', EddyDataWithPosix.S, 
+                            c('co2_flux', 'ch4_flux',
+                              'LE', 'H', 'wind_dir',
+                              'air_temperature','VPD', 'ustar'))
+flux.var='LE'
+EddyProc.C$sFillInit(Var.s=flux.var, 
+                     QFVar.s="none",
+                     FillAll.b=TRUE) #25046 real gaps of 35040 values, with two full years (Jan 1 - Jan 1)
+EddyProc.C$sFillMDC(WinDays.i = 10,
+                    Verbose.b=TRUE)
+#EddyProc.C$sMDSGapFill(Var.s='ch4_flux', FillAll.b = TRUE
+FilledEddyData.S <- EddyProc.C$sExportResults()
+EddyDataWithPosix.S$LE_filled<-FilledEddyData.S$VAR_f
+
+###SENSIBLE HEAT#####
+rm(EddyProc.C)
+EddyProc.C <- sEddyProc$new('Acton', EddyDataWithPosix.S, 
+                            c('co2_flux', 'ch4_flux',
+                              'LE', 'H', 'wind_dir',
+                              'air_temperature','VPD', 'ustar'))
+flux.var='H'
+EddyProc.C$sFillInit(Var.s=flux.var, 
+                     QFVar.s="none",
+                     FillAll.b=TRUE) #25046 real gaps of 35040 values, with two full years (Jan 1 - Jan 1)
+EddyProc.C$sFillMDC(WinDays.i = 10,
+                    Verbose.b=TRUE)
+#EddyProc.C$sMDSGapFill(Var.s='ch4_flux', FillAll.b = TRUE
+FilledEddyData.S <- EddyProc.C$sExportResults()
+EddyDataWithPosix.S$H_filled<-FilledEddyData.S$VAR_f
+
+
+
+
+
+
+
+
+#pre gap-filled plots:
 EddyProc.C$sPlotFingerprintY(flux.var, Year.i = 2017)
 EddyProc.C$sPlotFingerprintY(flux.var, Year.i = 2018)
 EddyProc.C$sPlotHHFluxesY(flux.var, Year.i=2017)
 EddyProc.C$sPlotHHFluxesY(flux.var, Year.i=2018)
 
 epREddy_17<-filter(epREddy, year < 2018)
-sum(is.na(epREddy_17$H)) #13613
+sum(is.na(epREddy_17$H)) #11775
 sum(is.na(epREddy_17$ch4_flux))/nrow(epREddy_17)
 epREddy_18<-filter(epREddy, year > 2017)
-sum(is.na(epREddy_18$ch4_flux)) #11433
+sum(is.na(epREddy_18$ch4_flux)) #11471
 sum(is.na(epREddy_18$ch4_flux))/nrow(epREddy_18)
 epREddy_18<-filter(epREddy, RDateTime > "2018-05-26 00:00", 
                    RDateTime< "2018-11-13 00:00")

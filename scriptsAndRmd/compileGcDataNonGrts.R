@@ -10,7 +10,7 @@ gc.all.NonGrts.2017<-read.table("L:/Lab/Lablan/GHG/GC/2017Data/gcMasterFile2017u
                    #colClasses=c("character", rep("num", 3), rep("int", 3), rep("num", 2),
                    #             rep("logi", 2)),
                    skip=1) 
-gc.all.NonGrts.2018<-read.table("L:/Lab/Lablan/GHG/GC/2018Data/gcMasterFile2018updated2018-12-21.txt",
+gc.all.NonGrts.2018<-read.table("L:/Lab/Lablan/GHG/GC/2018Data/gcMasterFile2018updated2019-04-09.txt",
                              col.names=c("sample", "ch4.ppm", "co2.ppm", "n2o.ppm", "flag.n2o",
                                          "flag.co2", "flag.ch4"),
                              #colClasses=c("character", rep("num", 3), rep("int", 3), rep("num", 2),
@@ -167,14 +167,18 @@ filter(xtrCodes.m, duplicated(value,fromLast = TRUE) | duplicated(value,fromLast
 
 ##End exetainer code parsing
 
-actonDgJoin<-left_join(metaDataDGact, gc.Acton, by="sample") #2/22/18, 312 observations
-                                                             #3/19/18, 328 observations
-                                                             #12/20/18, 580 obs      
-#xtrCodes is the melted info from metaDataTrapAct
 #gc.Acton$sample has underscores in the sample names, e.g. "ACT18_269"
 gc.Acton$sample<-sub("_", "", gc.Acton$sample)
-actonTrapJoin<-merge(xtrCodes.m, gc.Acton, by.x="value", by.y="sample")#3/19, 72 obs; after fixing trap data sheet: 80 obs
+
+actonDgJoin<-left_join(metaDataDGact, gc.Acton, by="sample") #2/22/18, 312 observations
+                                                             #3/19/18, 328 observations
+                                                             #12/20/18, 580 obs
+                                                             #04/09/19, 580 obs
+#xtrCodes is the melted info from metaDataTrapAct
+
+actonTrapJoin<-merge(xtrCodes.m, gc.Acton, by.x="value", by.y="sample")#3/19/18, 72 obs; after fixing trap data sheet: 80 obs
       #12/20/18: 118 obs
+      #04/09/19: 153 obs
 #site.visit.date is a character from using it in melt, create Rdate and change to a date
 actonTrapJoin$Rdate<-as.Date(actonTrapJoin$site.visit.date)
 actonTrapJoin<-actonTrapJoin%>%
@@ -243,8 +247,13 @@ write.table(actonTrapJoin,
             row.names=FALSE)
 
 
-ggplot(filter(actonDgJoin, sample.type=="dg" & sample.depth.m==0.1), aes(sample.date, ch4.ppm))+
+ggplot(filter(actonDgJoin, sample.type=="dg", sample.depth.m==0.1, ch4.ppm<6*10^5), aes(sample.date, ch4.ppm))+
   geom_point(aes(color=site))
+
+ggplot(filter(actonDgJoin, sample.type=="dg", ch4.ppm<6*10^5), aes(sample.date, ch4.ppm))+
+  geom_point(aes(color=site))+
+  facet_grid(sample.depth.m~.,
+             scales="free")
 
 ggplot(filter(actonDgJoin, sample.type=="air" & site =="dock"), aes(sample.date, ch4.ppm))+
   geom_point(aes(color=site))

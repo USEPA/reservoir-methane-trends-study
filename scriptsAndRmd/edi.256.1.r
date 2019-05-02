@@ -229,7 +229,7 @@ ggplot(filter(dt2, Date>"2015-01-01"), aes(Date, Chlorophyll_a))+
 tail(dt2$Date) #2016-10-17
 tail(dt4$DateTime) #2017-10-28
 
-ggplot(filter(dt4, DateTime>"2017-10-01"), aes(DateTime, SuspendedSolids))+
+ggplot(filter(dt4, DateTime>"2017-01-01"), aes(DateTime, SuspendedSolids))+
   geom_point(alpha=0.3, aes(color=Site))
 
 ggplot(filter(dt4, DateTime>"2017-01-01"), aes(DateTime, SolubleReactivePhosphorus))+
@@ -242,7 +242,7 @@ ggplot(filter(dt4, DateTime>"2017-01-01"), aes(DateTime, Ammonia))+
   geom_point(alpha=0.3, aes(color=Site))+
   ylim(0, 500)
 
-ggplot(filter(dt3, DateTime>"2017-10-01"), aes(DateTime, DischargeHourly))+
+ggplot(filter(dt3, DateTime>"2017-01-01"), aes(DateTime, DischargeHourly))+
   geom_point(alpha=0.3, aes(color=Site))+
   ylim(0, 25)
 
