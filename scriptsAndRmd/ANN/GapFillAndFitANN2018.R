@@ -713,6 +713,52 @@ if(fitModels){
   save(simList, file = paste("output/annSimulationList", runVer, ".RData", sep=""))
 }
 
+
+## Error fitting
+## This calls a function that bootstraps the scaledDat object lots of times
+# annDat <- read.csv("output/annDat5.8.csv")
+# annDat <- subset(annDat, complete.cases(annDat[,2:ncol(annDat)]))
+# maxs <- apply(annDat, 2, max, na.rm=TRUE)
+# mins <- apply(annDat, 2, min, na.rm=TRUE)
+# scaledDat <- as.data.frame(scale(annDat, center = mins, scale = maxs - mins))
+## K-means clustering of data points, for training/testing/validation sets
+# set.seed(4321)
+# k <- 10
+# kClusters <- kmeans(scaledDat[,2:ncol(scaledDat)], centers = k)
+# df <- data.frame("Index" = 1:nrow(scaledDat),
+#                  "Cluster" = kClusters$cluster)
+errorFunction <- function(d, df, n, ptrain = 0.5, lyr = NULL){
+  library(tidyverse)
+  # n = 20; d = scaledDat; df = df; ptrain = 0.5; lyr = NULL
+  ## Assign number of layers
+  if(is.null(lyr)) lyr = 10 # This is a little arbitrary. Probably better to find the 'best' layer from simList lapply
+  ## Create data partitions
+  ## Use caret package to create train / test data sets
+  ## Length n list of training sets
+  trainIdx = caret::createDataPartition(y = df$Cluster, times = n, p = ptrain, list = TRUE)
+  ## Fit model to each training set, predict values held out
+  bootList = lapply(trainIdx, function(x){
+    ## x = trainIdx[[2]]
+    tmpDat = scaledDat[x,]
+    tmpMod = nnet::nnet(ch4_flux ~ ., data = tmpDat, size = lyr,
+               maxit = 10000, entropy = TRUE)
+    return(data.frame("Idx" = (1:nrow(scaledDat))[-x],
+                "Preds" = predict(tmpMod, newdata = scaledDat[-x,-1 ]) * (maxs[1] - mins[1]) + mins[1]))
+  })
+  predsDf = bootList %>% reduce(full_join, by = "Idx") %>% arrange(Idx)
+  return(predsDf)
+}
+
+fitErrors <- TRUE
+if(fitErrors){
+  ## Set seed here if you want, so the errorFunction output is reproducible.
+  predsDf = errorFunction(n = 20, d = scaledDat, df = df, ptrain = 0.5, lyr = NULL)
+  ## On average, each record will have n*p predictions. So if we split the data in half to train,
+  ## half the records will have predictions. Choose n accordingly.
+  ## We can get percentiles with apply:
+  errorBounds = t(apply(predsDf[,-1], 1, FUN = function(x){ quantile(x, c(0.25, 0.75), na.rm = TRUE)}))
+}
+
 # load("output/annSimulationListAq2018.RData")
     #3.1: aq tower dataset 5/6/2018 thru 8/6/2018 with ustar filter applied
 
