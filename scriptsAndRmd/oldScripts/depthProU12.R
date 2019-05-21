@@ -24,3 +24,4 @@ U12depthDOmgLPro<-read.table(paste(filepath,"depthDOmgLProsRLakeAnalyzer.csv", s
                           colClasses=c("POSIXct", rep("numeric", 9)),
                           sep = ",",
                           header=TRUE)  
+rLakeAnalyzer::wtr.plot.temp(buoyT30min)

@@ -12,19 +12,44 @@
 ## 6. Heat map ribbon plot of gap distribution and attribution
 ## 7. What does the daily coverage look like if we use averages from days with >8 observations?
 
+epOutSubFiltGaps<-filter(epOutSubFilt, RDateTime>"2017-01-25")
 
 #1. How many gaps overall?
-totFilt<-length(epOutSubFilt$ch4_flux)
-numNAsFilt<-sum(length(which(is.na(epOutSubFilt$ch4_flux))))
-(epOutSubFilt$RDateTime[1])
-epOutSubFilt$RDateTime[length(epOutSubFilt$RDateTime)]
+totFilt<-length(epOutSubFiltGaps$ch4_flux)
+numNAsFilt<-sum(length(which(is.na(epOutSubFiltGaps$ch4_flux))))
+(epOutSubFiltGaps$RDateTime[1])
+epOutSubFiltGaps$RDateTime[length(epOutSubFiltGaps$RDateTime)]
 print(c("Total Rejection %:", round(numNAsFilt/totFilt*100, digits=2)))
 
+epOutGaps17<-filter(epOutSubFilt, RDateTime<"2018-01-01")
+filt2017<-length(epOutGaps17$ch4_flux)
+numNAsFilt17<-sum(length(which(is.na(epOutGaps17$ch4_flux))))
+print(c("2017 Rejection %:", round(numNAsFilt17/filt2017*100, digits=2)))
+
+epOutGaps18<-filter(epOutSubFilt, RDateTime>"2018-01-01")
+filt2018<-length(epOutGaps18$ch4_flux)
+numNAsFilt18<-sum(length(which(is.na(epOutGaps18$ch4_flux))))
+print(c("2018 Rejection %:", round(numNAsFilt18/filt2018*100, digits=2)))
+
+epOutGapsECS1<-filter(epOutSubFilt, RDateTime<"2018-04-18")
+filtECS1<-length(epOutGapsECS1$ch4_flux)
+numNAsFiltECS1<-sum(length(which(is.na(epOutGapsECS1$ch4_flux))))
+print(c("ECS1 Rejection %:", round(numNAsFiltECS1/filtECS1*100, digits=2)))
+head(epOutGapsECS1)
+tail(epOutGapsECS1)
+
+epOutGapsECS2<-filter(epOutSubFilt, RDateTime>"2018-05-05")
+filtECS2<-length(epOutGapsECS2$ch4_flux)
+numNAsFiltECS2<-sum(length(which(is.na(epOutGapsECS2$ch4_flux))))
+print(c("ECS2 Rejection %:", round(numNAsFiltECS2/filtECS2*100, digits=2)))
+head(epOutGapsECS2)
+tail(epOutGapsECS2)
+
 #CO2
-totFilt<-length(epOutSubFilt$co2_flux)
-numNAsFilt<-sum(length(which(is.na(epOutSubFilt$co2_flux))))
-(epOutSubFilt$RDateTime[1])
-epOutSubFilt$RDateTime[length(epOutSubFilt$RDateTime)]
+totFilt<-length(epOutSubFiltGaps$co2_flux)
+numNAsFilt<-sum(length(which(is.na(epOutSubFiltGaps$co2_flux))))
+(epOutSubFiltGaps$RDateTime[1])
+epOutSubFiltGaps$RDateTime[length(epOutSubFiltGaps$RDateTime)]
 print(c("Total Rejection %:", round(numNAsFilt/totFilt*100, digits=2)))
 
 #2. From what?
@@ -48,6 +73,31 @@ print(c("Total Rejection %:", round(numNAsFilt/totFilt*100, digits=2)))
     numNAswind<-numNAs3.b-numNAs2.b
     print(c("Wind Direction %:", round(numNAswind/tot*100, digits=2)))
     print(c("%of Data Loss Due to Wind Direction:", round(numNAswind/numNAsFilt*100, digits=2)))
+
+    #2a From what @EC S1?
+    ###CH4:
+    epOutOrderECS1<-filter(epOutOrder, RDateTime<"2018-04-18")
+    epOutSubECS1<-filter(epOutSub, RDateTime> "2017-01-25", RDateTime<"2018-04-18")
+    #2.1: Site down/data not collected:
+    tot<-length(epOutOrder$ch4_flux)
+    tot<-length(epOutSubECS1$ch4_flux)
+    numNAs<-sum(length(which(is.na(epOutSubECS1$ch4_flux))))
+    numNAs.b<-nrow(filter(epOutSubECS1, is.na(ch4_flux))) #same as numNAs
+    #epOutOrder has not been QA filtered; just missing times with missing measurements
+    print(c("ECS1 Site Down %:", round(numNAs/tot*100, digits=2)))
+    print(c("ECS1 %of Data Loss Due to Site Down:", round(numNAs/numNAsFiltECS1*100, digits=2)))
+    #2.2: QC Level 2:
+    numNAs2<-sum(length(which( epOutSubECS1$qc_ch4_flux==2)))
+    numNAs2.b<-nrow(filter( epOutSubECS1, qc_ch4_flux==2 | is.na(ch4_flux))) #= numNAs+numNAs2
+    print(c("QC Level 2 %:", round(numNAs2/tot*100, digits=2)))
+    print(c("%of Data Loss Due to QC Level2:", round(numNAs2/numNAsFiltECS1*100, digits=2)))
+    #2.3: Wind Direction:
+    numNAs3<-sum(length(which(epOutSubECS1$wind_dir>195 & epOutSubECS1$wind_dir<330)))
+    numNAs3.b<-nrow(filter(epOutSubECS1, qc_ch4_flux==2 | is.na(ch4_flux) | (epOutSubECS1$wind_dir>195 & epOutSubECS1$wind_dir<330) )) # != numNAs+numNAs2+numNAs3 -- overlap between east winds and other filtering
+    numNAswind<-numNAs3.b-numNAs2.b
+    print(c("Wind Direction %:", round(numNAswind/tot*100, digits=2)))
+    print(c("%of Data Loss Due to Wind Direction:", round(numNAswind/numNAsFiltECS1*100, digits=2)))    
+    
  ###CO2:
   #2.1: Site down/data not collected:
     tot<-length(epOutSub$co2_flux)
@@ -80,24 +130,24 @@ print(c("Total Rejection %:", round(numNAsFilt/totFilt*100, digits=2)))
     numNAs.b<-nrow(filter(epOutAqTow, is.na(ch4_flux))) #same as numNAs
     #epOutOrder has not been QA filtered; just missing times with missing measurements
     print(c("Site Down %:", round(numNAs/tot*100, digits=2)))
-    print(c("%of Data Loss Due to Site Down:", round(numNAs/numNAsFilt*100, digits=2)))
+    print(c("%of Data Loss Due to Site Down:", round(numNAs/numNAsFiltECS2*100, digits=2)))
     #2.2: QC Level 2:
     numNAs2<-sum(length(which(epOutSub$qc_ch4_flux==2)))
     numNAs2.b<-nrow(filter(epOutSub, qc_ch4_flux==2 | is.na(ch4_flux))) #= numNAs+numNAs2
     print(c("QC Level 2 %:", round(numNAs2/tot*100, digits=2)))
-    print(c("%of Data Loss Due to QC Level2:", round(numNAs2/numNAsFilt*100, digits=2)))
+    print(c("%of Data Loss Due to QC Level2:", round(numNAs2/numNAsFiltECS2*100, digits=2)))
     #2.3: Wind Direction:
     numNAs3<-sum(length(which(epOutSub$wind_dir>195 & epOutSub$wind_dir<330)))
     numNAs3.b<-nrow(filter(epOutSub, qc_ch4_flux==2 | is.na(ch4_flux) | (epOutSub$wind_dir>195 & epOutSub$wind_dir<330) )) # != numNAs+numNAs2+numNAs3 -- overlap between east winds and other filtering
     numNAswind<-numNAs3.b-numNAs2.b
     print(c("Wind Direction %:", round(numNAswind/tot*100, digits=2)))
-    print(c("%of Data Loss Due to Wind Direction:", round(numNAswind/numNAsFilt*100, digits=2)))
+    print(c("%of Data Loss Due to Wind Direction:", round(numNAswind/numNAsFiltECS2*100, digits=2)))
     
     
 ###3. Daytime vs. nighttime gaps:   ---- 
 #try filtering for day vs night with the daytime flag that is assigned in EddyPro
-epOutDay<-filter(epOutSubFilt, daytime==1)
-epOutNight<-filter(epOutSubFilt, daytime==0)
+epOutDay<-filter(epOutSubFiltGaps, daytime==1)
+epOutNight<-filter(epOutSubFiltGaps, daytime==0)
 
 totDay<-length(epOutDay$ch4_flux)
 numNAsDay<-sum(length(which(is.na(epOutDay$ch4_flux))))
@@ -111,10 +161,10 @@ print(c("Nighttime Rejection %:", round(numNAsNight/totNight*100, digits = 2)))
 ##this is because filtering by the "daytime" flag excludes periods when "daytime"=NA
 ##try using PAR from VWS data
 
-tail(epOutSubFilt$RDateTime)
+tail(epOutSubFiltGaps$RDateTime)
 tail(vanni30min$RDateTime)
 tail(epOutV$RDateTime)
-epOutV<-left_join(epOutSubFilt, vanni30min, by="RDateTime")
+epOutV<-left_join(epOutSubFiltGaps, vanni30min, by="RDateTime")
 #trim the end where there aren't VWS PAR observations:
 epOutV<-filter(epOutV, RDateTime<"2018-02-16 00:00 UTC")
 
@@ -174,6 +224,26 @@ for(j in 1:length(epOutSub$gapMap)){
     epOutSub$gapMap[j]="Footprint"
   }
  
+}
+
+#testing order
+epOutSub$gapMap<-"Best Data"
+epOutSub$qc_ch4_factor<-as.factor(epOutSub$qc_ch4_flux)
+for(j in 1:length(epOutSub$gapMap)){
+  if(is.na(epOutSub$ch4_flux[j])){
+    epOutSub$gapMap[j]="Site Down"
+  }
+
+  else if(epOutSub$qc_ch4_factor[j]=="2"){
+    epOutSub$gapMap[j]="Failed QC"
+  }
+  else if(epOutSub$RDateTime[j]>"2018-05-01 00:00:00" & epOutSub$ustar[j]<0.07){
+    epOutSub$gapMap[j]="Failed QC"
+  }
+  else if(epOutSub$RDateTime[j]<"2018-05-01 00:00:00" & epOutSub$wind_dir[j]>195 & epOutSub$wind_dir[j]<330){
+    epOutSub$gapMap[j]="Footprint"
+  }
+  
 }
 
 j=1

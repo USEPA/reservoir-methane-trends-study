@@ -253,7 +253,11 @@ ggplot(waterTcompare,
 epBurst<-filter(epOutSubFilt, RDateTime>"2018-05-10", RDateTime<"2018-06-06")
 mean(epBurst$ch4_flux/1000*16*60*60, na.rm=TRUE)
 
-dailyECfluxSedT<-left_join(DailyEcFluxes, select(waterTcompare, -siteT, -date, -year, -monthday), by="RDateTime")
+#dailyECfluxSedT<-left_join(DailyEcFluxes, select(waterTcompare, -siteT, -date, -year, -monthday), by="RDateTime")
+#try with gap-filled data:
+DailyANNFluxes$RDateTime<-as.Date(DailyANNFluxes$date)
+dailyECfluxSedT<-left_join(DailyANNFluxes, select(waterTcompare, -siteT, -date, -year, -monthday), by="RDateTime")
+
 
 dailyMassFlux14<-left_join(dailyMassFlux14, select(waterTcompare, sedT, date), by="date") 
 dailyMassFlux12$siteT<-"(e) Deep"
@@ -261,6 +265,10 @@ ggplot(dailyMassFlux14, aes(sedT, dailyEbCh4mgM2h))+
   geom_point()
 ggplot(dailyMassFlux12, aes(sedT, dailyEbCh4mgM2h))+
   geom_point()
+dailyECfluxSedT$year<-year(dailyECfluxSedT$RDateTime)
+ggplot(dailyECfluxSedT, aes(sedT, meanCH4Flux))+
+  geom_point(alpha=0.4)+
+  facet_grid(year~.)
 
 # buoyTdaily<-mutate(buoyTdaily,
 #                    sedT = buoyMeanT_10,
@@ -279,7 +287,7 @@ ggplot(dailyMassFlux12, aes(sedT, dailyEbCh4mgM2h))+
 peaEC17<-filter(dailyECfluxSedT, !is.na(meanCH4Flux), !is.na(sedT), date<"2018-01-01")%>%
   select(sedT, meanCH4Flux)
   write.table(peaEC17, 
-            file="C:/R_Projects/actonFluxProject/Threshold test/ec17.prn",
+            file="C:/R_Projects/actonFluxProject/Threshold test/ecAnn17.prn",
             sep=" ",
             row.names=FALSE)
   #output from big2dks: 
@@ -287,8 +295,8 @@ peaEC17<-filter(dailyECfluxSedT, !is.na(meanCH4Flux), !is.na(sedT), date<"2018-0
   #p = 0.000200 the p value (how many of the rerandomizations generated a bigger test stat than your data did)
   #the x and y coordinate where the "greatest" 
   #difference in the bivariate distribution occurs (if one exists)
-  xEC17 = 19.171816
-  yEC17 = 2.666880
+  xEC17 = 19.171816 # gap-filled: 15.13
+  yEC17 = 2.666880  # gap-filled: 1.78
   ggplot(peaEC17, aes(sedT, meanCH4Flux))+
     geom_point(alpha=0.3)+
     geom_vline(xintercept = xEC17)+
@@ -297,7 +305,7 @@ peaEC17<-filter(dailyECfluxSedT, !is.na(meanCH4Flux), !is.na(sedT), date<"2018-0
 peaEC18<-filter(dailyECfluxSedT, !is.na(meanCH4Flux), !is.na(sedT), date>"2018-01-01")%>%
     select(sedT, meanCH4Flux)
   write.table(peaEC18, 
-              file="C:/R_Projects/actonFluxProject/Threshold test/ec18.prn",
+              file="C:/R_Projects/actonFluxProject/Threshold test/ecAnn18.prn",
               sep=" ",
               row.names=FALSE)
   #output from big2dks: 
@@ -305,8 +313,8 @@ peaEC18<-filter(dailyECfluxSedT, !is.na(meanCH4Flux), !is.na(sedT), date>"2018-0
   #p = 0.000200 the p value (how many of the rerandomizations generated a bigger test stat than your data did)
   #the x and y coordinate where the "greatest" 
   #difference in the bivariate distribution occurs (if one exists)
-  xEC18 = 19.454376
-  yEC18 = 4.355505
+  xEC18 = 19.454376 #gapfilled: 17.8
+  yEC18 = 4.355505 #gapfilled: 5.67
   ggplot(peaEC18, aes(sedT, meanCH4Flux))+
     geom_point(alpha=0.3)+
     geom_vline(xintercept = xEC18)+

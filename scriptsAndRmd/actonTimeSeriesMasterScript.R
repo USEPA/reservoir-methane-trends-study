@@ -81,6 +81,7 @@ file.edit('scriptsAndRmd/rEddyProc.R')
 file.edit('scriptsAndRmd/fluxTmprPlots.R')
 file.edit('scriptsAndRmd/ecFluxAnalysisPlots.R')
 file.edit('scriptsAndRmd/cumulativeTS.R')
+    #time series plot (Figure 4)
 
 #run fluxTmprPlots to make plots used in AGU poster
 # cumulativeTS.R is the script used to transform time series flux data into 

@@ -5,7 +5,7 @@ library(neuralnet); library(ggplot2); library(suncalc);
 library(plyr); library(imputeTS); library(caret); library(nnet)
 library(dplyr); library(zoo)
 
-runVer<-"6.0" 
+runVer<-"6.01" 
 
 annDat<-read.csv(paste("C:/R_Projects/actonFluxProject/output/annDat",
                        runVer, ".csv", sep=""))
@@ -205,22 +205,50 @@ totEm2018UQ<-round(fluxDatFilled$ch4_cumulativeUQ[nrow(fluxDatFilled)] - totEm20
 fluxDatFilledMan<-select(fluxDatFilled, datetime, ch4_cumulative)
 fluxDatFilledMan$year<-year(fluxDatFilledMan$datetime)
 
-offset18<-fluxDatFilledMan[17510,2] #2018-01-01       43.94513 2018
-april18<-fluxDatFilledMan[21830,2] #2018-04-01       45.19465 2018
-oct18<-fluxDatFilledMan[30614,2] #2018-10-01       103.6851 2018
-tot18<-fluxDatFilledMan[32807,2]
+###FOR STATISTIC ON WHAT % EMISSIONS OCCUR DURING WARM SEASON #######
 
-paste("2018 Warm Season Flux was ", round((oct18-april18)/(tot18-offset18)*100, digits=1), 
-      "% of total annual CH4 Emissions", sep="")
+offset18<-fluxDatFilledMan[17510,2] #2018-01-01       46.26733 2018
+feb18<-fluxDatFilledMan[18998,2] #2018-02-01       46.55315 2018
+mar18<-fluxDatFilledMan[20342, 2] #2018-03-01       46.84345 2018
+april18<-fluxDatFilledMan[21830,2] #2018-04-01       47.56831 2018
+may18<-fluxDatFilledMan[23270,2] #2018-05-01        48.52
+oct18<-fluxDatFilledMan[30614,2] #2018-10-01       106.6851 2018
+nov18<-fluxDatFilledMan[32102,2] #2018-11-01       110.5756 2018
+tot18<-fluxDatFilledMan[32807,2] #110.88
 
-april17<-fluxDatFilledMan[4310,2]
-oct17<-fluxDatFilledMan[13094,2]
+paste("2018 April - Oct Flux was ", round((oct18-april18)/(tot18-offset18)*100, digits=1), 
+      "% of total annual CH4 Emissions", sep="") #90.8%
+paste("2018 May - Oct Flux was ", round((oct18-may18)/(tot18-offset18)*100, digits=1), 
+      "% of total annual CH4 Emissions", sep="") #89.3%
+
+paste("2018 Winter (Jan, Feb, Mar, Nov, Dec) Flux:", round(april18-offset18+(tot18-nov18), 2), "g CH4 m-2")
+paste("2018 Shoulder (April, Oct) Flux:", round(may18-april18+(nov18-oct18), 2), "g CH4 m-2")
+
+mar17<-fluxDatFilledMan[2822,2] #2017-03-01      0.7445481 2017
+april17<-fluxDatFilledMan[4310,2] #2017-04-01       1.200003 2017
+may17<-fluxDatFilledMan[5750,2] #2017-05-01       2.645015 2017
+oct17<-fluxDatFilledMan[13094,2] #2017-10-01        41.9639 2017
+nov17<-fluxDatFilledMan[14582,2] #2017-11-01       45.33578 2017
 tot17<-offset18
 
+paste("2017 Winter (Jan, Feb, Mar, Nov, Dec) Flux:", round(april17+(tot17-nov17), 2))
+paste("2017 Shoulder (April, Oct) Flux:", round(may17-april17+(nov17-oct17), 2))
+
+paste("2017 April - Oct Flux was ", round((oct17-april17)/(tot17)*100, digits=1), 
+      "% of total annual CH4 Emissions", sep="") #88.1
+paste("2017 May - Oct Flux was ", round((oct17-may17)/(tot17)*100, digits=1), 
+      "% of total annual CH4 Emissions", sep="") #85
 
 
-paste("2017 Warm Season Flux was ", round((oct17-april17)/(tot17)*100, digits=1), 
-      "% of total annual CH4 Emissions", sep="")
+tot18-offset18
+tot17
+
+sb18_i<-fluxDatFilledMan[24374,2]
+sb18_f<-fluxDatFilledMan[24950,2]
+
+(sb18_f-sb18_i)/(tot18-offset18)
+
+(sb18_f-sb18_i)/(tot18-offset18-tot17)
 
 #plot of measured and filled
 ggplot(fluxDatFilled,
@@ -229,7 +257,7 @@ ggplot(fluxDatFilled,
   geom_point(data=fluxDatFilled,
              aes(datetime, ch4_flux*60*60*16/1000), color="red", alpha=0.1)+
   ylim(-1*60*60*16/1000, 2*60*60*16/1000)+
-  ylab("CH4 Flux (mg m-2 hr-1)")+
+  ylab("CH4 Flux mg m-2 hr-1)")+
   ggtitle(paste("30-min CH4 Fluxes Gap Filled with ANNv", runVer, sep=""))+
   theme_bw()
 
@@ -253,6 +281,20 @@ ggplot(fluxDatFilled, aes(datetime, ch4_cumulative))+
 
 ggsave(paste("Cumulative", runVer, ".jpeg", sep=""), path="C:/R_Projects/actonFluxProject/output/annEvalPlots",
        width=7.5, height=4.5)
+
+fluxDatFilled$ch4_cumu_ann<-fluxDatFilled$ch4_cumulative
+fluxDatFilled$ch4_cumu_ann[col2018:32807]<-fluxDatFilled$ch4_cumu_ann[col2018:32807]-offset18
+fluxDatFilled$monthday<-format(fluxDatFilled$datetime, format="%m-%d %H:%M")# %>%
+fluxDatFilled$monthday<-as.Date(fluxDatFilled$monthday, format="%m-%d %H:%M")
+fluxDatFilled$year<-year(fluxDatFilled$datetime)
+
+ggplot(fluxDatFilled, aes(monthday, ch4_cumu_ann))+
+  geom_line(aes(linetype=as.factor(year)), size=1.5, alpha=0.5)+
+  ylab(expression(Cumulative~Areal~Emissions~(g~CH[4]~m^-2)))+
+  xlab("")+
+  scale_x_date(breaks=date_breaks("1 month"),
+                   labels=date_format("%b"))+
+  theme_bw()
 
 names(fluxDatFilled)[names(fluxDatFilled)=="ch4_preds"]<-paste("ch4_preds", runVer, sep="")
 names(fluxDatFilled)[names(fluxDatFilled)=="ch4_predsLQ"]<-paste("ch4_predsLQ", runVer, sep="")

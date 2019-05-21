@@ -4,6 +4,66 @@
 
 # DOT PLOT LAKE SPECIFIC DATA--------------
 ##---------------------------------------------------------------------------##
+
+#erate vs. drate per site
+ggplot(eqAreaDataSub, aes(ch4.erate.mg.h/ch4.trate.mg.h, wtrDpth))+
+  geom_point(alpha=0.3)
+
+ggplot(eqAreaDataSub, aes(ch4.erate.mg.h/ch4.trate.mg.h, siteDistFromShore))+
+  geom_point(alpha=0.3)
+
+eqAreaDataBySite<-eqAreaDataSub%>%
+  group_by(siteID)%>%
+  dplyr::summarise(meanWtrD = mean(wtrDpth, na.rm=TRUE),
+                   meanErate = mean(ch4.erate.mg.h, na.rm=TRUE),
+                   sdErate = sd(ch4.erate.mg.h, na.rm=TRUE),
+                   meanTrate = mean(ch4.trate.mg.h, na.rm=TRUE),
+                   sd.Trate = sd(ch4.trate.mg.h, na.rm=TRUE),
+                   meanEtoT = mean(ch4.erate.mg.h/ch4.trate.mg.h, na.rm=TRUE),
+                   sdEtoT = sd(ch4.erate.mg.h/ch4.trate.mg.h, na.rm=TRUE))
+
+waterOrder<-eqAreaDataBySite$meanWtrD
+orderList <- order(waterOrder)
+lakeLevels <- eqAreaDataBySite[orderList, "siteID"]
+eqAreaDataBySite$fsiteID<-factor(eqAreaDataBySite$siteID, levels = lakeLevels)
+
+ggplot(eqAreaDataBySite, aes(siteID, meanEtoT))+
+  geom_point()+
+  geom_errorbar(data=eqAreaDataBySite,
+                ymin=eqAreaDataBySite$meanEtoT-eqAreaDataBySite$sdEtoT,
+                ymax=eqAreaDataBySite$meanEtoT+eqAreaDataBySite$sdEtoT)+
+  ylim(0, 1)
+
+#regression of ebullition as a f(water depth)
+ggplot(eqAreaDataSub, aes(wtrDpth, ch4.erate.mg.h))+
+  geom_point(alpha=0.3)+
+  geom_smooth(method="lm")+
+  labs(x="Water Depth (m)", 
+       y =expression(CH[4]~Ebullition~(mg~m^-2~hr^-1)))+
+  theme_bw()
+
+#box and whisker plot of ebullition:total by site
+ggplot(eqAreaDataSub, aes(siteID, ch4.erate.mg.h/ch4.trate.mg.h))+
+    geom_boxplot()+
+  geom_point(alpha=0.3)+
+  ylab(expression(Ebullitive~Fraction~of~Total~CH[4]~Efflux))+
+  theme_bw()+
+  geom_hline(yintercept=0.8)
+  scale_x_discrete(limits=eqAreaDataSub$siteID[order(eqAreaDataSub$wtrDpth)])
+
+
+  
+
+ebDepth<-lm(ch4.erate.mg.h~wtrDpth, data=eqAreaDataSub)
+summary(ebDepth)
+
+orderLake <- function(x, choice1) {
+  if(choice1 == "ch4.d") {
+    column <- "ch4.drate.mg.m2.h_Estimate"
+    orderList <- order(x[, column])
+    lakeLevels <- x[orderList, "Lake_Name"]
+    factor(x$Lake_Name, levels = lakeLevels)
+
 # Volumetric rates
 str(meanVariance.c$Lake_Name)
 
