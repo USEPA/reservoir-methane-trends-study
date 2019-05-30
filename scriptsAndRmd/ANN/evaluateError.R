@@ -66,6 +66,15 @@ ch4Err_U95ci<-ifelse(is.na(fluxDatFilled$ch4_flux),
 #          )
 # }
 
+filledComp<-left_join(select(fluxDatFilled, datetime, ch4_preds), select(fluxDatFilledErr, datetime, ch4_preds), by="datetime")
+ggplot(filledComp, aes(ch4_preds.x, ch4_preds.y))+
+  geom_point(alpha=0.2)+
+  xlab("ANN6.0")+
+  ylab("ANN error")
+
+compMod<-lm(ch4_preds.y~ch4_preds.x, data=filledComp)
+summary(compMod)
+
 fluxDatFilledErr<-fluxDatFilled%>%
   mutate(ch4_preds = ch4Err_med,
          # ch4_predsL = ch4Err_L95,
