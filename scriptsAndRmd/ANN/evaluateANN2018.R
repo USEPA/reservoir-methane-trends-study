@@ -5,7 +5,7 @@ library(neuralnet); library(ggplot2); library(suncalc);
 library(plyr); library(imputeTS); library(caret); library(nnet)
 library(dplyr); library(zoo)
 
-runVer<-"6.01" 
+runVer<-"6.0" 
 
 annDat<-read.csv(paste("C:/R_Projects/actonFluxProject/output/annDat",
                        runVer, ".csv", sep=""))
@@ -257,7 +257,7 @@ ggplot(fluxDatFilled,
   geom_point(data=fluxDatFilled,
              aes(datetime, ch4_flux*60*60*16/1000), color="red", alpha=0.1)+
   ylim(-1*60*60*16/1000, 2*60*60*16/1000)+
-  ylab("CH4 Flux mg m-2 hr-1)")+
+  ylab("CH4 Flux (mg m-2 hr-1)")+
   ggtitle(paste("30-min CH4 Fluxes Gap Filled with ANNv", runVer, sep=""))+
   theme_bw()
 

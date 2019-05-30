@@ -8,6 +8,7 @@ library(reshape2)
 library(neuralnet); library(ggplot2); library(suncalc); 
 library(plyr); library(imputeTS); library(caret); library(nnet)
 library(dplyr); library(zoo)
+library(gmodels) #for ci function
 
 ### User-defined knobs:
 
@@ -716,22 +717,23 @@ if(fitModels){
 
 ## Error fitting
 ## This calls a function that bootstraps the scaledDat object lots of times
-# annDat <- read.csv("output/annDat5.8.csv")
-# annDat <- subset(annDat, complete.cases(annDat[,2:ncol(annDat)]))
-# maxs <- apply(annDat, 2, max, na.rm=TRUE)
-# mins <- apply(annDat, 2, min, na.rm=TRUE)
-# scaledDat <- as.data.frame(scale(annDat, center = mins, scale = maxs - mins))
+ annDat <- read.csv("output/annDat6.0.csv")
+ annDat <- subset(annDat, complete.cases(annDat[,2:ncol(annDat)]))
+ maxs <- apply(annDat, 2, max, na.rm=TRUE)
+ mins <- apply(annDat, 2, min, na.rm=TRUE)
+ scaledDat <- as.data.frame(scale(annDat, center = mins, scale = maxs - mins))
 ## K-means clustering of data points, for training/testing/validation sets
-# set.seed(4321)
-# k <- 10
-# kClusters <- kmeans(scaledDat[,2:ncol(scaledDat)], centers = k)
-# df <- data.frame("Index" = 1:nrow(scaledDat),
-#                  "Cluster" = kClusters$cluster)
+ set.seed(4321)
+ k <- 10
+ kClusters <- kmeans(scaledDat[,2:ncol(scaledDat)], centers = k)
+ df <- data.frame("Index" = 1:nrow(scaledDat),
+                  "Cluster" = kClusters$cluster)
 errorFunction <- function(d, df, n, ptrain = 0.5, lyr = NULL){
   library(tidyverse)
-  # n = 20; d = scaledDat; df = df; ptrain = 0.5; lyr = NULL
+   n = 250; d = scaledDat; df = df; ptrain = 0.5; lyr = NULL
   ## Assign number of layers
-  if(is.null(lyr)) lyr = 10 # This is a little arbitrary. Probably better to find the 'best' layer from simList lapply
+  if(is.null(lyr)) lyr = 19 # Max r2 value from running code on simList for ann6.0:
+  #simList[[which.max(unlist(lapply(simList, function(x) x$r2)))]]$layers
   ## Create data partitions
   ## Use caret package to create train / test data sets
   ## Length n list of training sets
@@ -756,9 +758,35 @@ if(fitErrors){
   ## On average, each record will have n*p predictions. So if we split the data in half to train,
   ## half the records will have predictions. Choose n accordingly.
   ## We can get percentiles with apply:
-  errorBounds = t(apply(predsDf[,-1], 1, FUN = function(x){ quantile(x, c(0.25, 0.75), na.rm = TRUE)}))
+  interQuartRanges = t(apply(predsDf[,-1], 1, FUN = function(x){ quantile(x, c(0.05, 0.25, 0.75, 0.95), na.rm = TRUE)}))
 }
 
+predsMedian<-apply(predsDf, 1, median, na.rm=TRUE)
+predsN<-apply(predsDf, 1, nobs)
+interQR.df<-as.data.frame(cbind(predsMedian, predsN, interQuartRanges, df))
+names(interQR.df)[names(interQR.df) == "5%"] <- "quant5"
+names(interQR.df)[names(interQR.df) == "25%"] <- "quant25"
+names(interQR.df)[names(interQR.df) == "75%"] <- "quant75"
+names(interQR.df)[names(interQR.df) == "95%"] <- "quant95"
+
+write.table(interQR.df, 
+            file="C:/R_Projects/actonFluxProject/output/interQR20190523.csv",
+            sep=",",
+            row.names=FALSE)
+
+write.table(predsDf,
+            file="C:/R_Projects/actonFluxProject/output/predsError20190523.csv",
+            sep=",",
+            row.names=FALSE)
+
+ggplot(interQR.df, aes(Index, predsMedian))+
+  geom_line(alpha=0.5)+
+  geom_line(data=interQR.df, aes(Index, quant25), color="red", alpha=0.2)+
+  geom_line(data=interQR.df, aes(Index, quant75), color="red", alpha=0.2)
+# head(predsDf)
+# predsDf[1,]
+# 
+# gmodels::ci(predsDf[1,], confidence=0.95)
 # load("output/annSimulationListAq2018.RData")
     #3.1: aq tower dataset 5/6/2018 thru 8/6/2018 with ustar filter applied
 
