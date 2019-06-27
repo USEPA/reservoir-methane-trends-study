@@ -41,7 +41,7 @@ enddate<-"2018-11-15 12:00:00" #6.0
 #run number/version
 range(ANNdata$RDateTime)
 
-runVer<-"6.0"
+runVer<-"6.1"
 #4.0 is Feb 2017 thru Oct 2018 with everything but trap ebullition as 
 ##drivers. Also, RBR temp is gapfilled from August to Oct 2018 
 #4.1 is May 2018 thru Oct 2018 with sedT, airT, windSp, statP, delStatP, and fuzzy time as drivers
@@ -56,6 +56,7 @@ runVer<-"6.0"
 #5.5: aquatic tower dataset: 2018-05-06 thru 2018-11-01
 
 #6.0: reprocessed EP for abs limits, h2o irga dynamic metadata; timeframe: 1/1/17 - 11/12/18
+#6.1: updating the code to have an index to match the ann output with the flux data filled timeseries
 ### Load data ------
 #fluxDat <- read.csv("output/exampleDatasetANN.csv")
 #fluxDat<-read.csv("output/annDataset_trapeb201702201810.csv")
@@ -567,6 +568,8 @@ sum(is.na(fluxDat$ch4_flux)) / nrow(fluxDat) # 2018 dataset: 67% missing, vs 75%
 fluxDatToUse<-subset(fluxDat, fluxDat$datetime>(startdate) & fluxDat$datetime<(enddate))
 fluxDatToUse<-subset(fluxDatFilled, fluxDatFilled$datetime>(startdate) & fluxDatFilled$datetime<(enddate))
 
+fluxDatToUse$index<-1:nrow(fluxDatToUse)
+
 plotGaps(fluxDatToUse, "ch4_flux")
 sum(is.na(fluxDatToUse$ch4_flux)) / nrow(fluxDatToUse) #28% missing, 38% with ustar filter of 0.07
 range(fluxDatToUse$datetime)
@@ -588,15 +591,20 @@ annCols <- c("ch4_flux",
              if(covarH){"FilledH"}, 
              if(covarWD){"FilledWD"},
              if(covarSite){"FilledSite"},
-             if(covarPAR){"FilledPAR"})
+             if(covarPAR){"FilledPAR"},
+             "index")
 annDat <- fluxDatToUse[,annCols]
 #annDat <- fluxDatFilled[,annCols]
 
 fluxDatFilled2018<-select(fluxDat, datetime, co2_flux, annCols)
 #test5.2$FilledPAR<-test5.2$par.vws
 #annDat<-fluxDatEbFilled[,annCols]
-write.table(fluxDatFilled,
-            file=("C:/R_Projects/actonFluxProject/output/annDataset_20190403.csv"),
+# write.table(fluxDatFilled,
+#             file=("C:/R_Projects/actonFluxProject/output/annDataset_20190403.csv"),
+#             sep=",",
+#             row.names=FALSE)
+write.table(fluxDatToUse,
+            file=("C:/R_Projects/actonFluxProject/output/annDataset_20190610.csv"),
             sep=",",
             row.names=FALSE)
 ###Realizing I need parameters from annDat to evaluate each run
@@ -608,6 +616,13 @@ write.table(annDat,
                   row.names=FALSE)
 
 annDat <- subset(annDat, complete.cases(annDat[,2:ncol(annDat)]))
+
+write.table(annDat,
+            file=(paste("C:/R_Projects/actonFluxProject/output/annDat", 
+                        runVer, ".csv", sep="")),
+            sep=",",
+            row.names=FALSE)
+
 maxs <- apply(annDat, 2, max, na.rm=TRUE)
 mins <- apply(annDat, 2, min, na.rm=TRUE)
 scaledDat <- as.data.frame(scale(annDat, center = mins, scale = maxs - mins))

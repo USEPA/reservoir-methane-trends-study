@@ -5,7 +5,7 @@ library(neuralnet); library(ggplot2); library(suncalc);
 library(plyr); library(imputeTS); library(caret); library(nnet)
 library(dplyr); library(zoo)
 
-runVer<-"6.0" 
+runVer<-"6.1" 
 
 annDat<-read.csv(paste("C:/R_Projects/actonFluxProject/output/annDat",
                        runVer, ".csv", sep=""))
