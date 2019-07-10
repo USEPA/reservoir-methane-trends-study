@@ -49,7 +49,7 @@ metaDataTrap2017<-read_excel("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/ebullit
 metaDataTrap2018<-read_excel("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/ebullition2018/masterDataSheetEbullition2018.xlsx",
                              sheet="trapData",
                              skip=0,
-                             na=c("NA", ""),
+                             na=c("NA", "", "na"),
                              trim_ws=TRUE,
                              col_types=c("date", rep("text", 2), rep("numeric", 4), 
                                          "text", "numeric", "numeric", "text", "date",
@@ -75,7 +75,7 @@ metaDataDG2018<-read_excel("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/ebullitio
                            skip=1,
                            na=c("NA", ""),
                            trim_ws=TRUE)
-metaDataDG<-rbind(metaDataDG2017, select(metaDataDG2018, -X__1))
+metaDataDG<-rbind(metaDataDG2017, select(metaDataDG2018, -...13))
 rm(metaDataDG2017,metaDataDG2018)
 metaDataDG$sample.date<-as.Date(metaDataDG$sample.date)
 #original excel spreadsheet that Sarah put together that includes dock DG samples, doesn't include trap samples 
@@ -98,7 +98,15 @@ metaDataSonde2018<-read_excel("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/ebulli
                               na=c("NA", ""),
                               trim_ws=TRUE,
                               col_types=c("text", "text", "date", rep("numeric", 17)))
-metaDataSonde<-rbind(metaDataSonde2017, metaDataSonde2018)
+metaDataSonde2019<-read_excel("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/ebullition2019/masterDataSheetEbullition2019.xlsx",
+                              sheet="sondeData",
+                              skip=0,
+                              na=c("NA", ""),
+                              trim_ws=TRUE,
+                              col_types=c("text", "text", "date", rep("numeric", 17)))
+
+
+metaDataSonde<-rbind(metaDataSonde2017, metaDataSonde2018, metaDataSonde2019)
 rm(metaDataSonde2017, metaDataSonde2018)
 #metaDataSonde$Sample.Date<-as.Date(metaDataDG$Sample.Date)
 metaDataSonde$Lake<-ifelse(metaDataSonde$Lake == "Acton", "acton", metaDataSonde$Lake)

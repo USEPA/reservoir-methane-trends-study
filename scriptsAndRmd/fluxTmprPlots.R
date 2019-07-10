@@ -10,14 +10,15 @@ vanniMetSub<-vanniMetSub%>%
          monthday = format(RDateTime, format="%m-%d %H:%M"))# %>%
 vanniMetSub$monthday<-as.POSIXct(vanniMetSub$monthday, format="%m-%d %H:%M", tz="UTC")
 
-ggplot(filter(vanniMetSub, monthday<"2019-05-01"),
+ggplot(filter(vanniMetSub, monthday<"2019-06-01"),
        aes(monthday, WaterT))+
   geom_line(aes(color=as.factor(year)))
 
-ggplot(filter(epOutSubFilt, monthday<"2019-06-01", monthday>"2019-02-01"),
+ggplot(filter(epOutSubFilt, monthday<"2019-06-01", monthday>"2019-04-01"),
        aes(monthday, ch4_flux))+
-  geom_point(aes(color=as.factor(year)), alpha = 0.5)+
-  ylim(-1, 2)
+  geom_point(aes(color=as.factor(year)), alpha = 0.3)+
+  facet_grid(year~.)+
+  ylim(-0.5, 2)
 ggplot(filter(DailyEcFluxes.F, monthday<"2019-04-20", monthday>"2019-02-15"),
        aes(monthday, meanCH4Flux))+
   geom_line(aes(color=as.factor(year)))
@@ -401,7 +402,7 @@ tmprP.agu<-ggplot(tmprShalDeep, aes(monthday, sedT))+
   #             alpha=0.3, span=0.3, se=FALSE)+
   ylab(expression(Daily~Mean~Temperature~(deg~C)))+
   xlab("")+
-  scale_color_manual(values=wes_palette(name="Royal1", 2))+
+  #scale_color_manual(values=wes_palette(name="Royal1", 2))+
   facet_grid(siteT~.)+
   scale_x_date(labels=date_format("%b %d", tz="UTC"), 
                breaks=date_breaks("1 month"))+
@@ -424,7 +425,7 @@ tmprP.aguES<-ggplot(filter(tmprShalDeep, monthday>"2018-04-01", monthday<"2018-1
   #             alpha=0.3, span=0.3, se=FALSE)+
   ylab(expression(Daily~Mean~Temperature~(deg~C)))+
   xlab("")+
-  scale_color_manual(values=wes_palette(name="Darjeeling1", 2))+
+  scale_color_manual(values=wes_palette(name="Darjeeling1", 3))+
   facet_grid(siteT~.)+
   scale_x_date(labels=date_format("%b %d", tz="UTC"), 
                breaks=date_breaks("1 month"))+
@@ -476,8 +477,10 @@ massP3agu<-ggplot(dailyMassEb, aes(monthday, dailyEbCh4mgM2h))+
                               ymin=(dailyEbCh4mgM2h*24/1000-(sdEbCh4mgM2h/sqrt(24))*24/1000),
                               ymax=(dailyEbCh4mgM2h*24/1000+(sdEbCh4mgM2h/sqrt(24))*24/1000), color=as.factor(year)),
                   shape=16, size=0.15, alpha=0.5)+
-  geom_smooth(aes(monthday, dailyEbCh4mgM2h*24/1000, color=as.factor(year)), 
-              alpha=0.5, span=0.3, se=FALSE)+
+  # geom_smooth(aes(monthday, dailyEbCh4mgM2h*24/1000, color=as.factor(year)), 
+  #             alpha=0.5, span=0.3, se=FALSE)+
+  geom_line(aes(monthday, dailyEbCh4mgM2h*24/1000, color=as.factor(year)), 
+                         alpha=0.5)+
   facet_grid(site~., scales="free")+
   ylab(expression(Daily~Mean~CH[4]~Flux~(g~m^-2~d^-1)))+
   xlab("")+
@@ -497,9 +500,11 @@ massP3aguES<-ggplot(filter(dailyMassEb, monthday>"2018-04-01", monthday<"2018-12
                               ymin=(dailyEbCh4mgM2h*24/1000-(sdEbCh4mgM2h/sqrt(24))*24/1000),
                               ymax=(dailyEbCh4mgM2h*24/1000+(sdEbCh4mgM2h/sqrt(24))*24/1000), color=as.factor(year)),
                   shape=16, size=0.4, alpha=0.3)+
-  geom_smooth(aes(monthday, dailyEbCh4mgM2h*24/1000, color=as.factor(year)), 
-              alpha=0.5, span=0.3, se=FALSE)+
-  facet_grid(site~., scales="free")+
+  #geom_smooth(aes(monthday, dailyEbCh4mgM2h*24/1000, color=as.factor(year)), 
+  #            alpha=0.5, span=0.3, se=FALSE)+
+  geom_line(aes(monthday, dailyEbCh4mgM2h*24/1000, color=as.factor(year)), 
+              alpha=0.5)+
+  facet_grid(site~.)+
   ylab(expression(Daily~Mean~CH[4]~Flux~(g~m^-2~d^-1)))+
   xlab("")+
   scale_color_manual(values=wes_palette(name="Darjeeling1", 2))+
@@ -556,6 +561,109 @@ ggplot(dailyMassEb, aes(sedT, dailyEbCh4mgM2h))+
   geom_smooth(method='nls', formula=y~a*exp(b*x), se=FALSE)+
   #stat_summary_bin(geom="point", aes(color=site))+
     facet_grid(site~year, scales="free" )
+
+###################################3
+####Figure 14 added 7/5/2019 #######
+##############################3#####
+
+
+str(dailyMassEb)
+str(dailyMassFlux12)
+str(dailyMassFlux14)
+
+means14<-filter(dailyMassFlux14, monthday>"2019-05-01", monthday<"2019-11-01")%>%
+  group_by(year)%>%
+  summarize(mean_sedT = mean(sedT, na.rm=TRUE),
+            meanCH4_eb = mean(dailyEbCh4mgM2h, na.rm=TRUE))
+
+means12<-filter(dailyMassFlux12, monthday>"2019-05-01", monthday<"2019-11-01")%>%
+  group_by(year)%>%
+  summarize(mean_sedT = mean(sedT, na.rm=TRUE),
+            meanCH4_eb = mean(dailyEbCh4mgM2h, na.rm=TRUE))
+
+dailyMassFlux12<-dailyMassFlux12%>%
+  mutate(sedT_norm=sedT,
+         ch4Eb_norm=dailyEbCh4mgM2h)
+
+for(i in 1:nrow(dailyMassFlux12)){
+  dailyMassFlux12$ch4Eb_norm[i]<-ifelse(dailyMassFlux12$year[i]==2017,
+                                        dailyMassFlux12$ch4Eb_norm[i]/means12$meanCH4_eb[1],
+                                        dailyMassFlux12$ch4Eb_norm[i]/means12$meanCH4_eb[2])
+  dailyMassFlux12$sedT_norm[i]<-ifelse(dailyMassFlux12$year[i]==2017,
+                                       dailyMassFlux12$sedT_norm[i]/means12$mean_sedT[1],
+                                       dailyMassFlux12$sedT_norm[i]/means12$mean_sedT[2])
+}
+
+ggplot(filter(dailyMassFlux12, monthday>"2019-04-15", monthday<"2019-11-01"),
+       aes(monthday, ch4Eb_norm))+
+  geom_line(alpha=0.5)+
+  geom_line(data=filter(dailyMassFlux12, monthday>"2019-04-15", monthday<"2019-11-01"), 
+            aes(monthday, sedT_norm),
+            color="red", alpha=0.5)+
+  facet_grid(.~year)
+
+dailyMassFlux14<-dailyMassFlux14%>%
+  mutate(sedT_norm=sedT,
+         ch4Eb_norm=dailyEbCh4mgM2h)
+
+for(i in 1:nrow(dailyMassFlux14)){
+  dailyMassFlux14$ch4Eb_norm[i]<-ifelse(dailyMassFlux14$year[i]==2017,
+                                        dailyMassFlux14$ch4Eb_norm[i]/means14$meanCH4_eb[1],
+                                        dailyMassFlux14$ch4Eb_norm[i]/means14$meanCH4_eb[2])
+  dailyMassFlux14$sedT_norm[i]<-ifelse(dailyMassFlux14$year[i]==2017,
+                                       dailyMassFlux14$sedT_norm[i]/means14$mean_sedT[1],
+                                       dailyMassFlux14$sedT_norm[i]/means14$mean_sedT[2])
+}
+
+ggplot(filter(dailyMassFlux14, monthday>"2019-04-15", monthday<"2019-11-01"),
+       aes(monthday, ch4Eb_norm))+
+  geom_line(alpha=0.5)+
+  geom_line(data=filter(dailyMassFlux14, monthday>"2019-04-15", monthday<"2019-11-01"), 
+            aes(monthday, sedT_norm),
+            color="red", alpha=0.5)+
+  facet_grid(.~year)
+
+dailyMassFlux14_fig14<-gather(data=dailyMassFlux14, value=value, key=key, dailyEbCh4mgM2h, sedT)
+
+ggplot(filter(dailyMassFlux14_fig14, monthday>"2019-04-15", monthday<"2019-11-01"),
+       aes(monthday, value))+
+  annotate("rect", xmin=as.POSIXct(as.Date("2019-08-02")),
+           xmax=as.POSIXct(as.Date("2019-08-16")),
+           ymin=-Inf, ymax=Inf, alpha=0.4)+
+  geom_line(alpha=1, aes(color=as.factor(key)))+
+  scale_color_manual(values=c("#333333", "#CC0033"))+
+  geom_smooth(span=0.4, se=FALSE)+
+  facet_grid(key~year, scales="free_y")+
+  scale_x_datetime(labels=date_format("%b", tz="UTC"), 
+                   breaks=date_breaks("1 month"))+
+  xlab("")+
+  theme_bw()+
+  theme(legend.position="none")
+
+dailyMassFlux12_fig14<-gather(data=dailyMassFlux12, value=value, key=key, dailyEbCh4mgM2h, sedT)
+
+ggplot(filter(dailyMassFlux12_fig14, monthday>"2019-04-15", monthday<"2019-11-01"),
+       aes(monthday, value))+
+  annotate("rect", xmin=as.POSIXct(as.Date("2019-09-10")),
+           xmax=as.POSIXct(as.Date("2019-09-24")),
+           ymin=-Inf, ymax=Inf, alpha=0.4)+
+  geom_line(alpha=1, aes(color=as.factor(key)), size=0.5)+
+  scale_color_manual(values=c("#333333", "#CC0033"))+
+  geom_smooth(span=0.3, se=FALSE)+
+  facet_grid(key~year, scales="free_y")+
+  scale_x_datetime(labels=date_format("%b", tz="UTC"), 
+                   breaks=date_breaks("1 month"))+
+  xlab("")+
+  theme_bw()+
+  theme(legend.position="none")
+
+# normFunc<-function(x, y){
+#   return(x/y)
+# }
+# 
+# normFunc(5,2)
+# 
+# apply(dailyMassFlux12$sedT_norm, 1, normFunc(1, 17))
 
 #by hand: only deep trap 2017 passes computation
 

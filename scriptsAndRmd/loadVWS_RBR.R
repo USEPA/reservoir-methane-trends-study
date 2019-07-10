@@ -4,7 +4,8 @@
 ###2. LOAD VANNI WEATHER STATION ----
 myWd<-  "L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance"
 myWd
-vanniMet<-read.table(paste(myWd, "/vanniWeatherStation/vws20160929_20181109_concat.csv", sep=""),
+
+vanniMet<-read.table(paste(myWd, "/vanniWeatherStation/vws20160929_20190510_concat.csv", sep=""),
                      sep=",",  # comma separate
                      skip=4,  # Skip first line of file.  Header info
                      colClasses = c("character", rep("numeric", 9), "character"),
@@ -13,8 +14,8 @@ vanniMet<-read.table(paste(myWd, "/vanniWeatherStation/vws20160929_20181109_conc
                      col.names = c("dateTimeW", "PAR", "WindDir", "WindSp", "AirT", 
                                    "RH", "Bpress", "DailyRain", "WaterLevel", "WaterT", 
                                    "Bat"),
-                     na.strings = "NaN",
-                     fill=TRUE)
+                     na.strings = "NaN")
+                     
 # vanniMet<-read.table("C:/R_Projects/actonFluxProject/vws_20181101_20190301.csv",
 #                      sep=",",  # comma separate
 #                      skip=4,  # Skip first line of file.  Header info
@@ -26,10 +27,59 @@ vanniMet<-read.table(paste(myWd, "/vanniWeatherStation/vws20160929_20181109_conc
 #                                    "Bat"),
 #                      na.strings = "NaN",
 #                      fill=TRUE)
+
+
+vanniMet2019Files<-list.files(paste(myWd, "/vanniWeatherStation/vws_2019", sep=""),
+                                 pattern="*.csv$", recursive = TRUE) 
+vanniMet2019List <- list()
+vm19Header<-c("dateTimeW_UTC", "Bpress_psi", "WaterT", "WaterLevel_ft", "Bat_mV", 
+              "PAR", "WindDir", "WindDir_corr", "WindSp_min", "WindSp_ms", "WindSp_max"
+              )
+for (i in 1:length(vanniMet2019Files)) {  # loop to read and format each file
+  #  ep.i <- read.table(paste(myWd, "/L1eddyproOut/reprocessedLI7500_2019/fullOutput/", 
+  vm19.i <- read.table(paste(myWd, "/vanniWeatherStation/vws_2019/", 
+                             vanniMet2019Files[i], sep=""),
+                     sep=",",  # comma separate
+                     skip=3,  # Skip first line of file.  Header info
+                     colClasses = c(rep("character", 1), rep("numeric", 10)),
+                     as.is=TRUE, # Prevent conversion to factor
+                     header=FALSE, # don't import column names
+                     col.names = vm19Header,
+                     na.strings = "NaN")
+  vanniMet2019List[[i]]<-vm19.i
+  
+  }
+
+vanniMetOut<-do.call("rbind", vanniMet2019List)
+
+#convert all of the column units to match 2017&2018 formats
+vanniMetOut<-vanniMetOut%>%
+  mutate(Bpress = Bpress_psi*2.03602, #convert to inHg
+         WaterLevel = WaterLevel_ft*12*2.54/100, #convert from feet to m
+         Bat = Bat_mV,
+         WindSp = WindSp_ms*60*60/1000, #convert to km/hr
+         dateTimeW = NaN,
+         RH = NaN, 
+         DailyRain = NaN, 
+         AirT = NaN)
+
+
+vanniMetOut$RDateTime<-as.POSIXct(vanniMetOut$dateTimeW_UTC,
+                                  format="%m/%d/%Y %H:%M",
+                                  tz = "UTC")
+vanniMetOut$RDateTime<-vanniMetOut$RDateTime-(5*60*60)
+
 vanniMet$RDateTime<-as.POSIXct(vanniMet$dateTimeW,
                                format="%m/%d/%Y %H:%M",
                                tz = "UTC")
-vanniMetSub<-filter(vanniMet, RDateTime>"2016-09-29 00:45:00")
+vanniList2<-list()
+vanniList2[[1]]<-vanniMet
+vanniList2[[2]]<-select(vanniMetOut, dateTimeW, PAR, WindDir, WindSp, AirT, 
+                        RH, Bpress, DailyRain, WaterLevel, WaterT, Bat, RDateTime)
+
+vanniMetConcat<-do.call("rbind", vanniList2)
+
+vanniMetSub<-filter(vanniMetConcat, RDateTime>"2016-09-29 00:45:00")
 #vanniMetSub<-filter(vanniMet, RDateTime>"2018-11-01 14:20:00")
 
 #Filter time periods when rain gauge was down, as indicated by long periods of zero rain:
@@ -95,6 +145,21 @@ write.table(vanni30min,
             file="C:/R_Projects/actonFluxProject/output/prelimData/vanni30min.csv",
             sep=",",
             row.names=FALSE)
+
+#daily avg of VWS -- want to look at PAR per Wik
+DailyVWS<-vanni30min %>%
+  group_by(RDateTime = cut(RDateTime, breaks = "24 hour")) %>%
+  dplyr::summarize(meanPAR = (mean(par.vws, na.rm=TRUE)),
+                   meanWaterT = mean(waterT.vws, na.rm=TRUE),
+                   totRain = sum(rain30min),
+                   meanLakeLvl = mean(levelAdj.vws, na.rm=TRUE)
+  )
+DailyVWS<-DailyVWS %>%
+  mutate(RDateTime=as.Date(DailyVWS$RDateTime),
+         year = year(RDateTime),
+         monthday = format(RDateTime, format="%m-%d %H:%M"))# %>%
+DailyVWS$monthday<-as.Date(DailyVWS$monthday, format="%m-%d %H:%M")
+
 
 
 #3. LOAD rbr thermistor ----

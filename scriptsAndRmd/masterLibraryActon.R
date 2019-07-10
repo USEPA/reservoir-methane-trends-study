@@ -1,4 +1,5 @@
 # LIBRARIES---------------
+perl <- "C:/Strawberry/perl/bin/perl.exe"
 library(readxl)  # For reading Excel files
 library(gdata)   # Also for reading Excel files
 library(ggplot2) # For plotting
@@ -43,8 +44,10 @@ library(openair)
 
 
 library(wesanderson)
-library(Peacock.test)
-library(tree)
+
+#threshold test attempts
+#library(Peacock.test)
+#library(tree)
 
 # TRIM FUNCTION--------------------------
 # returns string w/o leading or trailing whitespace

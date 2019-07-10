@@ -10,6 +10,8 @@ gga <- filter(gga, !is.na(RDateTime))  # strip out missing RDateTime.  They comp
 
 #2. Load in the chamber info from the 2017 and 2018 bi-weekly Acton visits
     ### 12/27/2018: SW copied the 2018 chamber info from the masterDataSheet to the bi-weekly excel file 
+
+perl <- "C:/Strawberry/perl/bin/perl.exe"
 chamData<-read.xls("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/survey/chamberBiweekly.xlsx")
 
 #reformat several columns and make two derivitive columns

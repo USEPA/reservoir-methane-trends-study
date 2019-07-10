@@ -33,9 +33,24 @@ epREddy$DateTime<-epREddy$RDateTime
 EddyProc.C <- sEddyProc$new('Acton', EddyDataWithPosix.S, 
                             c('co2_flux', 'ch4_flux',
                               'LE', 'H', 'wind_dir',
-                              'air_temperature','VPD', 'ustar'))
+                              'air_temperature','VPD', 'ustar', 'daytime'))
 
 #gap-filling with MDC:
+#####DAYTIME for gap distribution
+flux.var='daytime'
+EddyProc.C$sFillInit(Var.s=flux.var, 
+                     QFVar.s="none",
+                     FillAll.b=TRUE) #2519 real gaps of 35040 values, with two full years (Jan 1 - Jan 1)
+EddyProc.C$sFillMDC(WinDays.i = 14,
+                    Verbose.b=TRUE)
+#EddyProc.C$sMDSGapFill(Var.s='ch4_flux', FillAll.b = TRUE
+FilledEddyData.S <- EddyProc.C$sExportResults()
+EddyDataWithPosix.S$daytime_filled<-FilledEddyData.S$VAR_f
+#epOutSubFiltGaps<-select(epOutSubFiltGaps, -epOutSubFiltGaps)
+epOutSubFiltGaps<-left_join(epOutSubFiltGaps, 
+                             select(EddyDataWithPosix.S, RDateTime, daytime_filled), 
+                             by="RDateTime")
+
 #####USTAR#####
 flux.var='ustar'
 EddyProc.C$sFillInit(Var.s=flux.var, 

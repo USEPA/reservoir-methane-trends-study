@@ -56,6 +56,7 @@ epOutSubFilt<-epOutSub %>%
      rand_err_LE=replace(rand_err_LE, qc_LE==2 | wind_dir>195 & wind_dir<330, NA),
      #absolute limit:
      ch4_flux=replace(ch4_flux, abs(ch4_flux)>500, NA),
+     co2_flux=replace(co2_flux, abs(co2_flux)>15000, NA),
      LE = replace(LE, abs(LE)>1000, NA),
      H = replace(H, abs(H)>200, NA),
      rand_err_ch4_flux=replace(rand_err_ch4_flux, wind_dir>195 & wind_dir<330, NA),
@@ -138,126 +139,12 @@ epOutSubFilt<-epOutSubFilt%>%
                               as.chron("2017-07-21 23:00:00 UTC"), NA))#, #qc CO2, LE = 2, qc ch4 = 1
 
 
-timeframe30<-seq.POSIXt(from = as.POSIXct("2017-01-01 00:00:00",
-                                          format="%Y-%m-%d %H:%M:%S",
-                                          tz = "UTC"),
-                        to = as.POSIXct("2018-12-31 23:30:00",
-                                        format="%Y-%m-%d %H:%M:%S",
-                                        tz = "UTC"),
-                        by = "30 min")
-
-epTest<-as.data.frame(timeframe30)
-epTest$RDateTime<-epTest$timeframe30
-epTest <- subset(epTest, !duplicated(RDateTime, fromLast=TRUE))
-epOut.R<-select(epOutSubFilt, -monthday, -year)
-epREddy<-left_join(epTest, epOut.R, by="RDateTime")
-#remove duplicate time rows
-epREddy <- subset(epREddy, !duplicated(RDateTime, fromLast=TRUE))
-
-epREddy<-epREddy%>%
-  mutate(Year = year(RDateTime),
-         Hour = as.numeric(times(strftime(RDateTime, format="%T", tz="UTC")))*24,
-         DoY = as.numeric(strftime(RDateTime, format="%j", tz="UTC")),
-         year = year(RDateTime),
-         monthday = format(RDateTime, format="%m-%d %H:%M"))
-epREddy$monthday<-as.POSIXct(epREddy$monthday, format="%m-%d %H:%M", tz="UTC")
-
-#add varnames and units as attributes for prep to use with REddyProc
-
-# varnames.match<- c(RDateTime="RDateTime",	date = "date",	time = "time",DOY=	"DOY", daytime=	"daytime",	
-#                    Tau ="Tau", qc_Tau =	"qc_Tau", H=	"H",	qc_H="qc_H",	rand_err_H="rand_err_H", 
-#                    LE=	"LE",	qc_LE ="qc_LE",rand_err_LE=	"rand_err_LE",
-#                    co2_flux="co2_flux",	qc_co2_flux="qc_co2_flux",	rand_err_co2_flux = "rand_err_co2_flux",
-#                    ch4_flux = "ch4_flux",	qc_ch4_flux = "qc_ch4_flux",	rand_err_ch4_flux = "rand_err_ch4_flux",
-#                    co2_mixing_ratio = "co2_mixing_ratio",	h2o_mixing_ratio = "h2o_mixing_ratio", ch4_mixing_ratio="ch4_mixing_ratio",
-#                    air_temperature = "air_temperature", air_pressure = 	"air_pressure",
-#                    air_density =	"air_density", air_heat_capacity = "air_heat_capacity",
-#                    ET = "ET",	water_vapor_density ="water_vapor_density",	e= "e",	es = "es",	
-#                    specific_humidity = "specific_humidity", RH=	"RH",	VPD="VPD",	Tdew="Tdew",
-#                    u_rot = "u_rot",	v_rot = "v_rot",	w_rot = "w_rot",	wind_speed = "wind_speed",
-#                    max_wind_speed = "max_wind_speed",	wind_dir = "wind_dir",	ustar = "ustar", TKE =	"TKE",L=	"L",	zL="zL",
-#                    bowen_ratio = "bowen_ratio",	Tstar = "Tstar",	model = "model",	x_peak="x_peak",	
-#                    x_offset = "x_offset",	x_10 = "x_10", x_30=	"x_30",	x_50 = "x_50",	x_70="x_70",
-#                    x_90="x_90", w_unrot =	"w_unrot", Year = "Year", Hour = "Hour", DoY = "DoY")
-
-units.match<-c(	RDateTime="-", date = "-", time =	"-", DOY =	"-", daytime = 	"1=daytime",
-                Tau = "kgm-1s-2",qc_Tau =	"-",	H ="Wm-2", qc_H =	"-", rand_err_H = "Wm-2",	LE = "Wm-2", qc_LE =	"-", rand_err_LE=	"Wm-2",	
-                co2_flux = "µmolm-2s-1", qc_co2_flux = "-",rand_err_co2_flux = "µmolm-2s-1",	
-                ch4_flux = "µmolm-2s-1",qc_ch4_flux = "-",rand_err_ch4_flux = "µmolm-2s-1",	
-                co2_mixing_ratio = "ppm",h2o_mixing_ratio = "mmol mol-1", ch4_mixing_ratio = "ppm", 
-                air_temperature = "K",	air_pressure = "Pa", air_density = 	"kgm-3",	air_heat_capacity = "Jkg-1K-1",
-                ET = "mm",	water_vapor_density = "kgm-3",	e= "Pa",	es="Pa",	specific_humidity = "kgkg-1", RH=	"%", VPD=	"Pa",	
-                Tdew= "K",	u_rot = "ms-1",v_rot =	"ms-1",	w_rot = "ms-1",
-                wind_speed = "ms-1",	max_wind_speed = "ms-1",	wind_dir = "deg_from_north",
-                ustar = "ms-1", TKE =	"m+2s-2",	L = "m",	zL = "-",	bowen_ratio = "-",	Tstar = "K",	model = "0=KJ/1=KM/2=HS",	#footprint model
-                x_peak = "m", x_offset = "m",x_10 =	"m", x_30 =	"m",	x_50 = "m",x_70 =	"m", x_90=	"m",	w_unrot = "ms-1", 
-                Year = "-", Hour = "-", DoY = "-"
-)
-
-#epREddy<-Hmisc::upData(epREddy, labels = varnames.match)
-epREddy<-Hmisc::upData(epREddy, units = units.match)
-
 write.table(epOutSubFilt, 
             file=("C:/R_Projects/actonFluxProject/output/acton30minFluxes.csv"),
             sep=",",
             row.names=FALSE)
 
-epOutOrder$windInd<-ifelse(epOutOrder$wind_dir>195&epOutOrder$wind_dir<330,
-                1, #from land
-                0) #from lake
 
-kljun<-select(epOutOrder, RDateTime, wind_speed, L, v_var, ustar, wind_dir)
-kljun_dock<-filter(kljun, RDateTime<"2018-04-01", RDateTime>"2017-04-19",
-                   windInd==0, ustar>0.07)%>%
-  mutate(yyyy=year(RDateTime),
-         mm=month(RDateTime),
-         day=day(RDateTime),
-         HH_UTC = hour(RDateTime),
-         MM = minute(RDateTime),
-         zm = 2.83,
-         z0= 0.01, #aerodynamic roughness length for water = 10^-3
-         d = 0,
-         u_mean=wind_speed,
-         sigma_v = sqrt(v_var),
-         u_star = ustar)
-ggplot(kljun_dock, aes(wind_dir, u_star))+
-  geom_point(alpha=0.2, aes(color=u_mean))+
-  coord_polar()+
-  ylim(0, 1)
-dockFFP<-select(kljun_dock, yyyy, mm, day, HH_UTC, MM, zm, d, z0,
-                u_mean, L, sigma_v, u_star, wind_dir) 
-sum(is.na(dockFFP$yyyy))
-
-write.table(dockFFP, 
-            file="C:/R_Projects/actonFluxProject/output/dockFFP.csv",
-            sep=",",
-            row.names=FALSE)
-
-kljun_aquatic<-filter(kljun, RDateTime>"2018-05-07",
-                      ustar>0.07)%>%
-  mutate(yyyy=year(RDateTime),
-         mm=month(RDateTime),
-         day=day(RDateTime),
-         HH_UTC = hour(RDateTime),
-         MM = minute(RDateTime),
-         zm = 3.0,
-         z0= 0.01, #aerodynamic roughness length for water = 10^-3
-         d = 0,
-         u_mean=wind_speed,
-         sigma_v = sqrt(v_var),
-         u_star = ustar)
-ggplot(kljun_aquatic, aes(wind_dir, u_star))+
-  geom_point(alpha=0.2, aes(color=u_mean))+
-  coord_polar()+
-  ylim(0, 1)
-aqFFP<-select(kljun_aquatic, yyyy, mm, day, HH_UTC, MM, zm, d, z0,
-                u_mean, L, sigma_v, u_star, wind_dir) 
-sum(is.na(dockFFP$L))
-
-write.table(aqFFP, 
-            file="C:/R_Projects/actonFluxProject/output/aqFFP.csv",
-            sep=",",
-            row.names=FALSE)
 
 ##Daily Averages, convert from umol m-2 s-1 to mg m-2 HOUR-1:
 DailyEcFluxes<-epOutSubFilt %>%
@@ -280,152 +167,45 @@ DailyEcFluxes<-DailyEcFluxes%>%
          monthday = format(RDateTime, format="%m-%d %H:%M"))# %>%
 DailyEcFluxes$monthday<-as.Date(DailyEcFluxes$monthday, format="%m-%d %H:%M")
 
-numNAsDaily<-sum(length(which(is.na(DailyEcFluxes$meanCH4Flux))))
-
-#daily avg of VWS -- want to look at PAR per Wik
-DailyVWS<-vanni30min %>%
-  group_by(RDateTime = cut(RDateTime, breaks = "24 hour")) %>%
-  dplyr::summarize(meanPAR = (mean(par.vws, na.rm=TRUE)),
-                   meanWaterT = mean(waterT.vws, na.rm=TRUE),
-                   totRain = sum(rain30min),
-                   meanLakeLvl = mean(levelAdj.vws, na.rm=TRUE)
-  )
-DailyVWS<-DailyVWS %>%
-  mutate(RDateTime=as.Date(DailyVWS$RDateTime),
-         year = year(RDateTime),
-         monthday = format(RDateTime, format="%m-%d %H:%M"))# %>%
-DailyVWS$monthday<-as.Date(DailyVWS$monthday, format="%m-%d %H:%M")
-#sdCH4Flux = (sd(ch4_flux, na.rm=TRUE)/1000*16*60*60),
-#randErrCh4Prop = sqrt(sum((rand_err_ch4_flux/1000*16*60*60)^2, 
-#                          na.rm=TRUE)),
-# meanCO2Flux = (mean(co2_flux, na.rm=TRUE)/1000*44*60*60),
-# sdCO2Flux = (sd(co2_flux, na.rm=TRUE)/1000*44*60*60),
-# nCH4Flux = n_distinct(ch4_flux, na.rm=TRUE),
-# nCO2Flux =  n_distinct(co2_flux, na.rm=TRUE),
-# meanH = (mean(H, na.rm=TRUE)),
-# meanLE = (mean(LE, na.rm=TRUE)),
-# meanAirT = (mean(air_temperature, na.rm=TRUE)-273.15))
-
-
 
 # range(epOutSubFilt$RDateTime)
 # #[1] "2017-01-26 00:30:00 EST" "2018-11-13 17:00:00 EST"
-ggplot(epOutSubFilt, aes(monthday, ch4_flux))+
+ggplot(filter(epOutSubFilt, monthday>"2019-05-01", monthday<"2019-07-01"), 
+       aes(monthday, ch4_flux))+
+  annotate("rect", xmin=as.POSIXct(as.Date("2019-05-24")),
+           xmax=as.POSIXct(as.Date("2019-06-04")),
+           ymin=-Inf, ymax=Inf, alpha=0.5)+
+  geom_line(alpha=0.5)+
   geom_point(alpha=0.1)+
+  scale_x_datetime(date_breaks = "4 days",
+                   labels=date_format("%b %d"))+
   ylim(-0.25, 1.7)+
-    facet_grid(year~.)
+  #ylim(-10, 10)+
+  facet_grid(year~.)
 
-ggplot(filter(DailyEcFluxes, monthday>"2019-05-01", monthday<"2019-07-01"),
+ggplot(filter(DailyEcFluxes, monthday>"2019-05-15", monthday<"2019-06-30"),
        aes(monthday, meanCH4Flux))+
+  geom_line()+
   geom_point(alpha=0.5)+
-  facet_grid(year~.)
-       
-
-
-ggplot(filter(epREddy, monthday>"2019-07-01", monthday<"2019-09-01"),
-              aes(monthday, ch4_flux))+
-  geom_point(alpha=0.2)+
-  geom_point(data=filter(epREddyReprocAL, monthday>"2019-07-01", monthday<"2019-09-01"),
-                         aes(monthday, ch4_flux), alpha=0.1, color="red")+
-  scale_shape_manual(values=c(1, 4))+
-  ylim(-0.25, 1.7)+
+  scale_x_date(date_breaks = "1 week",
+               labels=date_format("%b %d"))+
   facet_grid(year~.)
 
-epREddyReprocAL$ch4_reproc<-epREddyReprocAL$ch4_flux
-epREddy$ch4_orig<-epREddy$ch4_flux
-
-epREddyCompare<-left_join(epREddyReprocAL, epREddy, by="RDateTime")
-
-ggplot(epREddyCompare, aes(ch4_orig, ch4_reproc))+
-  geom_point(alpha=0.3)+
-  geom_abline(slope=1, intercept=0)+
-  xlim(-1, 2)+
-  ylim(-1, 2)
-
-ggplot(epREddyCompare, aes(co2_flux.x, co2_flux.y))+
-  geom_point(alpha=0.3)+
-  xlim(-100, 100)+
-  ylim(-100,100)
-
-ggplot(epREddyCompare, aes(LE.x, LE.y))+
-  geom_point(alpha=0.3)
-
-ggplot(filter(epOutSubFilt, RDateTime>"2019-01-01"), aes(monthday, ch4_flux/1000*16*60*60))+
-  geom_point(alpha=0.3)+
-  ylab("CH4 Flux (mg m-2 hr-1)")
-  ylim(-0.25, 1.7)
-  facet_grid(year~.)
-#   
-# ggplot(filter(epOutSubFilt, RDateTime<"2018-06-05", RDateTime>"2018-05-27"), 
-#        aes(RDateTime, ch4_flux))+
-#     geom_point(alpha=0.1)+
-#   geom_bar(data=filter(epOutFlags, RDateTime<"2018-06-04", RDateTime>"2018-06-03"), 
-#            aes(RDateTime, abs_lim_ch4), stat="identity")+
-#   ylim(-1, 2)
-# 
-# ggplot(filter(epOutOrder, RDateTime>"2018-06-01"), aes(RDateTime, ch4_mixing_ratio))+
-#   geom_point(alpha=0.3)+
-#   ylim(1, 5)
-# 
-# #load in raw data from spring burst
-# rawEC<-read.table("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/L0data/data2018/201804_06/2018-06-03T140000_test.txt",
-#                   skip=7,
-#                   sep="\t",
-#                   header=TRUE)
-# ggplot(rawEC, aes(Seconds, CO2..umol.mol.))+
-#   geom_line()
-# max(rawEC$CH4..umol.mol.)
-# max(rawEC$H2O..mmol.mol.)
-# ####diagnostic flags
-#   #The hard and soft flags are output as bit strings 
-#   # in the order of 8u/v/w/ts/co2/h2o/ch4/n2 (https://www.licor.com/env/help/eddypro/topics_eddypro/Output_Files_Full_Output.html)
-#   # where 0 is Passed
-#   #       1 is Failed
-#   #       9 is not selected
-
-ep.test2 <- read.table(paste(myWd, "/L1eddyproOut/reprocessedLI7500_2019/eddypro_2018_May_ss_lakeht_7500_stats_full_output_2019-04-17T101940_adv.csv", 
-                        sep=""),
-                   sep=",",  # comma separate
-                   skip=3,  # Skip first line of file.  Header info
-                   colClasses = c(rep("character", 3), rep("numeric", 184)),
-                   as.is=TRUE, # Prevent conversion to factor
-                   header=FALSE, # don't import column names
-                   col.names = epHeader2,
-                   na.strings = "NaN",
-                   fill=TRUE)  # Needed to deal with empty cells in last column
-if(mean(ep.test2$co2_mixing_ratio, na.rm=TRUE)<300){
-  ep.test2 <- read.table(paste(myWd, "/L1eddyproOut/reprocessedLI7500_2019/eddypro_2018_May_ss_lakeht_7500_stats_full_output_2019-04-17T101940_adv.csv", 
-                           sep=""),
-                     sep=",",  # comma separate
-                     skip=3,  # Skip first line of file.  Header info
-                     colClasses = c(rep("character", 3), rep("numeric", 159)),
-                     as.is=TRUE, # Prevent conversion to factor
-                     header=FALSE, # don't import column names
-                     col.names = epHeader1,
-                     na.strings = "NaN",
-                     fill=TRUE)  # Needed to deal with empty cells in last column
-}
-
-ep.test2$RDateTime <- as.POSIXct(paste(ep.test2$date, ep.test2$time,sep=""),
-                              format="%m/%d/%Y%H:%M",
-                              tz = "UTC")  # POSIXct
-
-epOut.test<-select(epOutSub, RDateTime, ch4_flux, qc_ch4_flux)
+ggplot(DailyEcFluxes,
+       aes(monthday, meanCO2Flux))+
+  geom_point(alpha=0.5)+
+  ylim(-500, 1000)+
+  ylab("CO2 Flux (mg CO2 m-2 hr-1)")+
+  stat_smooth(se =FALSE)+
+  scale_x_date(labels = date_format("%b"))+
+  facet_grid(year~.)      
 
 
-ep.test2<-left_join(ep.test2, epOut.test, by="RDateTime")
 
-ep.test3<-left_join(epOutFilt.test, epOut.test, by="RDateTime")
-sum(ep.test3$qc_ch4_flux.x==2, na.rm=TRUE)
-sum(ep.test3$qc_ch4_flux.y==2, na.rm=TRUE)
 
-ggplot(ep.test3, aes(RDateTime, ch4_flux.x))+
-  geom_point(alpha=0.4)+
-  geom_point(data=ep.test3, aes(RDateTime, ch4_flux.y), alpha=0.2, color="red")
-  
-ggplot(ep.test3, aes(ch4_flux.y, ch4_flux.x))+
-  geom_point(alpha=0.3)+
-  geom_abline(slope=1, intercept=0)
+
+
+
 # 
 # epOutFlags<-epOutOrder[, c(101:119, 163)]
 # 
@@ -482,29 +262,5 @@ ggplot(ep.test3, aes(ch4_flux.y, ch4_flux.x))+
 #   theme_bw()+
 #   ylim(-150, 100)
 #   
-# 
-# 
-# 
-# 
-# 
-# 
-# ggplot(filter(DailyVWS, year>2016), aes(monthday, meanPAR))+
-#   geom_line(aes(color=as.factor(year)), size=1)+
-#   theme_bw()
-# 
-# ggplot(filter(DailyVWS, year>2016), aes(RDateTime, meanPAR))+
-#   geom_line()+
-#   theme_bw()
-# 
-# ggplot(filter(vanni30min, RDateTime>"2018-07-01", RDateTime<"2018-09-01"),
-#        aes(RDateTime, par.vws))+
-#   geom_line()
-# 
-# ggplot(DailyVWS, aes(RDateTime, totRain))+
-#   geom_line()
-# ggplot(DailyVWS, aes(RDateTime, meanLakeLvl))+
-#   geom_line()
-# ggplot(campMet, aes(RDateTime, Rain_mm_tot))+
-#   geom_line()
-# 
+
 

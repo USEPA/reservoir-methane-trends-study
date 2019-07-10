@@ -27,23 +27,122 @@ ggplot(epOutSubFilt, aes(monthday, air_temperature))+
 epOut2017<-filter(epOutSubFilt, RDateTime<"2018-01-01 00:00")
 
 
+
+
 epOutPow<-filter(epOutSubFilt, RDateTime>"2018-06-04 12:00")
+epOutPowDaily<-filter(DailyEcFluxes, RDateTime>"2018-06-04")
 epOutPowS<-filter(epOutPow, wind_dir<270 & wind_dir > 90)
 epOutPowN<-filter(epOutPow, wind_dir>270 | wind_dir <90)
 epOutPowPelagic<-filter(epOutPow, wind_dir<330 & wind_dir >30)
+
+DailyEcDay<-filter(epOutSubFilt, daytime==1) %>%
+  group_by(RDateTime = cut(RDateTime, breaks = "24 hour")) %>%
+  dplyr::summarize(meanCH4Flux = (mean(ch4_flux, na.rm=TRUE)/1000*16*60*60),
+                   sdCH4Flux = (sd(ch4_flux, na.rm=TRUE)/1000*16*60*60),
+                   randErrCh4Prop = sqrt(sum((rand_err_ch4_flux/1000*16*60*60)^2, 
+                                             na.rm=TRUE)),
+                   meanCO2Flux = (mean(co2_flux, na.rm=TRUE)/1000*44*60*60),
+                   sdCO2Flux = (sd(co2_flux, na.rm=TRUE)/1000*44*60*60),
+                   nCH4Flux = n_distinct(ch4_flux, na.rm=TRUE),
+                   nCO2Flux =  n_distinct(co2_flux, na.rm=TRUE),
+                   meanH = (mean(H, na.rm=TRUE)),
+                   meanLE = (mean(LE, na.rm=TRUE)),
+                   meanAirT = (mean(air_temperature, na.rm=TRUE)-273.15),
+                   meanWnd = mean(wind_speed))
+DailyEcDay<-DailyEcDay%>%
+  mutate(RDateTime=as.Date(DailyEcDay$RDateTime),
+         year = year(RDateTime),
+         monthday = format(RDateTime, format="%m-%d %H:%M"))# %>%
+DailyEcDay$monthday<-as.Date(DailyEcDay$monthday, format="%m-%d %H:%M")
+
+DailyEcNight<-filter(epOutSubFilt, daytime==0) %>%
+  group_by(RDateTime = cut(RDateTime, breaks = "24 hour")) %>%
+  dplyr::summarize(meanCH4Flux = (mean(ch4_flux, na.rm=TRUE)/1000*16*60*60),
+                   sdCH4Flux = (sd(ch4_flux, na.rm=TRUE)/1000*16*60*60),
+                   randErrCh4Prop = sqrt(sum((rand_err_ch4_flux/1000*16*60*60)^2, 
+                                             na.rm=TRUE)),
+                   meanCO2Flux = (mean(co2_flux, na.rm=TRUE)/1000*44*60*60),
+                   sdCO2Flux = (sd(co2_flux, na.rm=TRUE)/1000*44*60*60),
+                   nCH4Flux = n_distinct(ch4_flux, na.rm=TRUE),
+                   nCO2Flux =  n_distinct(co2_flux, na.rm=TRUE),
+                   meanH = (mean(H, na.rm=TRUE)),
+                   meanLE = (mean(LE, na.rm=TRUE)),
+                   meanAirT = (mean(air_temperature, na.rm=TRUE)-273.15),
+                   meanWnd = mean(wind_speed))
+DailyEcNight<-DailyEcNight%>%
+  mutate(RDateTime=as.Date(DailyEcNight$RDateTime),
+         year = year(RDateTime),
+         monthday = format(RDateTime, format="%m-%d %H:%M"))# %>%
+DailyEcNight$monthday<-as.Date(DailyEcNight$monthday, format="%m-%d %H:%M")
 
 ggplot(epOutPow, aes(wind_dir, ch4_flux/10^3*16*60*60))+
   geom_point(alpha=0.1)+
   coord_polar()+
   #ylim(-1, 1)+
-  stat_bin()+
+  #stat_bin()+
   xlim(0, 360)
 
-ggplot(epOutPowPelagic, aes(wind_dir, co2_flux/10^3*44*60*60))+
-  geom_point(alpha=0.3)+
+ggplot(epOut2017, aes(wind_dir, co2_flux/10^3*44*60*60))+
+  geom_point(alpha=0.1)+
   coord_polar()+
-  #ylim(-1, 1)+
-  xlim(0, 360)
+  ylim(-1000, 2500)+
+  xlim(0, 360)+
+  ylab(expression(CO[2]~Flux~(mg~m^-2~hr^-1)))+
+  xlab("Wind Direction")
+
+epOutPow$co2_mgm2h<-epOutPow$co2_flux/10^3*44*60*60
+filter(epOutPow, wind_dir>30, wind_dir<330)%>%
+  summary(epOutPow$co2_flux/10^3*44*60*60)
+
+
+
+ggplot(epOutPow, aes(wind_dir, co2_flux/10^3*44*60*60))+
+  geom_point(alpha=0.1, aes(color=as.factor((epOutPow$daytime))))+
+  coord_polar()+
+  ylim(-1000, 2500)+
+  #xlim(0, 360)+
+  ylab(expression(CO[2]~Flux~(mg~m^-2~hr^-1)))+
+  xlab("Wind Direction")+
+  geom_hline(yintercept=0, size=1, color="white")+
+  scale_x_continuous(limits = c(0,360),
+                       breaks=c(45, 90, 135, 180, 225,
+                              270, 315))+
+  theme(legend.title = element_blank())
+  #scale_y_continuous(breaks=c(-1000, 0, 1000, 2000, 3000))
+  #stat_summary_bin(color="red")
+
+
+
+ggplot(filter(epOutPow, co2_flux<150000), 
+       aes(ustar, co2_flux/10^3*44*60*60))+
+  geom_point(alpha=0.2)+
+  ylim(-5000, 7500)+
+  xlim(0, 0.6)+
+  stat_summary_bin(color="red")
+
+ggplot(epOutPowDaily, aes(wind_dir, co2_flux/10^3*44*60*60))+
+  geom_point(alpha=0.1)+
+  coord_polar()+
+  ylim(-1000, 2500)+
+  xlim(0, 360)+
+  ylab(expression(CO[2]~Flux~(mg~m^-2~hr^-1)))+
+  xlab("Wind Direction")
+
+ggplot(filter(epOutPow, daytime==1), aes(wind_dir, co2_flux/10^3*44*60*60))+
+  geom_point(alpha=0.3, color="orange")+
+  coord_polar()+
+  ylim(-1000, 2500)+
+  xlim(0, 360)+
+  ylab(expression(Daytime~CO[2]~Flux~(mg~m^-2~hr^-1)))+
+  xlab("Wind Direction")
+
+ggplot(filter(epOutPow, daytime==0), aes(wind_dir, co2_flux/10^3*44*60*60))+
+  geom_point(alpha=0.3, color="blue")+
+  coord_polar()+
+  ylim(-1000, 2500)+
+  xlim(0, 360)+
+  ylab(expression(Nighttime~CO[2]~Flux~(mg~m^-2~hr^-1)))+
+  xlab("Wind Direction")
 
 ggplot(epOutPowS, aes(monthday, co2_flux/1000000*16*60*60))+
   geom_point(alpha=0.1)+

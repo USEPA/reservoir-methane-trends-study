@@ -1,10 +1,12 @@
 
 
-source("C:/R_Projects/EC/scriptsAndRmd/masterLibrary.R")
+source("scriptsAndRmd/masterLibraryActon.R")
 #library(OceanView)
 library(rLakeAnalyzer)
 library(chron)
 library(tidyverse)
+
+source("scriptsAndRmd/loadEddyPro.R")
 
 rLakeBuoyT<-buoyT30min
 rLakeRbrT<-rbrTsub
@@ -36,21 +38,42 @@ bvf$year<-year(bvf$datetime)
 bvf$monthday<- format(bvf$datetime, format="%m-%d %H:%M")%>%
   as.POSIXct(monthday, format="%m-%d %H:%M", tz="UTC")
 
-ggplot(filter(bvf, monthday>"2019-04-01"), aes(monthday, N2_1.125))+
+ggplot(filter(bvf, monthday>"2019-07-01", monthday<"2019-07-10"), aes(monthday, N2_1.125))+
   geom_line(alpha=1)+
   facet_grid(year~.)+
   geom_vline(xintercept=as.POSIXct("2019-05-30 00:00:00", 
-                                   format="%Y-%m-%d %H:%M:%S", tz="UTC"))
+                                   format="%Y-%m-%d %H:%M:%S", tz="UTC"))+
+  ylim(-0.01, 0.03)
 
 dailyBVF<-bvf%>%
   group_by(datetime=cut(datetime, breaks="24 hour"))%>%
   dplyr::summarize(maxBV = max(N2_1.125, na.rm=TRUE))
 dailyBVF$RDateTime<-as.Date(dailyBVF$datetime)
 
+
+#####FIGURE 2E: BV Frequency#########
+ggplot(dailyBVF, aes(RDateTime, maxBV*1000))+
+  annotate("rect", xmin=as.Date("2017-05-24"),
+           xmax=as.Date("2017-06-04"),
+           ymin=-Inf, ymax=Inf, alpha=0.5)+
+  annotate("rect", xmin=as.Date("2018-05-24"),
+           xmax=as.Date("2018-06-04"),
+           ymin=-Inf, ymax=Inf, alpha=0.5)+
+  geom_line(alpha=0.5)+
+  geom_point(alpha=0.4, size=1)+
+  theme_bw()+
+  scale_x_date(labels=date_format("%b %Y", tz="UTC"), 
+                   breaks=date_breaks("2 month"),
+                   limits = c(as.Date("2017-01-01"),
+                              as.Date("2018-11-20")))+
+  ylab(expression(BV~Freq~(ms^-1)))+
+  xlab("")
+###############################  
+
 DailyEcFluxes<-left_join(DailyEcFluxes, dailyBVF, by="RDateTime")
 
 ggplot(DailyEcFluxes, aes(maxBV, meanCH4Flux))+
-  geom_point()
+  geom_point(alpha=0.5, aes(color=as.factor(year)))
 
 ggplot(DailyEcFluxes, aes(monthday, meanCH4Flux))+
   geom_point(alpha=0.5)+
@@ -108,6 +131,7 @@ U12sondePro<-U12sondePro%>%
 
 U12sondePro<-filter(U12sondePro, Temp.C!=6.71, Temp.C!=16.06, Temp.C !=14.24,
                     Temp.C!=13.85, Temp.C!=13.01)
+U12sondePro<-U12sondePro[1:289,]
 sum(U12sondePro$Temp.C==13.01)
  
 #wahoo, this works!!
@@ -126,8 +150,9 @@ U12SondePro.s<-U12SondePro.s%>%
                 wtrT_8 = "8")
 U12SondePro.rLake<-select(U12SondePro.s, -Site, -Lake)
 
+par(fg=NA, col="black", borders="black", axisTicks(usr=c(5, 35), log=FALSE, nint = 14)) #this gets rid of the lines on the legend
 
-par(fg=U12SondePro.rLake, col="black", axisTicks(usr=c(5, 35), log=FALSE, nint = 14)) #this gets rid of the lines on the legend
+#par(fg=U12SondePro.rLake, col="black", axisTicks(usr=c(5, 35), log=FALSE, nint = 14)) #this gets rid of the lines on the legend
 #https://stackoverflow.com/questions/8068366/removing-lines-within-filled-contour-legend
 rLakeAnalyzer::wtr.heat.map(U12SondePro.rLake,
                             zlim=c(5, 35),
@@ -154,17 +179,43 @@ rLakeAnalyzer::wtr.heat.map(U12SondePro.rLake,
                             key.title = title(main = "Celsius", cex.main = 1, line=1),
                             plot.title = title(ylab = "Depth (m)",
                                                main="Deep Site T Profile"))
+###adding in blank filler on x-axis to match wtr.heat.map with other Fig 2 panels
+timeframeDaily<-seq.POSIXt(from = as.POSIXct("2016-12-01 00:00:00",
+                                          format="%Y-%m-%d %H:%M:%S",
+                                          tz = "UTC"),
+                        to = as.POSIXct("2017-04-24 23:30:00",
+                                        format="%Y-%m-%d %H:%M:%S",
+                                        tz = "UTC"),by = "1 day")
+fillerDF<-as.data.frame(timeframeDaily)
+#temp<-nrow(timeframeDaily)
+fillerDF<-fillerDF%>%
+  mutate(datetime=as.Date(timeframeDaily),
+         wtrT_0=NaN,
+         wrtT_1=NaN,
+         wtrT_2=NaN,
+         wtrT_3=NaN,
+         wtrT_4=NaN,
+         wtrT_5=NaN,
+         wtrT_6=NaN,
+         wtrT_7=NaN,
+         wtrT_8=NaN)
+
 
 myDeepTList <- list()
 myDeepTList[[1]]<-filter(U12SondePro.rLake, datetime>"2017-10-15", datetime<"2018-01-01")
 myDeepTList[[2]]<-filter(U12SondePro.rLake, datetime>"2018-10-15")
 myDeepTList[[3]]<-rLakeBuoyDaily
+myDeepTList[[4]]<-select(fillerDF, -timeframeDaily)
+names(myDeepTList[[4]])<-names(myDeepTList[[1]])
 rLakeBuoySonde<-do.call("rbind", myDeepTList)
 rLakeBuoySonde<-rLakeBuoySonde[order(rLakeBuoySonde$datetime),]
 
-plotTicks<-seq(from=as.Date(rLakeBuoySonde$datetime[1]),
-               to = as.Date(rLakeBuoySonde$datetime[345]),
+rLakeBuoySonde$datetime[32]
+
+plotTicks<-seq(from=as.Date(rLakeBuoySonde$datetime[32]),
+               to = as.Date(rLakeBuoySonde$datetime[nrow(rLakeBuoySonde)]),
                by = "1 month")
+par(fg="black", col="black", axisTicks(usr=c(5, 35), log=FALSE, nint = 14)) #this gets rid of the lines on the legend
 
 
 #Current best version of Figure 1 f
@@ -179,6 +230,7 @@ wtr.heat.map(rLakeBuoySonde,
                                     format="%b %Y");
                axis(2)},
              borders="black")
+
 #https://stackoverflow.com/questions/41186998/controlling-x-axis-time-stamp-on-filled-contour-plot-r
 
 ###Setup for wedderburn number calculation

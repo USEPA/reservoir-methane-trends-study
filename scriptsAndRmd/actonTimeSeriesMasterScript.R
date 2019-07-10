@@ -3,6 +3,7 @@
 source("scriptsAndRmd/masterLibraryActon.R")
 
 
+
 #load GLEON dissolved & saturated gas concentration code 
 source("scriptsAndRmd/def.calc.sdg.R")
 
@@ -76,12 +77,15 @@ source("scriptsAndRmd/qcEddyPro.R")
 source("scriptsAndRmd/calculateEbEmissions.R")
         #calculates time series of ebullition emissions
         #from the active trap data
-file.edit('scriptsAndRmd/hydroDynamicsVanniBuoy.R') #Figure 2 f
+file.edit('scriptsAndRmd/edi.256.1.r') #vanni stream gauge data, figure 2 d
+file.edit('scriptsAndRmd/metPlotsFig2.R')#figure 2 a-c, d-e
+file.edit('scriptsAndRmd/hydroDynamicsVanniBuoy.R') #Figure 2 e&f
 file.edit('scriptsAndRmd/rEddyProc.R')
 file.edit('scriptsAndRmd/fluxTmprPlots.R')
 file.edit('scriptsAndRmd/ecFluxAnalysisPlots.R')
 file.edit('scriptsAndRmd/cumulativeTS.R')
     #time series plot (Figure 4)
+file.edit('scriptsAndRmd/diurnalAnalysis.R') #makes diurnal pdfs
 
 #run fluxTmprPlots to make plots used in AGU poster
 # cumulativeTS.R is the script used to transform time series flux data into 
@@ -94,3 +98,6 @@ rm(vanniMet, vanniMetSub, txtFilesSize, OUT, rbrT, ggaGRTS1,
 rm(ch4.ex.pred, chmVol.L.i, co2.ex.pred, gga, 
    ggaList, dupes)
 rm(metaDataTrap, metaDataDG)
+
+#gapfilling scripts:
+

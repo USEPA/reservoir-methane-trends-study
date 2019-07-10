@@ -12,7 +12,43 @@
 ## 6. Heat map ribbon plot of gap distribution and attribution
 ## 7. What does the daily coverage look like if we use averages from days with >8 observations?
 
-epOutSubFiltGaps<-filter(epOutSubFilt, RDateTime>"2017-01-25")
+timeframe30<-seq.POSIXt(from = as.POSIXct("2017-01-26 00:00:00",
+                                          format="%Y-%m-%d %H:%M:%S",
+                                          tz = "UTC"),
+                        to = as.POSIXct("2018-11-13 23:30:00",
+                                        format="%Y-%m-%d %H:%M:%S",
+                                        tz = "UTC"),
+                        by = "30 min")
+
+epTest<-as.data.frame(timeframe30)
+epTest$RDateTime<-epTest$timeframe30
+epTest <- subset(epTest, !duplicated(RDateTime, fromLast=TRUE))
+epOut.R<-select(epOutSubFilt, -monthday, -year)
+epREddyGaps<-left_join(epTest, epOut.R, by="RDateTime")
+#remove duplicate time rows
+epOutSubFiltGaps <- subset(epREddyGaps, !duplicated(RDateTime, fromLast=TRUE))
+
+###Use rEddyProc to gap fill daytime
+
+sum(is.na(epOutSubFiltGaps$daytime_filled))
+epOutSubFiltGaps$daytime_gf_round<-round(epOutSubFiltGaps$daytime_filled, digits = 0)
+
+epNightS1<-filter(epOutSubFiltGaps, daytime_gf_round==0, RDateTime<"2018-05-01")
+S1nocNAs<-sum(length(which(is.na(epNightS1$ch4_flux))))
+S1tot<-nrow(epNightS1)
+print(c("S1 Nighttime Acceptance %:", 100-round(S1nocNAs/S1tot*100, digits=2)))
+
+epNightS2<-filter(epOutSubFiltGaps, daytime_gf_round==0, RDateTime>"2018-05-01")
+S2nocNAs<-sum(length(which(is.na(epNightS2$ch4_flux))))
+S2tot<-nrow(epNightS2)
+print(c("S2 Nighttime Acceptance %:", 100-round(S2nocNAs/S2tot*100, digits=2)))
+
+
+
+
+#epOutSubFiltGaps<-filter(epOutSubFilt, RDateTime>"2017-01-25", RDateTime<"2018-11-13")
+#epOutSubFiltGaps <- subset(epOutSubFiltGaps, !duplicated(RDateTime, fromLast=TRUE))
+#epOutSubFiltGaps<-filter(epREddyGaps, RDateTime>"2017-01-25")
 
 #1. How many gaps overall?
 totFilt<-length(epOutSubFiltGaps$ch4_flux)
@@ -20,28 +56,31 @@ numNAsFilt<-sum(length(which(is.na(epOutSubFiltGaps$ch4_flux))))
 (epOutSubFiltGaps$RDateTime[1])
 epOutSubFiltGaps$RDateTime[length(epOutSubFiltGaps$RDateTime)]
 print(c("Total Rejection %:", round(numNAsFilt/totFilt*100, digits=2)))
+print(c("Total Acceptance %:", 100-round(numNAsFilt/totFilt*100, digits=2)))
 
-epOutGaps17<-filter(epOutSubFilt, RDateTime<"2018-01-01")
+epOutGaps17<-filter(epOutSubFiltGaps, RDateTime<"2018-01-01")
 filt2017<-length(epOutGaps17$ch4_flux)
 numNAsFilt17<-sum(length(which(is.na(epOutGaps17$ch4_flux))))
 print(c("2017 Rejection %:", round(numNAsFilt17/filt2017*100, digits=2)))
+print(c("2017 Acceptance %:", 100-round(numNAsFilt17/filt2017*100, digits=2)))
 
-epOutGaps18<-filter(epOutSubFilt, RDateTime>"2018-01-01")
+epOutGaps18<-filter(epOutSubFiltGaps, RDateTime>"2018-01-01")
 filt2018<-length(epOutGaps18$ch4_flux)
 numNAsFilt18<-sum(length(which(is.na(epOutGaps18$ch4_flux))))
 print(c("2018 Rejection %:", round(numNAsFilt18/filt2018*100, digits=2)))
 
-epOutGapsECS1<-filter(epOutSubFilt, RDateTime<"2018-04-18")
+epOutGapsECS1<-filter(epOutSubFiltGaps, RDateTime<"2018-04-18")
 filtECS1<-length(epOutGapsECS1$ch4_flux)
 numNAsFiltECS1<-sum(length(which(is.na(epOutGapsECS1$ch4_flux))))
 print(c("ECS1 Rejection %:", round(numNAsFiltECS1/filtECS1*100, digits=2)))
 head(epOutGapsECS1)
 tail(epOutGapsECS1)
 
-epOutGapsECS2<-filter(epOutSubFilt, RDateTime>"2018-05-05")
+epOutGapsECS2<-filter(epOutSubFiltGaps, RDateTime>"2018-05-05")
 filtECS2<-length(epOutGapsECS2$ch4_flux)
 numNAsFiltECS2<-sum(length(which(is.na(epOutGapsECS2$ch4_flux))))
 print(c("ECS2 Rejection %:", round(numNAsFiltECS2/filtECS2*100, digits=2)))
+print(c("ECS2 Acceptance %:", 100-round(numNAsFiltECS2/filtECS2*100, digits=2)))
 head(epOutGapsECS2)
 tail(epOutGapsECS2)
 

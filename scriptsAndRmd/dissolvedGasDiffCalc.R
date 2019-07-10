@@ -117,11 +117,45 @@ actonDGoutput<-mutate(actonDGoutput,
 
 
  ggplot(filter(actonDGoutput,sample.depth.m==0.1), aes(sample.date, deltaCO2))+
-   geom_jitter(aes(color=site), alpha=0.8)
-   scale_x_datetime(breaks=date_breaks("2 weeks"),
+   geom_jitter(aes(color=site), alpha=0.8)+
+   scale_x_date(breaks=date_breaks("2 months"),
                   labels=date_format("%d %b"),
                   name="Date")
      #removed 52 rows, 14 are depth profiles from the dock w/out T info
+ 
+ actonDGoutput<-actonDGoutput%>%
+   mutate(sampleDepthFactor = as.factor(sample.depth.m),
+          sampleDepthFactor = replace(sampleDepthFactor, sampleDepthFactor == 0.8,
+                                      0.75),
+          sampleDepthFactor = replace(sampleDepthFactor, sampleDepthFactor == 1.25,
+                                      1.3))
+ 
+ actonDGoutputAvg<-actonDGoutput%>%
+   group_by(site, sample.date, sampleDepthFactor)%>%
+   dplyr::summarize(meanDissCH4 = mean(dissolvedCH4, na.rm=TRUE),
+                    sdDissCH4 = sd(dissolvedCH4, na.rm=TRUE))
+#deep site: 
+ ggplot(filter(actonDGoutputAvg, site=="u12", meanDissCH4<0.0025), 
+        aes(sample.date, meanDissCH4*10^6))+
+   geom_point(alpha=0.5)+
+   facet_grid(sampleDepthFactor~.,
+              scales="free")+
+   scale_x_date(breaks=date_breaks("2 months"),
+                labels=date_format("%b %y"),
+                name="Date")+
+   ylab("dissolved CH4 (uM microMolar)")
+ 
+#shallow site:
+ ggplot(filter(actonDGoutputAvg, site=="u14", meanDissCH4<0.0025), 
+        aes(sample.date, meanDissCH4*10^6))+
+   geom_point(alpha=0.5)+
+   facet_grid(sampleDepthFactor~.,
+              scales="free")+
+   scale_x_date(breaks=date_breaks("2 months"),
+                labels=date_format("%b %y"),
+                name="Date")+
+   ylab("dissolved CH4 (uM microMolar)")
+ #removed 52 rows, 14 are depth profiles from the dock w/out T info
  
  ggplot(filter(actonDGoutput,sample.depth.m==0.1), aes(sample.date, deltaCH4))+
    geom_point(aes(color=site))
@@ -196,7 +230,7 @@ metaDataSonde<-mutate(metaDataSonde,
        K2 = (10^(pK2)^-1),
        aH = 1/10^(pH),
        sample.date = as.Date(Sample.Date),
-       sampleID = )
+       sampleID = Site)
 
 #dissociation costant for water at 25 degrees C is 1.023*10^-14 (https://en.wikipedia.org/wiki/Dissociation_constant)
 Kw<-1.023*10^-14
@@ -239,5 +273,17 @@ ggplot(actonDGfluxes, aes(sample.date, meanN2OFlux))+
   geom_point(aes(color=site))+
   geom_errorbar(aes(ymax = meanN2OFlux+sdN2OFlux, 
                     ymin = meanN2OFlux-sdN2OFlux,
+                    color=site))
+ggplot(actonDGfluxes, aes(sample.date, meanCH4Flux))+
+  geom_point(aes(color=site))+
+  geom_errorbar(aes(ymax = meanCH4Flux+sdCH4Flux, 
+                    ymin = meanCH4Flux-sdCH4Flux,
+                    color=site))+
+  ylab("CH4 DG Diffusion (mg CH4 m-2 hr-1)")+
+  ylim(0, 2)
+ggplot(actonDGfluxes, aes(sample.date, meanCO2Flux))+
+  geom_point(aes(color=site))+
+  geom_errorbar(aes(ymax = meanCO2Flux+sdCO2Flux, 
+                    ymin = meanCO2Flux-sdCO2Flux,
                     color=site))
   
