@@ -607,15 +607,27 @@ write.table(fluxDatToUse,
             file=("C:/R_Projects/actonFluxProject/output/annDataset_20190610.csv"),
             sep=",",
             row.names=FALSE)
-###Realizing I need parameters from annDat to evaluate each run
-###Should save here
-write.table(annDat,
-            file=(paste("C:/R_Projects/actonFluxProject/output/annDat", 
-                        runVer, ".csv", sep="")),
-                  sep=",",
-                  row.names=FALSE)
 
-annDat <- subset(annDat, complete.cases(annDat[,2:ncol(annDat)]))
+annIN<-read.csv("C:/R_Projects/actonFluxProject/output/annDataset_20190610.csv")
+annIN<-annIN%>%
+  mutate(datetime = as.POSIXct(datetime, format="%Y-%m-%d %H:%M:%S", tz="UTC"),
+         DOY = as.numeric(format(datetime, "%j")),
+         HOD = as.numeric(hms::hms(second(datetime),minute(datetime),hour(datetime))))
+
+###Realizing I need parameters from annDat to evaluate each run
+# ###Should save here
+# write.table(annDat,
+#             file=(paste("C:/R_Projects/actonFluxProject/output/annDat", 
+#                         runVer, ".csv", sep="")),
+#                   sep=",",
+#                   row.names=FALSE)
+
+annIN2<-select(annIN, -fuzzyRAD)
+annDat<-subset(annIN2, complete.cases(annIN2[,4:ncol(annIN2)]))
+
+annDat<-select(annDat, -index, -co2_flux, -datetime)
+
+#annDat <- subset(annDat, complete.cases(annDat[,2:ncol(annDat)]))
 
 write.table(annDat,
             file=(paste("C:/R_Projects/actonFluxProject/output/annDat", 

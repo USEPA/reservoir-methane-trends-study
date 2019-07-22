@@ -7,7 +7,7 @@
 gga <- filter(gga, !is.na(RDateTime))  # strip out missing RDateTime.  They complicate functions below.
 
 
-#2. Load in the chamber info from the 2017 bi-weekly Acton visits
+#2. Load in the chamber info from the 2018 CO2 transect survey
 
 chamData<-read.xls("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/ebullition2018/CO2survey/TransectSurvey20180803.xlsx")
 

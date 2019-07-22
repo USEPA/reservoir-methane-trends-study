@@ -1,87 +1,24 @@
 
-####Run if starting from scratch#########
-library(reshape2)
-library(neuralnet); library(ggplot2); library(suncalc); 
-library(plyr); library(imputeTS); library(caret); library(nnet)
-library(dplyr); library(zoo)
-
-runVer<-"6.1" 
-
-annDat<-read.csv(paste("C:/R_Projects/actonFluxProject/output/annDat",
-                       runVer, ".csv", sep=""))
-
-fluxDatFilled<-read.csv("output/annDataset_20190403.csv")
-fluxDatFilled$datetime <-as.POSIXct(fluxDatFilled$datetime, tz="etc/GMT+5")
-
-# Do training, testing validation sets 
-annDat <- subset(annDat, complete.cases(annDat[,2:ncol(annDat)]))
-maxs <- apply(annDat, 2, max, na.rm=TRUE)
-mins <- apply(annDat, 2, min, na.rm=TRUE)
-scaledDat <- as.data.frame(scale(annDat, center = mins, scale = maxs - mins))
-#summary(scaledDat)
-## K-means clustering of data points, for training/testing/validation sets
-set.seed(4321)
-k <- 10
-kClusters <- kmeans(scaledDat[,2:ncol(scaledDat)], centers = k)
-df <- data.frame("Index" = 1:nrow(scaledDat),
-                 "Cluster" = kClusters$cluster)
-set.seed(1111)
-trainProp <- 0.5
-sizeClust <- as.vector(table(df$Cluster))
-nSampsClust <- ceiling(trainProp*sizeClust)
-trainList <- dlply(df, .(Cluster), function(x){
-  # x <- subset(df, Cluster == 1)
-  sampInd <- unique(x$Cluster)
-  sample(x$Index, nSampsClust[sampInd], replace = FALSE)
-})
-trainInds <- unlist(trainList)
-trainDat <- scaledDat[trainInds,]
-## Same routine for testing set
-set.seed(2222)
-testProp <- 0.5 # We're taking half of what's left, so 25% of the total.
-# Take out the 'training' indices and sample from what's left.
-dfTest <- df[-trainInds,]
-sizeClust <- as.vector(table(dfTest$Cluster))
-nSampsClust <- ceiling(testProp*sizeClust)
-testList <- dlply(dfTest, .(Cluster), function(x){
-  # x <- subset(df, Cluster == 1)
-  sampInd <- unique(x$Cluster)
-  sample(x$Index, nSampsClust[sampInd], replace = FALSE)
-})
-testInds <- unlist(testList)
-testDat <- scaledDat[testInds,]
-## Validation data is everything left.
-validationDat <- scaledDat[-c(trainInds,testInds),]
-
-## Set up a simulation with varying hidden layers and seeds.
-seeds <- 101:150
-layers <- 5:20
-trainSet <- subset(trainDat, !is.na(ch4_flux))
-testSet <- subset(testDat, !is.na(ch4_flux))
-validSet <- subset(validationDat, !is.na(ch4_flux))
-testFlux <- testSet$ch4_flux *(maxs[1] - mins[1]) + mins[1]
-
-load(paste("output/annSimulationList", runVer, ".RData", sep=""))
-######
 
 load("output/ANNerrors/Resample1_fits.RData")
+runVer=7.1
 
 ##Start here if you just ran an ANN Fit Model
 
 ## Look at the simList object and pick out the 'best' models
 ## Look at the R^2 values first
-r2Sims <- sapply(simList, function(x){ x$r2 })
+r2Sims <- sapply(errorFits, function(x){ x$r2 })
 summary(r2Sims) #median of 5.0 = 0.49!; max = 0.579
- sum(r2Sims>= 0.5)/length(r2Sims) # ver 5.0: 30% are higher than 0.5 (!!!) I think this did get overwritten :(
-                                 # ver 5.1: 8.75% > 0.5
-                                 # ver 5.2: 54% > 0.5  
-                                 # ver 5.3: negative median, max of 0.33 
-                                 # ver 5.4: median: 0.27, max = 0.71
+sum(r2Sims>= 0.5)/length(r2Sims) # ver 5.0: 30% are higher than 0.5 (!!!) I think this did get overwritten :(
+
 # Find the highest 100 R2 values
+
 minR2 <- sort(r2Sims, decreasing = TRUE)[100]
+minR2 <- sort(r2Sims, decreasing = TRUE)[3]
+
 # Subset the simList object to only include the highest 100 R2 values.
-simKeep <- sapply(simList, function(x){ x$r2 >= minR2 } )
-bestANNs <- simList[simKeep]
+simKeep <- sapply(errorFits, function(x){ x$r2 >= minR2 } )
+bestANNs <- errorFits[simKeep]
 save(bestANNs, file = paste("output/BestANNs", runVer, ".RData", sep=""))
 #load("output/BestANNs5.2.RData")
 #fluxDatFilled<-read.csv("output/annDatasetMDC_filled.csv")
@@ -89,9 +26,10 @@ save(bestANNs, file = paste("output/BestANNs", runVer, ".RData", sep=""))
 #                                   format="%Y-%M-%D")
 
 ## Get R^2 for each of the 'best' ANNs from validation data set.
+
 validFlux <- validSet$ch4_flux * (maxs[1] - mins[1]) + mins[1]
 annCols<-names(annDat)
-validRuns <- lapply(errorFits, function(x){
+validRuns <- lapply(bestANNs, function(x){
   # x <- bestANNs[[1]]
   tmpPreds <- predict(x$ann, newdata = validSet[,annCols[-1]]) * 
     (maxs[1] - mins[1]) + mins[1]
@@ -107,7 +45,8 @@ medR2 <- 1 - (sum((validFlux-validMedians)^2)/sum((validFlux-mean(validFlux))^2)
 
 ## Grab variable importance from ANN ensemble. Each ANN is one model -- a weighted linear combination. 
 ## Question is how to combine the ensemble into one result
-impVars <- do.call(rbind,lapply(errorFits, function(x){ x$varimp}))
+impVars <- do.call(rbind,lapply(errorFits, function(x){ x$varImp}))
+#impVars <- do.call(rbind,lapply(bestANNs, function(x){ x$varimp}))
 impVarsMedians <- ddply(impVars, .(Variable), summarise, 
                         "MedianImportance" = median(Importance))
 
@@ -174,11 +113,11 @@ ch4ANN.LQ<-c(0, apply(ch4ANNDf, 1, quantile, probs=0.25, na.rm=TRUE))
 ch4ANN.UQ<-c(0, apply(ch4ANNDf, 1, quantile, probs=0.75, na.rm=TRUE))
 
 ch4ANN_med <- ifelse(is.na(fluxDatFilled$ch4_flux), 
-                    ch4ANNFits,
-                    fluxDatFilled$ch4_flux)
+                     ch4ANNFits,
+                     fluxDatFilled$ch4_flux)
 ch4ANN_LQ <- ifelse(is.na(fluxDatFilled$ch4_flux), 
-                 ch4ANN.LQ,
-                 fluxDatFilled$ch4_flux)
+                    ch4ANN.LQ,
+                    fluxDatFilled$ch4_flux)
 ch4ANN_UQ <- ifelse(is.na(fluxDatFilled$ch4_flux), 
                     ch4ANN.UQ,
                     fluxDatFilled$ch4_flux)
@@ -293,7 +232,7 @@ ggplot(fluxDatFilled, aes(monthday, ch4_cumu_ann))+
   ylab(expression(Cumulative~Areal~Emissions~(g~CH[4]~m^-2)))+
   xlab("")+
   scale_x_date(breaks=date_breaks("1 month"),
-                   labels=date_format("%b"))+
+               labels=date_format("%b"))+
   theme_bw()
 
 names(fluxDatFilled)[names(fluxDatFilled)=="ch4_preds"]<-paste("ch4_preds", runVer, sep="")
@@ -305,7 +244,3 @@ names(fluxDatFilled)[names(fluxDatFilled)=="ch4_cumulativeUQ"]<-paste("ch4_cumul
 
 write.csv(fluxDatFilled, paste("output/fluxDataFilled", runVer, ".csv", sep=""), row.names = FALSE)
 
-
-#write.csv(fluxDatFilled, "output/fluxDataFilled5.1.csv", row.names = FALSE)
-#write.csv(fluxDatEbFilled, "output/FluxDataEbWithFits.csv", row.names = FALSE)
-#######
