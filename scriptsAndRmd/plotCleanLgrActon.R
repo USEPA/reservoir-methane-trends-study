@@ -12,10 +12,10 @@ gga <- filter(gga, !is.na(RDateTime))  # strip out missing RDateTime.  They comp
     ### 12/27/2018: SW copied the 2018 chamber info from the masterDataSheet to the bi-weekly excel file 
 
 perl <- "C:/Strawberry/perl/bin/perl.exe"
-chamData<-read.xls("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/survey/chamberBiweekly.xlsx")
+chamData1718<-read.xls("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/actonEddyCovariance/survey/chamberBiweekly.xlsx")
 
 #reformat several columns and make two derivitive columns
-chamData <- mutate(chamData, 
+chamData1718 <- mutate(chamData1718, 
                    chmDeplyDtTm = as.POSIXct(paste(deplyDt, chmStTm, sep=""),
                                              format="%Y-%m-%d%H:%M:%S",
                                              tz="UTC"),
@@ -24,9 +24,26 @@ chamData <- mutate(chamData,
                    chmVol.L = (42.057 + (-0.2189 * chm_vol)),
                    dateTimeSampled = as.character(chmDeplyDtTm))
 
+chamData19<-read.xls("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/ebullition2019/masterDataSheetEbullition2019.xlsx",
+                     sheet = "floatingChamberData")
+chamData19 <- mutate(chamData19, 
+                       chmDeplyDtTm = as.POSIXct(paste(sample.date, chm.deply.time, sep=""),
+                                                 format="%Y-%m-%d%H:%M:%S",
+                                                 tz="UTC"),
+                       deplyDt = as.character(sample.date),
+                       siteID = as.character(site),
+                       chmVol.L = (42.057 + (-0.2189 * (chamber.vol.l.a+chamber.vol.l.b)/2)),
+                       dateTimeSampled = as.character(paste(sample.date, chm.deply.time, sep=" ")))
+chamDataL<-list()
+chamDataL[[1]]<-select(chamData1718, -chmStTm, -chm_vol)
+chamDataL[[2]]<-select(chamData19, siteID, deplyDt, chmDeplyDtTm, chmVol.L, dateTimeSampled)
+
+chamData<-do.call("rbind", chamDataL)
+
 chamData<-chamData%>%
   mutate(siteID = replace(siteID, siteID=="u12", "U-12"),
-         siteID = replace(siteID, siteID=="u14", "U-14"))
+         siteID = replace(siteID, siteID=="u14", "U-14"),
+         siteID = replace(siteID, siteID=="u36", "U-36"))
 
 #many of the chamber deployment times have duplicates from restarts
 omitTimes <- c("2017-06-26 15:18:30", 
@@ -67,7 +84,11 @@ omitTimes <- c("2017-06-26 15:18:30",
                "2018-09-20 11:37:53",
                "2018-09-20 11:40:24",
                "2018-10-18 12:40:28",
-               "2018-10-18 12:48:10"
+               "2018-10-18 12:48:10",
+               "2018-12-13 14:17:23",
+               "2019-03-27 14:36:20.00",
+               "2019-03-27 15:35:46.00"
+               
                ) #any that need to be omitted due to physical QAQC
 omitTimes<-as.POSIXct(omitTimes, format="%Y-%m-%d %H:%M:%S", tz="UTC")
 chamData <- filter(chamData, !(chmDeplyDtTm %in% omitTimes))
@@ -158,8 +179,34 @@ adjData <- c("2017-05-10 12:11:00", "U-12", "2017-05-10 12:12:00", "2017-05-10 1
              "2018-10-30 12:44:03", "U-12", "2018-10-30 12:44:30", "2018-10-30 12:48:00", "2018-10-30 12:44:30", "2018-10-30 12:48:00",
              "2018-10-30 14:01:50", "U-14", "2018-10-30 14:02:30", "2018-10-30 14:05:00", "2018-10-30 14:02:30", "2018-10-30 14:05:00",
              "2018-11-15 14:34:43", "U-12", "2018-11-15 14:40:03", "2018-11-15 14:42:43", "2018-11-15 14:40:03", "2018-11-15 14:42:43",
-             "2018-11-15 15:32:12", "U-14", "2018-11-15 15:32:30", "2018-11-15 15:37:00", "2018-11-15 15:32:30", "2018-11-15 15:37:00"
-            # Date_Time_Sampled,       siteID,     co2DeplyDtTm,            co2RetDtTm,          ch4DeplyDtTm,        ch4RetDtTm
+             "2018-11-15 15:32:12", "U-14", "2018-11-15 15:32:30", "2018-11-15 15:37:00", "2018-11-15 15:32:30", "2018-11-15 15:37:00",
+             "2019-03-27 15:35:20", "U-14", "2019-03-27 14:37:00", "2019-03-27 14:42:00", "2019-03-27 14:38:00", "2019-03-27 14:42:00",
+             "2019-03-27 14:36:20", "U-36", "2019-03-27 15:36:00", "2019-03-27 15:40:00", "2019-03-27 15:36:00", "2019-03-27 15:39:00",
+             "2019-04-10 14:27:36.00", "U-12", "2019-04-10 14:28:00", "2019-04-10 14:33:00", "2019-04-10 14:29:00", "2019-04-10 14:32:00",
+             "2019-04-11 14:00:36.00", "U-14", "2019-04-11 14:02:00", "2019-04-11 14:04:00", "2019-04-11 14:01:00", "2019-04-11 14:04:00",
+             "2019-04-11 14:56:25.00", "U-36", "2019-04-11 14:57:00", "2019-04-11 14:59:00", "2019-04-11 14:58:00", "2019-04-11 15:00:00",
+             "2019-05-08 12:20:24.00", "U-12", "2019-05-08 12:21:00", "2019-05-08 12:23:00", "2019-05-08 12:23:00", "2019-05-08 12:25:30",
+             "2019-05-08 13:43:35.00", "U-14", "2019-05-08 13:44:00", "2019-05-08 13:48:00", "2019-05-08 13:43:00", "2019-05-08 13:44:30",
+             "2019-05-08 14:50:20.00", "U-36", "2019-05-08 14:51:00", "2019-05-08 14:56:00", "2019-05-08 14:50:30", "2019-05-08 14:51:30",
+             "2019-04-24 10:37:54.00", "U-12", "2019-04-24 10:39:00", "2019-04-24 10:41:00", "2019-04-24 10:38:30", "2019-04-24 10:43:30",
+             "2019-04-24 11:53:42.00", "U-14", "2019-04-24 11:54:25", "2019-04-24 11:56:00", "2019-04-24 11:54:25", "2019-04-24 11:56:00",
+             "2019-04-24 13:30:18.00", "U-36", "2019-04-24 13:31:00", "2019-04-24 13:34:00", "2019-04-24 13:31:00", "2019-04-24 13:34:00",
+             "2019-05-21 13:40:10.00", "U-14", "2019-05-21 13:41:00", "2019-05-21 13:45:00", "2019-05-21 13:41:00", "2019-05-21 13:45:00",
+             "2019-05-21 14:37:15.00", "U-36", "2019-05-21 14:37:00", "2019-05-21 14:42:00", "2019-05-21 14:37:30", "2019-05-21 14:38:30",
+             "2019-06-04 11:51:49.00", "U-12", "2019-06-04 11:52:00", "2019-06-04 11:57:00", "2019-06-04 11:52:00", "2019-06-04 11:54:30",
+             "2019-06-04 13:44:14.00", "U-14", "2019-06-04 13:45:00", "2019-06-04 13:47:00", "2019-06-04 13:45:00", "2019-06-04 13:46:30",
+             "2019-06-04 14:38:06.00", "U-36", "2019-06-04 14:39:00", "2019-06-04 14:42:00", "2019-06-04 14:38:15", "2019-06-04 14:39:20",
+             "2019-06-11 12:21:17.00", "U-12", "2019-06-11 12:22:00", "2019-06-11 12:26:00", "2019-06-11 12:22:15", "2019-06-11 12:25:20",
+             "2019-06-11 14:06:51.00", "U-14", "2019-06-11 14:08:00", "2019-06-11 14:12:00", "2019-06-11 14:08:00", "2019-06-11 14:11:00",
+             "2019-06-11 15:01:24.00", "U-36", "2019-06-11 15:01:30", "2019-06-11 15:02:15", "2019-06-11 15:02:00", "2019-06-11 15:03:00",
+             "2019-06-26 12:15:45.00", "U-12", "2019-06-26 12:17:00", "2019-06-26 12:18:30", "2019-06-26 12:16:00", "2019-06-26 12:17:30",
+             "2019-06-26 13:40:30.00", "U-14", "2019-06-26 13:41:00", "2019-06-26 13:45:30", "2019-06-26 13:41:00", "2019-06-26 13:43:30",
+             "2019-06-26 15:09:00.00", "U-36", "2019-06-26 15:11:00", "2019-06-26 15:14:00", "2019-06-26 15:11:00", "2019-06-26 15:13:00",
+             "2019-07-11 11:50:20.00", "U-14", "2019-07-11 11:52:20", "2019-07-11 11:55:20", "2019-07-11 11:52:20", "2019-07-11 11:55:20",
+             "2019-07-11 13:32:00.00", "U-36", "2019-07-11 13:33:00", "2019-07-11 13:36:20", "2019-07-11 13:32:10", "2019-07-11 13:33:20",
+             "2019-07-11 15:48:00.00", "U-12", "2019-07-11 15:48:00", "2019-07-11 15:50:00", "2019-07-11 15:48:00", "2019-07-11 15:49:00"
+             
+             # Date_Time_Sampled,       siteID,     co2DeplyDtTm,            co2RetDtTm,          ch4DeplyDtTm,        ch4RetDtTm
              
              
              
@@ -180,6 +227,8 @@ adjDataDf[, c("co2DeplyDtTm", "co2RetDtTm", "ch4DeplyDtTm", "ch4RetDtTm")] <-
   lapply(adjDataDf[ , c("co2DeplyDtTm", "co2RetDtTm", "ch4DeplyDtTm", "ch4RetDtTm")], 
          as.POSIXct, format = "%Y-%m-%d %H:%M:%S", tz = "UTC")  # set tz!
 
+
+               
 
 #5. UPDATE DEPLOYMENT AND RETRIEVAL TIMES BASED ON FIXES ABOVE (SEE POINT 3)
 
@@ -217,6 +266,8 @@ for (i in 1:with(adjDataDf, length(unique(paste(siteID, Date_Time_Sampled))))) {
   gga[logicalIndicator.i, c("Date_Time_Sampled", "siteID", "co2DeplyDtTm", "co2RetDtTm", "ch4DeplyDtTm", "ch4RetDtTm")] =
     data.i[, c("Date_Time_Sampled", "siteID", "co2DeplyDtTm", "co2RetDtTm", "ch4DeplyDtTm", "ch4RetDtTm")]
 }
+
+#gga<-filter(gga, !(Date_Time_Sampled %in% omitTimes))
 
 # ggplot(filter(gga, RDateTime>"2018-11-14 14:30:00", RDateTime<"2018-11-16 15:00:00"),
 #        aes(RDateTime, CO2._ppm))+

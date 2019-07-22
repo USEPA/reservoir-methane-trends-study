@@ -89,7 +89,19 @@ DailyShalTfluxes<-left_join(DailyShalFluxes,
                             select(chamData.s, ch4.drate.mg.h.best, Rdate), by="Rdate")
 DailyShalTfluxes<-DailyShalTfluxes %>%
   mutate(ch4.drate.interp = na.approx(ch4.drate.mg.h.best, rule=2),
-         ch4.trate = ch4.drate.interp+meanCH4Flux)
+         ch4.trate = ch4.drate.interp+meanCH4Flux,
+         ch4.dcum = cumsum(ch4.drate.interp)*24/1000)
+
+DailyShalTfluxes<-as.data.frame(DailyShalTfluxes)
+
+ggplot(DailyShalTfluxes, aes(Rdate, ch4.drate.interp))+
+  geom_line()+
+  geom_point(aes(Rdate, ch4.drate.mg.h.best))
+  ylab("Cumulative Diffusive CH4 (g m-2)")
+
+ggplot(DailyShalTfluxes, aes(Rdate, ch4.dcum))+
+  geom_line()+
+  ylab("Cumulative Diffusive CH4 (g m-2)")
 
 ggplot(DailyShalTfluxes, aes(Rdate, ch4.trate))+
   geom_line()+
@@ -121,7 +133,11 @@ epDataFilled$datetime<-as.POSIXct(epDataFilled$datetime, tz="etc/GMT+5")
 epDataFilled<-epDataFilled%>%
   mutate(date=as.Date(epDataFilled$datetime),
          year = year(datetime),
-         monthday = format(datetime, format="%m-%d %H:%M"))# %>%
+         monthday = format(datetime, format="%m-%d %H:%M"),
+         iceInd = 0,
+         iceInd = replace(iceInd, datetime>="2017-12-27" & datetime<="2018-01-10", 1),
+         iceInd = replace(iceInd, datetime>="2018-01-13" & datetime<="2018-01-21", 1),
+         iceInd = replace(iceInd, datetime>="2018-02-05" & datetime<="2018-02-15", 1))# %>%
 epDataFilled$monthday<-as.Date(epDataFilled$monthday, format="%m-%d %H:%M")
 
 epDataFilled$seasonInd<-if_else(epDataFilled$monthday<"2019-05-01" | epDataFilled$monthday>"2019-10-01",
@@ -136,6 +152,17 @@ epSeaonal<-epDataFilled%>%
                    sdCH4Flux = sd(ch4_flux_filled.f3, na.rm=TRUE),
                    nch4 = n(),
                    seCH4Flux = sdCH4Flux/sqrt(nch4))
+##calculating mean flux during ice cover:
+mean(subset(epDataFilled, iceInd==1)$ch4_flux, na.rm=TRUE)*60*60*16/1000
+sd(subset(epDataFilled, iceInd==1)$ch4_flux, na.rm=TRUE)*60*60*16/1000
+
+##warm season 2017:
+mean(subset(epDataFilled, datetime>="2017-05-01" & datetime<"2017-10-01")$ch4_flux, na.rm=TRUE)*60*60*16/1000
+sd(subset(epDataFilled, datetime>="2017-05-01" & datetime<"2017-10-01")$ch4_flux, na.rm=TRUE)*60*60*16/1000
+
+##warm season 2018:
+mean(subset(epDataFilled, datetime>="2018-05-01" & datetime<"2018-10-01")$ch4_flux, na.rm=TRUE)*60*60*16/1000
+sd(subset(epDataFilled, datetime>="2018-05-01" & datetime<"2018-10-01")$ch4_flux, na.rm=TRUE)*60*60*16/1000
 
 DailyANNFluxes<-epDataFilled %>%
   group_by(date) %>%

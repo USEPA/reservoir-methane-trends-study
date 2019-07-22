@@ -160,7 +160,7 @@ DailyEcFluxes<-epOutSubFilt %>%
                    meanH = (mean(H, na.rm=TRUE)),
                    meanLE = (mean(LE, na.rm=TRUE)),
                    meanAirT = (mean(air_temperature, na.rm=TRUE)-273.15),
-                   meanWnd = mean(wind_speed))
+                   meanWnd = mean(wind_speed), na.rm=TRUE)
 DailyEcFluxes<-DailyEcFluxes%>%
   mutate(RDateTime=as.Date(DailyEcFluxes$RDateTime),
          year = year(RDateTime),
@@ -170,20 +170,23 @@ DailyEcFluxes$monthday<-as.Date(DailyEcFluxes$monthday, format="%m-%d %H:%M")
 
 # range(epOutSubFilt$RDateTime)
 # #[1] "2017-01-26 00:30:00 EST" "2018-11-13 17:00:00 EST"
-ggplot(filter(epOutSubFilt, monthday>"2019-05-01", monthday<"2019-07-01"), 
+ggplot(filter(epOutSubFilt, monthday>"2019-01-01", monthday<"2019-12-01"), 
        aes(monthday, ch4_flux))+
   annotate("rect", xmin=as.POSIXct(as.Date("2019-05-24")),
            xmax=as.POSIXct(as.Date("2019-06-04")),
            ymin=-Inf, ymax=Inf, alpha=0.5)+
   geom_line(alpha=0.5)+
-  geom_point(alpha=0.1)+
-  scale_x_datetime(date_breaks = "4 days",
-                   labels=date_format("%b %d"))+
+  geom_point(alpha=0.1, size=1)+
+  scale_x_datetime(date_breaks = "1 month",
+                   labels=date_format("%b"))+
   ylim(-0.25, 1.7)+
   #ylim(-10, 10)+
-  facet_grid(year~.)
+  facet_grid(year~.)+
+  ylab(expression(CH[4]~Flux~(umol~m^-2~s^-1)))+
+  xlab("")+
+  theme_bw()
 
-ggplot(filter(DailyEcFluxes, monthday>"2019-05-15", monthday<"2019-06-30"),
+ggplot(filter(DailyEcFluxes, monthday>"2019-05-15", monthday<"2019-07-15"),
        aes(monthday, meanCH4Flux))+
   geom_line()+
   geom_point(alpha=0.5)+
@@ -192,11 +195,11 @@ ggplot(filter(DailyEcFluxes, monthday>"2019-05-15", monthday<"2019-06-30"),
   facet_grid(year~.)
 
 ggplot(DailyEcFluxes,
-       aes(monthday, meanCO2Flux))+
+       aes(monthday, meanCH4Flux))+
   geom_point(alpha=0.5)+
-  ylim(-500, 1000)+
+  #ylim(-500, 1000)+
   ylab("CO2 Flux (mg CO2 m-2 hr-1)")+
-  stat_smooth(se =FALSE)+
+  #stat_smooth(se =FALSE)+
   scale_x_date(labels = date_format("%b"))+
   facet_grid(year~.)      
 

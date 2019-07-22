@@ -280,11 +280,11 @@ plot(with(OUT[!is.na(OUT$ch4.drate.mg.h.best),],
 # STEP 3: MERGE DIFFUSION RATES WITH eqAreaData
 # First, strip NA from OUT
 OUT <- filter(OUT, !is.na(Sample_Time)) # Just one NA slipped in
-chamDataTest<-chamData[,1:7]
+chamDataTest<-chamData[,1:5]
 chamData <- merge(chamDataTest, OUT, by.x = c("dateTimeSampled", "siteID"), 
       by.y = c("Sample_Time", "site"), all=TRUE)
 
-str(chamData) # 64 observations
+str(chamData) # 93 observations
 
 # Any sites not have a diffusive rate?
 # These are sites/observations where multiple chamber start times were recorded
@@ -310,7 +310,8 @@ chamData<-mutate(chamData,
                  monthday = format(chmDeplyDtTm, format="%m-%d %H:%M")%>%
                    as.POSIXct(monthday, format="%m-%d %H:%M", tz="UTC"),
                  siteID = replace(siteID, siteID == "U-12", "deep"),
-                 siteID = replace(siteID, siteID == "U-14", "shallow"))
+                 siteID = replace(siteID, siteID == "U-14", "shallow W"),
+                 siteID = replace(siteID, siteID == "U-36", "shallow E"))
 
 
 ggplot(filter(chamData, !is.na(year)), aes(monthday, co2.drate.mg.h.best))+

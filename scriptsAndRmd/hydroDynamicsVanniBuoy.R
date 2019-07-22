@@ -150,7 +150,7 @@ U12SondePro.s<-U12SondePro.s%>%
                 wtrT_8 = "8")
 U12SondePro.rLake<-select(U12SondePro.s, -Site, -Lake)
 
-par(fg=NA, col="black", borders="black", axisTicks(usr=c(5, 35), log=FALSE, nint = 14)) #this gets rid of the lines on the legend
+par(fg=NA, col="black", axisTicks(usr=c(5, 35), log=FALSE, nint = 14)) #border="black",#this gets rid of the lines on the legend
 
 #par(fg=U12SondePro.rLake, col="black", axisTicks(usr=c(5, 35), log=FALSE, nint = 14)) #this gets rid of the lines on the legend
 #https://stackoverflow.com/questions/8068366/removing-lines-within-filled-contour-legend
@@ -211,6 +211,7 @@ rLakeBuoySonde<-do.call("rbind", myDeepTList)
 rLakeBuoySonde<-rLakeBuoySonde[order(rLakeBuoySonde$datetime),]
 
 rLakeBuoySonde$datetime[32]
+rLakeBuoySonde$datetime<-as.POSIXct(rLakeBuoySonde$datetime, tz="UTC")
 
 plotTicks<-seq(from=as.Date(rLakeBuoySonde$datetime[32]),
                to = as.Date(rLakeBuoySonde$datetime[nrow(rLakeBuoySonde)]),
@@ -230,6 +231,33 @@ wtr.heat.map(rLakeBuoySonde,
                                     format="%b %Y");
                axis(2)},
              borders="black")
+
+profileTest<-filter(rLakeBuoySonde, datetime>"2018-04-01", datetime<"2018-11-01")
+
+wtr.heatmap.layers(profileTest,
+                   zlim=c(2, 32),
+                   key.title = title(main = "Celsius", cex.main = 1, line=1),
+                   plot.title = title(ylab = "Depth (m)",
+                                      main="Deep Site T Profile"),
+                   plot.axes = {axis.Date(side = 1, 
+                                          x=rLakeBuoySonde$datetime,
+                                          at=plotTicks,
+                                          format="%b %Y");
+                     axis(2)},
+                   borders="black")
+
+turnOver<-ts.thermo.depth(rLakeBuoySonde, Smin=0.1, na.rm=FALSE)
+
+
+ggplot(filter(turnOver, datetime>"2018-09-01", datetime<"2018-10-16"),
+       aes(datetime, thermo.depth*-1))+
+  geom_line()+
+  scale_x_datetime(labels=date_format("%b %d", tz="UTC"), 
+               breaks=date_breaks("2 days"),
+               limits = c(as.POSIXct(as.Date("2018-09-01")),
+                            as.POSIXct(as.Date("2018-10-16"))))+
+  ylim(-8, 0)
+#turnover occurred in 2017
 
 #https://stackoverflow.com/questions/41186998/controlling-x-axis-time-stamp-on-filled-contour-plot-r
 

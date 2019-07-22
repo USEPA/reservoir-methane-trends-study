@@ -25,7 +25,7 @@ OUT <- data.frame(site = temp, Sample_Time = temp,
 
 
 # Remove data not recorded during deployment
-gga.model <- filter(gga, !is.na(co2DeplyDtTim))
+gga.model <- filter(gga, !is.na(co2DeplyDtTm))
 pdf("C:/R_Projects/actonFluxProject/figures/co2TransectCurveFits.pdf")
 start.time <- Sys.time()
 for (i in 1:length(unique(paste(gga.model$Date_Time_Sampled, gga.model$siteID)))) {  # For each unique site
@@ -263,12 +263,12 @@ ggplot(OUT, aes(site, co2.lm.r2))+
 #                                                   NA, # the NA
 #                                                   ch4.drate.mg.h.best))) # otherwise assume value defined above
 ##3/29/2018: For now, get rid of the aic comparison, and just filter by linear r2
-OUT <- mutate(OUT, 
-              co2.drate.mg.h.best = ifelse(co2.lm.r2 < 0.9, # if ex is best, but r2<0.9
+OUT <- mutate(OUT,
+              co2.drate.mg.h.best = ifelse(co2.lm.r2 < 0.3, # if ex is best, but r2<0.9
                                            NA, # then NA
                                                   co2.drate.mg.h.best), # otherwise assume value defined above
-              
-              ch4.drate.mg.h.best = ifelse(ch4.lm.r2 < 0.9, # if ex is best, but r2<0.9
+
+              ch4.drate.mg.h.best = ifelse(ch4.lm.r2 < 0.3, # if ex is best, but r2<0.9
                                            NA, # then NA
                                                   ch4.drate.mg.h.best)) # otherwise assume value defined above
 
@@ -320,10 +320,12 @@ ggplot(chamData, aes(chmDeplyDtTm, ch4.drate.mg.h.best))+
   scale_x_datetime(breaks=date_breaks("2 weeks"),
                    labels=date_format("%d %b"),
                    name="Date")
-ggplot(chamData, aes(siteID, co2.drate.mg.h.best))+
+ggplot(chamData, aes(co2.drate.mg.h.best, siteID))+
   geom_point()+
-  ylim(-50, 50)+
-  theme_bw()
+  xlim(-50, 50)+
+  theme_bw()+
+  xlab(expression(CO[2]~flux~(mg~CO[2]~m^-2~hr^-1)))
+
 
 #subset data to write to a table for Tom and Tanner
 chamDataSub<-select(chamData, chmDeplyDtTm, siteID, co2.drate.mg.h.best, ch4.drate.mg.h.best)%>%

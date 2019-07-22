@@ -45,9 +45,44 @@ DailyFluxDat<-fluxDat2%>%
                    meanSedT = mean(FilledSedT), #in C
                    precip = max(dailyRain.vws), #in mm
                    meanLE = mean(FilledLE, na.rm=TRUE), #W m-2
-                   meanH = mean(FilledH, na.rm=TRUE)) 
+                   meanH = mean(FilledH, na.rm=TRUE),
+                   mean_ch4 = mean(ch4_flux, na.rm=TRUE)) 
+
+MonthlyFluxDat<-as.data.frame(fluxDat2)%>%
+  group_by(date=cut(date, breaks = "1 month"))%>%
+  dplyr::summarize(meanPAR=mean(FilledPAR*60*60*24/10^6), #convert from umolm-2s-1 to mol m-2 d-1
+                   meanAirT = mean(FilledAirT-273.15), #convert from K to C
+                   meanSedT = mean(FilledSedT), #in C
+                   precip = max(dailyRain.vws), #in mm
+                   meanLE = mean(FilledLE, na.rm=TRUE), #W m-2
+                   meanH = mean(FilledH, na.rm=TRUE),
+                   bowR = meanH/meanLE,
+                   mean_ch4 = mean(ch4_flux, na.rm=TRUE)) 
+MonthlyFluxDat<-MonthlyFluxDat%>%
+  mutate(Rdate=as.Date(MonthlyFluxDat$date),
+         year = year(Rdate),
+         monthday = format(Rdate, format="%m-%d %H:%M"))# %>%
+MonthlyFluxDat$monthday<-as.Date(MonthlyFluxDat$monthday, format="%m-%d %H:%M")
+
+MonthlyFluxDat$liu<-c(0.44, 0.28, 0.21, 0.19, 0.11, 0.11, 0.09, 0.17, 0.14, 0.26, 0.32, 0.38,
+     0.44, 0.28, 0.21, 0.19, 0.11, 0.11, 0.09, 0.17, 0.14, 0.26, 0.32, 0.38)
+MonthlyFluxDat$abs.bowR<-ifelse(MonthlyFluxDat$bowR<0,
+                                abs(MonthlyFluxDat$bowR),
+                                MonthlyFluxDat$bowR)
+
+ggplot(MonthlyFluxDat, aes(monthday, abs.bowR))+
+  geom_point(alpha=0.7, aes(color=as.factor(year)))+
+  geom_point(aes(monthday, liu))
+  
+
+ggplot(MonthlyFluxDat, aes(Rdate, meanLE))+
+  geom_line()+
+  geom_point()+
+  geom_line(aes(Rdate, meanH, color="red"))+
+  geom_point(aes(Rdate, meanH, color="red"))
 
 #########Figure 2A: Daily mean air and sediment T #######  
+#ggplot(filter(DailyFluxDat, date>"2017-12-30", date<"2018-02-15"), aes(date, meanAirT))+
 ggplot(DailyFluxDat, aes(date, meanAirT))+
   annotate("rect", xmin=as.Date("2017-05-24"),
            xmax=as.Date("2017-06-04"),
@@ -66,9 +101,36 @@ ggplot(DailyFluxDat, aes(date, meanAirT))+
   theme(axis.text.x=element_text(angle=45, hjust=1))+
   theme_bw()
 ###export by copying to clipboard, height = 200, width = 900
+
+
+###
+mean(subset(DailyFluxDat, date>"2017-05-01", date<"2017-10-01")$meanAirT)
+sd(subset(DailyFluxDat, date>"2017-05-01", date<"2017-10-01")$meanAirT)
+mean(subset(DailyFluxDat, date>"2018-05-01", date<"2018-10-01")$meanAirT)
+sd(subset(DailyFluxDat, date>"2018-05-01", date<"2018-10-01")$meanAirT)
+
+mean(subset(DailyFluxDat, date>"2017-05-01", date<"2017-10-01")$meanSedT)
+mean(subset(DailyFluxDat, date>"2018-05-01", date<"2018-10-01")$meanSedT)
+
+mean(subset(DailyFluxDat, date>"2017-05-01", date<"2017-10-01")$meanLE)
+mean(subset(DailyFluxDat, date>"2018-05-01", date<"2018-10-01")$meanLE)
+
+mean(subset(DailyFluxDat, date>"2017-05-01", date<"2017-10-01")$meanH)
+mean(subset(DailyFluxDat, date>"2018-05-01", date<"2018-10-01")$meanH)
+
+ggplot(filter(DailyFluxDat, date>"2018-02-01", date<"2018-02-20"), aes(date, meanAirT))+
+    geom_line(color="red")+
+    ylab(expression(T~(deg~C)))+
+  xlab("")+
+  geom_hline(yintercept=0, linetype = 2, alpha=0.2)+
+  theme(axis.text.x=element_text(angle=45, hjust=1))+
+  theme_bw()
+
 DailyFluxDat$year<-year(DailyFluxDat$date)
 DailyFluxDat$monthday<- format(DailyFluxDat$date, format="%m-%d")
 DailyFluxDat$monthday<-as.Date(DailyFluxDat$monthday, format="%m-%d")
+
+
 
 ggplot(filter(DailyFluxDat, monthday>"2019-05-01", monthday<"2019-11-01"),
        aes(monthday, meanAirT))+

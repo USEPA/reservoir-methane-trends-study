@@ -85,7 +85,7 @@ USact<-mutate(epOutOrder,
 amerifluxTime<-select(USact, RDateTime_START)
 amerifluxTime$RDateTime<-amerifluxTime$RDateTime_START
 
-amerifluxRBR<-left_join(amerifluxTime, rbrT, by = "RDateTime")    
+amerifluxRBR<-left_join(amerifluxTime, rbrTsub, by = "RDateTime")    
 amerifluxRBR2<-subset(amerifluxRBR, !duplicated(RDateTime)) #30693
 USact<-subset(USact, !duplicated(RDateTime_START)) #30693
 
@@ -155,9 +155,12 @@ for(i in 1:length(USact$TS)){
 
 #change all na's to -9999's
 USact[is.na(USact)]<- -9999
+USact[is.nan(USact)]<- -9999
 USactNA<-USact
 
 USactNA[USact== -9999]<- NaN
+
+sum(is.na(USactNA$FETCH_FILTER))
 
 #additional variables for this site: water level, static pressure
 
@@ -167,9 +170,9 @@ head(USactSub$RDateTime_START)
 tail(USactSub$RDateTime_END)
 
 #check for missing HH periods:
-USactSub$check<-c(18000, diff(as.numeric(USactSub$RDateTime_START), 1))
-summary(check)
-ggplot(filter(USactSub, RDateTime_START>"2017-01-01", RDateTime_START<"2017-12-01"),
+USactSub$check<-c(1800, diff(as.numeric(USactSub$RDateTime_START), 1))
+summary(USactSub$check)
+ggplot(filter(USactSub, RDateTime_START>"2017-01-01", RDateTime_START<"2017-02-01"),
        aes(RDateTime_START, check))+
   geom_point()
 
@@ -179,7 +182,7 @@ USactSub<-mutate(USactSub,
                   TIMESTAMP_START=format(strptime(RDateTime_START,
                                                   "%Y-%m-%d %H:%M:%S"), 
                                          "%Y%m%d%H%M"),
-                 TIMESTAMP_END<-format(strptime(RDateTime_END, 
+                 TIMESTAMP_END=format(strptime(RDateTime_END, 
                                           "%Y-%m-%d %H:%M:%S"), 
                                        "%Y%m%d%H%M"))%>%
 select(TIMESTAMP_START, TIMESTAMP_END, FC_SSITC_TEST, FCH4_SSITC_TEST, FETCH_70, FETCH_90,
@@ -189,7 +192,7 @@ select(TIMESTAMP_START, TIMESTAMP_END, FC_SSITC_TEST, FCH4_SSITC_TEST, FETCH_70,
        TAU_SSITC_TEST, U_SIGMA, USTAR, V_SIGMA, W_SIGMA, WD, WS, WS_MAX, ZL)
 
 write.table(USactSub, 
-            file=("C:/R_Projects/actonFluxProject/output/US-Act_HH_201701260000_2018010000.csv"),
+            file=("C:/R_Projects/actonFluxProject/output/US-Act_HH_201701260000_201712311800.csv"),
             sep=",",
             row.names=FALSE)
 
