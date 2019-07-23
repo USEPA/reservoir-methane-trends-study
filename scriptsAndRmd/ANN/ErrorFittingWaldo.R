@@ -14,7 +14,7 @@ library(caret)
 ## Read in data. 
 if(TRUE){
   ## scaledDat, and df are defined in GapFillAndFitANN2018.R and need to be available here
-  annDat = read.csv("output/annDat7.csv")
+  annDat = read.csv("output/annDat5.8.csv")
   annDat <- subset(annDat, complete.cases(annDat[,2:ncol(annDat)]))
   maxs <- apply(annDat, 2, max, na.rm=TRUE)
   mins <- apply(annDat, 2, min, na.rm=TRUE)
@@ -36,7 +36,7 @@ fitANN <- function(trn){
   ## Define training and testing sets; subset out NAs
   tmpTrain = scaledDat[trn,]
   df.i<-df[-trn,]
-  temp<-caret::createDataPartition(y = df.i$Cluster, times = 1, p = t, list = TRUE)
+  temp<-caret::createDataPartition(y = df.i$Cluster, times = 1, p = v, list = TRUE)
   tst<-df.i[temp$Resample1, 1]
   tmpTest<-scaledDat[tst,]
   tmpValid = scaledDat[-c(trn, tst),]
@@ -75,9 +75,13 @@ fitANN <- function(trn){
       ## All predictions
       allPreds = predict(tmpMod, newdata = scaledDat) * 
         (maxs[1] - mins[1]) + mins[1]
+      
+      ## Validation indices
+      validInds = (1:nrow(scaledDat))[-c(trn,tst)]
+      validInds = validInds[!is.na(scaledDat$ch4_flux[validInds])]
       outList[[ctr+1]] = list("seed"=s, "layers"=l,"preds" = allPreds,
                               "r2" = tmpR2, "varImp" = varImp, 
-                              "validSet" = validSet)
+                              "valIdx" = validInds)
       ctr = ctr + 1
     }
   }
@@ -93,7 +97,7 @@ set.seed(3333)
 #n = 20
 n=4
 p = 0.5
-t = 0.5 #testing proportion is half of half
+v = 0.5 #testing proportion is half of half
 trainIdx = caret::createDataPartition(y = df$Cluster, times = n, p = p, list = TRUE)
 
 # testIdx <- lapply(trainIdx, function(x){
@@ -116,7 +120,7 @@ trainIdx = sapply(names(trainIdx), function(n){trainIdx[n]},simplify=FALSE)
 ## The function below will be called by lapply.
 errorFunction <- function(l){
   ## l is a list item from trainIdx, which is also a list
-  # l = trainIdx[[1]]
+  # l = trainIdx[[2]]
   
   ## Store the name for saving purposes later
   nm = names(l)
@@ -143,3 +147,47 @@ if(!doParallel){
 }
 
 #started at 9:18 am
+
+
+## Since all of the predictions are returned already, we only really need to send back the
+## indices that represent the validation data set.
+## Example of how to assemble the validation r2 values:
+fn = "output/ANNerrors"
+errorFiles = list.files(fn)
+errorList = list()
+for(f in errorFiles){
+  load(file.path(fn, f))
+  errorList = append(errorList, errorFits)
+}
+
+validRuns <- lapply(errorList, function(x){
+  # x = errorFits[[1]]
+  validFlux = annDat$ch4_flux[x$valIdx]
+  predFlux = x$preds[x$valIdx,1] # it's a matrix, so have to specify the column
+  if(any(is.na(validFlux))){
+    naInds = is.na(validFlux)
+    validFlux = validFlux[!naInds]
+    predFlux = predFlux[!naInds]
+  }
+  tmpR2 <- 1 - (sum((validFlux-predFlux )^2)/sum((validFlux-mean(validFlux))^2))
+  list("preds" = predFlux, "r2" = tmpR2, "valIdx" = x$valIdx )
+})
+
+## Each set of validation predictions are from different indices now.
+validPredsList = lapply(validRuns, function(x){
+  data.frame("Idx" = x$valIdx, "Preds" = x$preds)
+})
+
+## Cool function to do recursive joins (thanks StackOverflow)
+func <- function(...){
+  df1 = list(...)[[1]]
+  df2 = list(...)[[2]]
+  col1 = colnames(df1)[1]
+  col2 = colnames(df2)[1]
+  xxx = full_join(..., by = "Idx")
+  return(xxx)
+}
+
+validPreds = Reduce( func, validPredsList)
+head(validPreds) # This should have every index in the union of validation sets
+
