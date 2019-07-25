@@ -45,10 +45,10 @@ fitANN <- function(trn){
   validSet <- subset(tmpValid, !is.na(ch4_flux))
   testFlux = tmpTest$ch4_flux * (maxs[1] - mins[1]) + mins[1]
   
- # seeds <- 101:150
-#  layers <- 5:20
-   seeds = 1:2
-   layers = 7:8
+  seeds <- 101:150
+  layers <- 5:20
+#   seeds = 1:2
+ #  layers = 7:8
   outList <- list()
   ctr = 0
   for(s in seeds){
@@ -94,8 +94,8 @@ set.seed(3333)
 
 ## n is the number of 'new' datasets to pump through the ANN fitting
 ## p is the proportion of the dataset on which to train - 0.5 in the previous script
-#n = 20
-n=4
+n = 20
+#n=4
 p = 0.5
 v = 0.5 #testing proportion is half of half
 trainIdx = caret::createDataPartition(y = df$Cluster, times = n, p = p, list = TRUE)
@@ -190,4 +190,5 @@ func <- function(...){
 
 validPreds = Reduce( func, validPredsList)
 head(validPreds) # This should have every index in the union of validation sets
+
 
