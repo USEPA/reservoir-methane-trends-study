@@ -64,7 +64,7 @@ testFlux <- testSet$ch4_flux *(maxs[1] - mins[1]) + mins[1]
 load(paste("output/annSimulationList", runVer, ".RData", sep=""))
 ######
 
-load("output/ANNerrors/Resample1_fits.RData")
+# load("output/ANNerrors/Resample1_fits.RData")
 
 ##Start here if you just ran an ANN Fit Model
 
@@ -91,7 +91,7 @@ save(bestANNs, file = paste("output/BestANNs", runVer, ".RData", sep=""))
 ## Get R^2 for each of the 'best' ANNs from validation data set.
 validFlux <- validSet$ch4_flux * (maxs[1] - mins[1]) + mins[1]
 annCols<-names(annDat)
-validRuns <- lapply(errorFits, function(x){
+validRuns <- lapply(bestANNs, function(x){
   # x <- bestANNs[[1]]
   tmpPreds <- predict(x$ann, newdata = validSet[,annCols[-1]]) * 
     (maxs[1] - mins[1]) + mins[1]
@@ -103,6 +103,59 @@ validPreds <- do.call("cbind",lapply(validRuns, function(x){ x$preds }))
 validMedians <- apply(validPreds, 1, median)
 ## Overall R^2 value for the median predictions
 medR2 <- 1 - (sum((validFlux-validMedians)^2)/sum((validFlux-mean(validFlux))^2))
+
+
+##########################################################
+######## This section deals with getting the       #######
+######## bootstrapped models for error estimation ########
+##########################################################
+## Grab the bootstrapped predictions for the error fitting.
+## This relies on the specific seed and layer combinations that are chosen for the
+## 'best' ANNs above.
+## Have to combine all the results first.
+fn = "output/ANNerrors"
+errorFiles = list.files(fn)
+errorList = list()
+for(f in errorFiles){
+  load(file.path(fn, f))
+  errorList = append(errorList, errorFits)
+}
+## Bootstrapped runs
+## Have to check to see if each item in error list has a seed/layer combination
+## for the best fits.
+bestSL = data.frame(do.call("rbind", lapply(bestANNs, function(x){
+  list("seed"=x$seed, "layers"=x$layers)
+})))
+bootRuns <- lapply(errorList, function(x){
+  # x = errorList[[2]]
+  ## This is crude, but works -- look for the intersection of sets (i.e., indices) where
+  ## bestSL$seed and bestSL$layers are identical to the ones we care about. If there's a row match,
+  ## we do stuff. If not, we skip it.
+  if(length(intersect(x = which(bestSL$seed == x$seed), y = which(bestSL$layers == x$layers))) > 0){
+    validFlux = annDat$ch4_flux[x$valIdx]
+    predFlux = x$preds[x$valIdx,1] # it's a matrix, so have to specify the column
+    if(any(is.na(validFlux))){
+      naInds = is.na(validFlux)
+      validFlux = validFlux[!naInds]
+      predFlux = predFlux[!naInds]
+    }
+    tmpR2 <- 1 - (sum((validFlux-predFlux )^2)/sum((validFlux-mean(validFlux))^2))
+    list("preds" = predFlux, "r2" = tmpR2, "valIdx" = x$valIdx )
+  }
+})
+## Get rid of NULL list items
+bootRuns = bootRuns[sapply(bootRuns, function(x) !is.null(x))]
+## Each set of bootstrapped predictions are from different indices now.
+bootPredsList = lapply(bootRuns, function(x){
+  data.frame("Idx" = x$valIdx, "Preds" = x$preds)
+})
+## Recursive join to a data frame. The index will get filled in as the numebr of replicates increases.
+bootPredsDf = bootPredsList %>% reduce(full_join, by = "Idx") %>% arrange(Idx)
+## 90% confidence interval. Remember there is an Index term in there...
+bootCI = data.frame("Idx" = bootPredsDf$Idx,
+                    t(apply(bootPredsDf %>% select(-Idx), 1, quantile, c(0.05, 0.95), na.rm = T)))
+head(bootCI)
+
 
 
 ## Grab variable importance from ANN ensemble. Each ANN is one model -- a weighted linear combination. 
