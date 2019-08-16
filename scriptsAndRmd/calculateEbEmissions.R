@@ -67,10 +67,10 @@ hoboActon$monthday <- format(hoboActon$date.time, format="%m-%d %H:%M")%>%
                     breaks=date_breaks("1 month"))
 
  #filtered for a date range
- ggplot(filter(hoboActon, date.time>"2018-05-10"&date.time<"2017-6-14"),
+ ggplot(filter(hoboActon, date.time>"2018-06-10"&date.time<"2018-7-14", site=="u12"),
         aes(date.time, volt))+
    geom_line(alpha=0.5)+
-   facet_grid(site~.)+
+   #facet_grid(.~year)+
    scale_x_datetime(labels=date_format("%b %d", tz="UTC"),
                     breaks=date_breaks("1 week"))
 #metaDataTrapAct has been loaded as part of compileGcDataNonGrts.R script. This
@@ -85,9 +85,12 @@ hoboActon$monthday <- format(hoboActon$date.time, format="%m-%d %H:%M")%>%
  ## Bad readings after 10/31 thru end of monitoring season
  hoboU12<-hoboU12%>%
    mutate(volt = replace(volt, date.time>"2017-06-03 14:30:00" & date.time<"2017-06-12 00:00:00", NA),
+          volt = replace(volt, date.time>"2017-06-12" & date.time<"2017-06-27" & volt<0.5, NA), #strange period with lots of voltage dropouts
           volt = replace(volt, date.time>"2017-06-26 14:00:00" & date.time<"2017-07-14 11:00:00", NA),
           volt = replace(volt, date.time>"2017-10-31 12:00:00" & date.time<"2017-12-14 11:00:00", NA),
-          volt = replace(volt, date.time>"2018-04-01 12:00:00" & date.time<"2018-05-25 00:00:00", NA)) 
+          volt = replace(volt, date.time>"2018-04-01 12:00:00" & date.time<"2018-05-25 00:00:00", NA),
+          volt = replace(volt, date.time>"2018-09-20 16:00:00" & date.time<"2018-10-03 01:00:00", NA),
+          volt = replace(volt, date.time>"2018-11-10 00:00:00", NA)) 
  
  ######Shallow site aka U14:
  ## Some strange drop-outs between May 20-22: filter if voltage is <0.5
@@ -104,12 +107,121 @@ hoboActon$monthday <- format(hoboActon$date.time, format="%m-%d %H:%M")%>%
           volt = replace(volt, date.time>"2018-04-01 00:00:00" & date.time<"2018-06-07 12:00:00", NA)) 
 
 
-ggplot(filter(hoboU12, date.time>"2018-06-14"&date.time<"2018-06-17"),
+ggplot(filter(hoboU12, date.time>"2018-06-04 06:00"&date.time<"2018-06-09 15:00"),
        aes(date.time, volt))+
-  geom_point(alpha=0.1)+
-  scale_x_datetime(labels=date_format("%d %H", tz="UTC"),
-                   breaks=date_breaks("6 hour"))
+  geom_point(alpha=0.5)
+  scale_x_datetime(labels=date_format("%H:%M", tz="UTC"),
+                   breaks=date_breaks("2 hour"))
+  
+ggplot(filter(hoboU12, date.time>"2018-06-06 20:00:00", date.time<"2018-06-07 08:00"),
+       aes(date.time, volt))+
+  geom_point(alpha=0.3)+
+  stat_smooth(method="lm")
+  geom_abline(slope=3.664e-06, intercept=-5.599e+03)
 
+## calculating vOut without a calibration period    
+library(pracma)
+library(caTools)
+
+## detrend a linear period of ebulltion, then use that to calculate vOut
+
+vOutTest<-filter(filter(hoboU12, date.time>"2018-06-06 20:00:00", date.time<"2018-06-07 08:00"))%>%
+  select(volt) 
+vOutTest<-as.vector(vOutTest$volt, mode="numeric")#vector of voltage
+vOutTest.dT<-detrend(vOutTest, tt='linear')
+vOutTest.dT.diff<-diff(vOutTest.dT)
+mean(vOutTest.dT.diff) #0.4*10^-5 let's use Jake's 0.0004
+
+deltaVout<-0.0004
+
+vOutTest<-lm(volt~date.time, data=filter(hoboU12, date.time>"2018-06-06 20:00:00", date.time<"2018-06-07 08:00"))  
+summary(vOutTest)
+
+U12_Vzero<-filter(hoboU12, volt<0.6, volt>0.2)
+U14_Vzero<-filter(hoboU14, volt<0.8, volt>0.2)
+U12_Vzero$date<-as.POSIXct(U12_Vzero$date, format="%m/%d/%y", tz="UTC")
+
+ggplot(filter(U12_Vzero, date.time>"2017-01-01"), aes(date.time, volt))+
+         geom_point(alpha=0.4)+
+         scale_x_datetime(labels=date_format("%b %d", tz="UTC"),
+                          breaks=date_breaks("6 week"))
+ggplot(filter(U14_Vzero, date.time>"2017-01-01"), aes(date.time, volt))+
+  geom_point(alpha=0.4)+
+  scale_x_datetime(labels=date_format("%b %d", tz="UTC"),
+                   breaks=date_breaks("6 week"))
+U12_Vzero<-mutate(U12_Vzero,
+                  diff = c(NA, diff(volt)),
+                  minV = as.numeric(NA),
+                  volt = replace(volt, volt == 0, NA))
+U14_Vzero<-mutate(U14_Vzero,
+                  diff = c(NA, diff(volt)),
+                  minV = as.numeric(NA),
+                  volt = replace(volt, volt == 0, NA))
+ggplot(U12_Vzero, aes(date.timeHH, diff))+
+  geom_point(alpha=0.3)
+ggplot(U14_Vzero, aes(date.timeHH, diff))+
+  geom_point(alpha=0.3)
+
+minThresh<- -0.13
+
+for(i in 1:nrow(U12_Vzero)){
+    U12_Vzero$minV[i]<-ifelse(U12_Vzero$diff[i]< minThresh,
+                              U12_Vzero$volt[i],
+                            #min(subset(U12_Vzero[i-1:i+1,])$volt, na.rm=TRUE),
+                            NA)
+  }
+for(i in 1:nrow(U14_Vzero)){
+  U14_Vzero$minV[i]<-ifelse(U14_Vzero$diff[i]< minThresh,
+                            U14_Vzero$volt[i],
+                            #min(subset(U12_Vzero[i-1:i+1,])$volt, na.rm=TRUE),
+                            NA)
+}
+
+ggplot(filter(U12_Vzero, date.timeHH>"2018-01-01", date.timeHH<"2018-12-01"), 
+       aes(date.timeHH, volt))+
+  geom_point(alpha=0.4)+
+  geom_point(data=filter(U12_Vzero, date.timeHH>"2017-01-01", date.timeHH<"2018-12-01"),
+             aes(date.timeHH, minV), color="red", alpha=0.7)
+ggplot(filter(U14_Vzero, date.timeHH>"2018-01-01", date.timeHH<"2018-12-01"), 
+       aes(date.timeHH, volt))+
+  geom_point(alpha=0.4)+
+  geom_point(data=filter(U14_Vzero, date.timeHH>"2018-01-01", date.timeHH<"2018-12-01"),
+             aes(date.timeHH, minV), color="red", alpha=0.7)
+
+ggplot(U12_V0_2wk, aes(date.time, minV))+
+  geom_point()+
+  geom_point(data=U12_Vzero, aes(date.timeHH, volt))
+
+vMinTest12<-unique(U12_Vzero$minV)
+vMinTest12<-c(0.36569, 0.36, 0.34676, 0.39, 0.34, 0.38706, 0.46886, 0.42857, # thru sept
+            0.40659, 0.47350, 0.35, 0.40, 0.37, 0.45, #thru July 2018
+            0.40232, 0.31807, 0.33700, 0.34, 0.55, 0.48, 0.56)
+vZeroBar12<-mean(vMinTest12) #0.41
+vMinRollSd12<-runsd(vMinTest12, k=3)
+deltaVzero12<-mean(vMinRollSd12) #0.045
+
+vMinTest14<-unique(U14_Vzero$minV)
+vMinTest14<-c(0.20, 0.73, 0.21429, 0.56349, 0.20940, 0.61905, 0.72, 0.63309,
+              0.51, 0.42430, 0.38645, 0.32173, 0.33, 0.38,  #thru end of sept 2017
+              0.56166, 0.38400, 0.33944, 0.49939, 0.52, 0.6227, 0.52076,
+              0.617,0.66,0.6, 0.75, 0.76, 0.7)
+vZeroBar14<-mean(vMinTest14) #0.51
+vMinRollSd14<-runsd(vMinTest14, k=3)
+deltaVzero14<-mean(vMinRollSd14[7:27]) #0.071
+
+deltaVout<-0.0004
+
+for(i in 1:nrow(hobo12)){
+  hobo12$deltaHg12<-sqrt()
+}
+hoboU12<-mutate(hoboU12,
+                deltaHg12 = sqrt(deltaM^2*(volt^2+vZeroBar12^2)+mBar^2*(deltaVout^2+deltaVzero12^2)))
+
+deltaHg12<-sqrt(deltaM^2*(vOut^2+vZeroBar12^2)+mBar^2*(deltaVout^2+deltaVzero12^2))
+#deep site: 1.60 cm
+deltaHg14<-sqrt(deltaM^2*(vOut^2+vZeroBar14^2)+mBar^2*(deltaVout^2+deltaVzero14^2))
+deltaHg14<-1.4
+#shallow site: 3.69 cm
 ### Raw data to Volumetric Fluxes: ----
 ###1: Convert from voltage (V) to height (cm) using the calibration coefficients:----
 
@@ -126,6 +238,13 @@ hoboU12$hMult<-ifelse(hoboU12$date.time>"2017-06-10 12:00:00"
 hoboU12$hMult<-ifelse(hoboU12$date.time<"2018-05-01 12:00:00",
                       hoboU12$hMult,#value if TRUE -- values from above,
                       32.24) #value if FALSE -- 2018 circuit #9 post-cal
+hoboU12$hMultErr<-ifelse(hoboU12$date.time>"2017-06-10 12:00:00" 
+                      & hoboU12$date.time<"2017-07-14 13:00:00",
+                      0.198, #value if TRUE -- period with circuit #19
+                      0.65)#value if FALSE -- 2017 period with circuit #9
+hoboU12$hMultErr<-ifelse(hoboU12$date.time<"2018-05-01 12:00:00",
+                      hoboU12$hMultErr,#value if TRUE -- values from above,
+                      0.098) #value if FALSE -- 2018 circuit #9 post-cal
 
 # ggplot(hoboU12, aes(date.time, hMult))+
 #   geom_point()
@@ -149,7 +268,6 @@ hoboU12$hOffset<-ifelse(hoboU12$date.time>"2018-05-01 12:00:00",
                         hoboU12$hOffset,
                         -13.565) #value for 2018 circuit #9 post-cal
 
-  
 hoboU12$height<-hoboU12$volt*hoboU12$hMult+hoboU12$hOffset
 
 # ggplot(filter(hoboU12, date.time>"2017-05-01"&date.time<"2017-05-20"),
@@ -168,6 +286,13 @@ hoboU14$hMult<-ifelse(hoboU14$date.time>"2018-05-01 12:00:00",
                       hoboU14$hMult,
                       31.67)#value for 2018 circuit #11 post-cal
 
+hoboU14$hMultErr<-ifelse(hoboU14$date.time<"2017-07-14 13:00:00", 
+                      0.1, #value if TRUE -- period when circuit #1
+                      0.198) #value if FALSE -- period when circuit #19
+hoboU14$hMultErr<-ifelse(hoboU14$date.time>"2018-05-01 12:00:00",
+                      hoboU14$hMultErr,
+                      0.02955)#value for 2018 circuit #11 post-cal
+
 hoboU14$hOffset<-ifelse(hoboU14$date.time<"2017-07-14 13:00:00",
                         0.54, #value if TRUE -- period when circuit #1
                         -4.8) #value if FALSE -- period when circuit #19
@@ -179,31 +304,62 @@ hoboU14$height<-hoboU14$volt*hoboU14$hMult+hoboU14$hOffset
 hoboU12$Site<-"Deep"
 hoboU14$Site<-"Shallow"
 
+deltaVout<-0.0004
+
+for(i in 1:nrow(hobo12)){
+  hobo12$deltaHg12[i]<-sqrt(hoboU12$hMultErr[i]^2*(hoboU12$volt[i]^2+vZeroBar12^2)+hoboU12$hMult[i]^2*(deltaVout^2+deltaVzero12^2))
+}
+
+summary(hoboU12$deltaHg12)
+
+hoboU12<-mutate(hoboU12,
+                deltaHg12 = sqrt(deltaM^2*(1^2+vZeroBar12^2)+mBar^2*(deltaVout^2+deltaVzero12^2)))
+
+deltaHg12<-sqrt(deltaM^2*(vOut^2+vZeroBar12^2)+mBar^2*(deltaVout^2+deltaVzero12^2))
+#deep site: 1.60 cm
+deltaHg14<-sqrt(deltaM^2*(vOut^2+vZeroBar14^2)+mBar^2*(deltaVout^2+deltaVzero14^2))
+deltaHg14<-1.4
+
+## From Eleanor's circuit calibration RMD document: ###########################################
+## L:\Priv\Cin\NRMRL\ReservoirEbullitionStudy\ebullition2017\scriptsAndRmd\harshaEbullition
+# circuits<-c("nine_17", "nine_18", "nineteen", "eleven")
+# deltaM<-mean(c(0.098, 0.65, 0.198, 0.2955))
+# mBar<-mean(c(32.24, 31.86, 28.42, 31.67))
+# deltaVzero<-c(0.194, 1.19, 0.348, 0.636)
+# vZeroBar<-c(13.565, 4.42, 6.7, 19.26)
+# #vOut<-mean(c(max(hoboU14$volt, na.rm=TRUE), max(hoboU12$volt, na.rm=TRUE)))
+# deltaVout<-c(0.005, 0.4, 0.05, 0.49, 0.06, 0.03, 0.27, 0.6, 0.33, 
+#              0.25, 1.15, 0.6, 0.648, 0.89, 0.94, 0.79, 0.99, 0.668, 
+#              1.03, 0.92, 1.18, 0.63, 0.99, 1.2, 0.047, 1.25, 0.79, 
+#              1.42, 0.79, 0.59)
+# del.h<-sqrt(0.31^2*(2.45^2+10.98^2)+31^2*(0.66^2+0.592^2))
+############################################
 #######For SI figure S1#######################
-# hoboList<-list()
-# hoboList[[1]]<-hoboU12
-# hoboList[[2]]<-hoboU14
-# hoboShalDeep<-do.call("rbind", hoboList)
-# 
-# hoboShalDeep<-mutate(hoboShalDeep,
-#        year=year(date.timeHH),      
-#        monthday = format(date.timeHH, format="%m-%d %H:%M"))
-# 
-# hoboShalDeep$monthday<-as.POSIXct(hoboShalDeep$monthday, format="%m-%d %H:%M", tz="UTC")
-# 
-# ggplot(filter(hoboShalDeep, monthday>"2018-08-01", monthday<"2018-09-01"), aes(monthday, height))+
-#   facet_grid(Site~year)+
-#   geom_line()+
-#   ylab("Height (cm)")+
-#   xlab("Date")
+hoboList<-list()
+hoboList[[1]]<-hoboU12
+hoboList[[2]]<-hoboU14
+hoboShalDeep<-do.call("rbind", hoboList)
+
+hoboShalDeep<-mutate(hoboShalDeep,
+       year=year(date.timeHH),
+       monthday = format(date.timeHH, format="%m-%d %H:%M"))
+
+hoboShalDeep$monthday<-as.POSIXct(hoboShalDeep$monthday, format="%m-%d %H:%M", tz="UTC")
+
+ggplot(filter(hoboShalDeep, monthday>"2019-06-01", monthday<"2019-08-01"), 
+       aes(monthday, height))+
+  facet_grid(Site~year)+
+  geom_line()+
+  ylab("Height (cm)")+
+  xlab("Date")
 
 ###2: Convert from height to volume (cm3) ----
 ##U12 had a large-diameter tube until 6/12/2017 at 12:00, when a small diameter tube was deployed as the replacement for the missing trap
 #hoboU12$date.time[8000] #this is 6/7. Large diam. tube became unmoored on 6/3 
 #nrow(hoboU12)
 hoboU12$diameter<-ifelse(hoboU12$date.time<"2017-06-12 12:00:00",
-                         2.5, #value if true, before 6/12
-                         1.5) #value if false, after 6/12/2017
+                         2.5, #value if true, before 6/12 (cm)
+                         1.5) #value if false, after 6/12/2017 (cm)
   #c(rep(2.5, 8000), rep(1.5, nrow(hoboU12)-8000))
 hoboU14$diameter<-ifelse(hoboU14$date.time<"2018-01-01 00:00:00",
                          2.5, #large diameter tube in 2017 
@@ -214,6 +370,19 @@ hoboU14$diameter<-ifelse(hoboU14$date.time<"2018-01-01 00:00:00",
 hoboU12$Vol<- hoboU12$height*(hoboU12$diameter/2)^2*pi  #large then small diameter tube
 hoboU14$Vol<-hoboU14$height*(hoboU14$diameter/2)^2*pi  #large diameter tube in 2017, small in 2018
 
+hoboU12$Ac<-(hoboU12$diameter/2)^2*pi #cm^2
+hoboU14$Ac<-(hoboU14$diameter/2)^2*pi #cm^2
+
+# hoboU12$VolNorm<-((1+((96.8)*(1+(0.01*hoboU12$height))))*(hoboU12$Ac*hoboU12$height*(293/(hoboU12$temp.c+273.15))))/100
+# hoboU14$VolNorm<-((1+((96.8)*(1+(0.01*hoboU14$height))))*(hoboU14$Ac*hoboU14$height*(293/(hoboU14$temp.c+273.15))))/100
+
+
+# ggplot(hoboU12, aes(Vol, VolNorm))+
+#   geom_point(alpha=0.3)
+# 
+# ggplot(hoboU14, aes(date.timeHH, Vol))+
+#   geom_line()+
+#   geom_line(aes(date.timeHH, VolNorm), color="red", alpha=0.3)
 
 ###3: smooth with rolling average----
 
@@ -282,19 +451,87 @@ df14<-df14%>%
          dVolSmth48=c(rep(NA, 96), diff(df14$volSmth, 96)))
 
 #black is 30 min timestep; red is 2-hr timestep
-# ggplot(filter(df14, date.time>"2018-05-15"&date.time<"2018-09-01"),
-#   aes(date.time, dVolSmth0.5))+
-#   geom_point(alpha=0.3, color="red")+
-#   geom_point(aes(date.time, dVolSmth2), alpha = 0.3)
-#   ylim(-30, 10)
+ggplot(filter(df12, date.time>"2018-06-15"&date.time<"2018-7-01"),
+  aes(date.time, dVolSmth2))+
+  geom_point(alpha=0.3, color="red")
+  #geom_point(aes(date.time, dVolSmth2), alpha = 0.3)
+  ylim(-30, 10)
 
 #df14 <- hoboU14[seq(5,nrow(hoboU14),6),]
 
 # ggplot(filter(df14, date.time>"2017-07-15"&date.time<"2017-08-01"),
 #        aes(date.time, dH))+
 #   geom_line()
+  
+  ################Attempt to calculate error per purge #######
+#   library(quantmod)
+#   
+#   peaks12<-findPeaks(df12$volSmth, thresh=3)
+#   peakTime<-df12$date.timeHH[(peaks12-3)]
+#   peakVol<-df12$volSmth[(peaks12-3)]
+#   peaks12df<-data.frame(peakTime, peakVol)
+#   
+#   val12<-findPeaks(df12$volSmth*-1, thresh=3)
+#   valTime<-df12$date.timeHH[(peaks12+3)]
+#   valVol<-df12$volSmth[(peaks12+3)]
+#   val12df<-data.frame(valTime, valVol)
+#   
+# ggplot(filter(df12, date.timeHH>"2017-07-25", date.timeHH<"2017-09-1"), 
+#        aes(date.timeHH, volSmth))+
+#   geom_line()+
+#   geom_point(data=filter(peaks12df, peakTime> "2017-07-25",
+#                          peakTime< "2017-08-1"),
+#              aes(peakTime, peakVol), color="red")+
+#   geom_point(data=filter(val12df, valTime> "2017-07-25",
+#                         valTime< "2017-08-1"),
+#             aes(valTime, valVol), color="blue")
+# 
+# peaks14<-findPeaks(df14$volSmth, thresh=3)
+# peakTime<-df14$date.timeHH[(peaks14-3)]
+# peakVol<-df14$volSmth[(peaks14-3)]
+# peaks14df<-data.frame(peakTime, peakVol)
+# 
+# val14<-findPeaks(df14$volSmth*-1, thresh=3)
+# valTime<-df14$date.timeHH[(peaks14+3)]
+# valVol<-df14$volSmth[(peaks14+3)]
+# val14df<-data.frame(valTime, valVol)
+# peaks14df$valVol<-val14df$valVol 
+# peaks14df<-mutate(peaks14df,
+#                   volDiff = peakVol - valVol,
+#                   volDiff = replace(volDiff, volDiff<50, NA),
+#                   date.timeHH = peakTime)
+# peaks14df<-filter(peaks14df, peakTime>"2017-06-01")
+# df14<-left_join(df14, peaks14df)
+# df14<-mutate(df14,
+#              volErr = volDiff/(volDiff/Ac)*deltaHg14)
+# 
+# ggplot(filter(df14, date.timeHH>"2017-05-15", date.timeHH<"2018-09-10"), 
+#        aes(date.timeHH, volSmth), alpha=0.2)+
+#   geom_line()+
+#   geom_point(data=filter(peaks14df, peakTime> "2017-05-15",
+#                          peakTime< "2018-09-10"),
+#              aes(peakTime, peakVol), color="red")+
+#   geom_point(data=filter(val14df, valTime> "2017-05-15",
+#                          valTime< "2018-09-10"),
+#              aes(valTime, valVol), color="blue")+
+#   geom_point(data=filter(df14, date.timeHH<"2018-09-10"), 
+#              aes(date.timeHH, volErr*10), alpha=0.3)
+# 
+# 
+# peaks12df$valVol<-val12df$valVol 
+# peaks12df<-mutate(peaks12df,
+#                   volDiff = peakVol - valVol,
+#                   volDiff = replace(volDiff, volDiff<50, NA),
+#                   date.timeHH = peakTime)
+# df12<-left_join(df12, peaks12df)
+# df12<-mutate(df12,
+#              volErr = volDiff/(volDiff/Ac)*deltaHg12)
+#   
+  ###########################
 
 #filter negative dVol periods that are likely reflecting siphon purges
+
+
 
 df12<-df12%>%
   mutate(dVolSmth0.5 = replace(dVolSmth0.5, dVolSmth0.5<(-1), NA),
@@ -303,7 +540,8 @@ df12<-df12%>%
          dVolSmth6 = replace(dVolSmth6, dVolSmth6<(-1), NA),
          dVolSmth12 = replace(dVolSmth12, dVolSmth12<(-1), NA),
          dVolSmth24 = replace(dVolSmth24, dVolSmth24<(-1), NA),
-         dVolSmth48 = replace(dVolSmth48, dVolSmth48<(-1), NA))
+         dVolSmth48 = replace(dVolSmth48, dVolSmth48<(-1), NA),
+         volErr = deltaHg12*Ac)
 
 df14<-df14%>%
   mutate(dVolSmth0.5 = replace(dVolSmth0.5, dVolSmth0.5<(-1), NA),
@@ -312,7 +550,8 @@ df14<-df14%>%
          dVolSmth6 = replace(dVolSmth6, dVolSmth6<(-1), NA),
          dVolSmth12 = replace(dVolSmth12, dVolSmth12<(-1), NA),
          dVolSmth24 = replace(dVolSmth24, dVolSmth24<(-1), NA),
-         dVolSmth48 = replace(dVolSmth48, dVolSmth48<(-1), NA))
+         dVolSmth48 = replace(dVolSmth48, dVolSmth48<(-1), NA),
+         volErr = deltaHg14*Ac)
 
 ###4: Convert to a volumetric flux (mL/m2/hr):
 funnelArea<-pi*(0.54/2)^2  #in m^2
@@ -324,6 +563,7 @@ df12<-df12%>%
          volEb12 = dVolSmth12/funnelArea/12,
          volEb24 = dVolSmth24/funnelArea/24,
          volEb48 = dVolSmth48/funnelArea/48,
+         Eb2FE = volErr/volEb2,
          year=year(date.time),
          monthday = format(date.time, format="%m-%d %H:%M")%>%
            as.POSIXct(monthday, format="%m-%d %H:%M", tz="UTC"))
@@ -336,11 +576,14 @@ df14<-df14%>%
          volEb12 = dVolSmth12/funnelArea/12,
          volEb24 = dVolSmth24/funnelArea/24,
          volEb48 = dVolSmth48/funnelArea/48,
+         Eb2FE = volErr/volEb2,
          year=year(date.time),
          monthday = format(date.time, format="%m-%d %H:%M")%>%
            as.POSIXct(monthday, format="%m-%d %H:%M", tz="UTC"))
 
-#  ggplot(filter(df12, date.time>"2017-07-15"&date.time<"2017-8-20"),
+ggplot(filter(df14, abs(volEb2FE)<10), aes(volEb2FE))+
+  geom_histogram() 
+                 #ggplot(filter(df12, date.time>"2017-07-15"&date.time<"2017-8-20"),
 #        aes(date.time, volEb0.5))+
 #   geom_point(alpha=0.3)+
 #    geom_point(aes(date.time, volEb0.5), color="red", alpha=0.3)
@@ -406,6 +649,7 @@ dailyEb12<-df12 %>%
   dplyr::group_by(date.time= cut(date.time, breaks="24 hour")) %>%
   dplyr::summarize(dailyVolEb0.5 = (mean(volEb0.5, na.rm=TRUE)),
                    dailyVolEb2 = (mean(volEb2, na.rm=TRUE)),
+                   dailyVolEb2Err = sqrt(sum(volErr^2, na.rm=TRUE)), 
                    sdVolEb0.5 = (sd(volEb0.5, na.rm=TRUE)),
                    sdVolEb2 = (sd(volEb2, na.rm=TRUE)))
 dailyEb12<-mutate(dailyEb12,
@@ -420,7 +664,8 @@ dailyEb14<-df14 %>%
   dplyr::group_by(date.time= cut(date.time, breaks="24 hour")) %>%
   dplyr::summarize(dailyVolEb0.5 = (mean(volEb0.5, na.rm=TRUE)), 
             sdVolEb0.5 = (sd(volEb0.5, na.rm=TRUE)),
-            dailyVolEb2 = (mean(volEb2, na.rm=TRUE)), 
+            dailyVolEb2 = (mean(volEb2, na.rm=TRUE)),
+            dailyVolEb2Err = sqrt(sum(volErr^2, na.rm=TRUE)),
             sdVolEb2 = (sd(volEb2, na.rm=TRUE)))
 dailyEb14<-mutate(dailyEb14,
                   date=as.Date(date.time),
@@ -465,13 +710,15 @@ g.datetime<-as.POSIXct(c("2017-07-10 12:00", "2017-08-31 12:00", "2017-10-04 12:
 g.site<-c("deep", "deep", "deep", "shallow", "shallow", "shallow")
 grts.df<-data.frame(g.volEb, g.date, g.datetime, g.site)
 
-# dailyEbP1<-ggplot(filter(dailyEb, date>"2017-04-15"&date<"2017-11-01"),
-#        aes(date, dailyVolEb2))+
-#   geom_point(alpha=0.5)+
-#   facet_grid(site~.)+
-#   #geom_hline(aes(yintercept=24,color="red"))+
-#   scale_x_date(labels=date_format("%b %d", tz="UTC"), 
-#                breaks=date_breaks("1 month"))
+dailyEbP1<-ggplot(filter(dailyEb, date>"2017-04-15"&date<"2017-11-01"),
+       aes(date, dailyVolEb2))+
+  geom_point(alpha=0.5)+
+  geom_errorbar(aes(ymin=dailyVolEb2-dailyVolEb2Err,
+                    ymax=dailyVolEb2+dailyVolEb2Err))+
+  facet_grid(site~.)+
+  #geom_hline(aes(yintercept=24,color="red"))+
+  scale_x_date(labels=date_format("%b %d", tz="UTC"),
+               breaks=date_breaks("1 month"))
 # 
 # dailyEbP2<-ggplot(filter(dailyEb, year!= "NA"),
 #                   aes(monthday, dailyVolEb2))+
@@ -594,6 +841,7 @@ df12.gc<-mutate(df12.gc,
                 ebN2omgM2h = ebMlHrM2*(1/gasConst)*(BrPrssr/(Tmp_C_S+273.15))*1000/1000*trap_n2o.fraction*44)
 
 
+
 #ggplot(df14.gc, aes(date.timeHH, ebCo2mgM2h))+
 
 #  geom_point(alpha=0.3)
@@ -605,8 +853,13 @@ massEbFlux<-do.call("rbind", myEbTsList)
 
 grts.df$g.ch4.eb<-c(5.9, 9.0, 16.3,2.56,2.54,0.41)
 
-massP1<-ggplot(massEbFlux, aes(date.timeHH, ebCh4mgM2h))+
+massP1<-
+  ggplot(filter(massEbFlux, site=="u14", date.timeHH<"2017-10-01"),
+         aes(date.timeHH, ebCh4mgM2h))+
   geom_point(alpha=0.2)+
+  geom_errorbar(aes(ymin = ebCh4mgM2h-ebCh4mgM2hErr,
+                    ymax = ebCh4mgM2h+ebCh4mgM2hErr))+
+  ylim(-10, 50)
   facet_grid(site~.)
 massP1
 massP1+geom_point(data=grts.df, aes(g.datetime, g.ch4.eb, color=g.site))

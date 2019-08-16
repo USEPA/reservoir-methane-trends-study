@@ -1,12 +1,70 @@
+
+
+
+
+#time series plot with random error:
+
 ggplot(epOutSubFilt, aes(monthday, ch4_flux/1000*16*60*60))+
   geom_point(alpha=0.1)+
+  geom_errorbar(data=epOutSubFilt,
+                alpha=0.3,
+                ymin = (epOutSubFilt$ch4_flux-epOutSubFilt$rand_err_ch4_flux)/1000*16*60*60,
+                ymax = (epOutSubFilt$ch4_flux+epOutSubFilt$rand_err_ch4_flux)/1000*16*60*60)+
   #geom_point(data=filter(epOutSubFilt, w_unrot>0.1), 
   #          aes(monthday, ch4_flux/1000*16*60*60, color="red"), alpha=0.2)+
   theme(legend.position="none")+
-  ylim(-0.5/1000*16*60*60, 2/1000*16*60*60)+
+  #ylim(-0.5/1000*16*60*60, 2/1000*16*60*60)+
   facet_grid(year~.)+
   labs(x="date", y="CH4 Flux (mg m-2 hr-1)")+
   scale_x_datetime(labels=date_format("%d %b"), breaks = date_breaks("1 month"))
+
+epOutWhat<-filter(epOutSubFilt, RDateTime>"2018-06-01", RDateTime<"2018-08-01")
+ggplot(epOutWhat, aes(monthday, ch4_flux/1000*16*60*60))+
+  geom_point(alpha=0.1)+
+  geom_errorbar(data=epOutWhat,
+                alpha=0.3,
+                ymin = (epOutWhat$ch4_flux-epOutWhat$rand_err_ch4_flux)/1000*16*60*60,
+                ymax = (epOutWhat$ch4_flux+epOutWhat$rand_err_ch4_flux)/1000*16*60*60)+
+  #geom_point(data=filter(epOutSubFilt, w_unrot>0.1), 
+  #          aes(monthday, ch4_flux/1000*16*60*60, color="red"), alpha=0.2)+
+  theme(legend.position="none")+
+  #ylim(-0.5/1000*16*60*60, 2/1000*16*60*60)+
+  #facet_grid(year~.)+
+  labs(x="date", y="CH4 Flux (mg m-2 hr-1)")+
+  scale_x_datetime(labels=date_format("%d %b"), breaks = date_breaks("1 month"))
+
+
+#calculating the mean random error
+mean(subset(DailyFluxDat, date>"2017-05-01", date<"2017-10-01")$meanAirT)
+meanRE.17<-mean(subset(epOutSubFilt, year==2017)$rand_err_ch4_flux, na.rm=TRUE)/1000*16*60*60
+sdRE.17<-sd(subset(epOutSubFilt, year==2017)$rand_err_ch4_flux, na.rm=TRUE)/1000*16*60*60
+meanRE.18<-mean(subset(epOutSubFilt, year==2018)$rand_err_ch4_flux, na.rm=TRUE)/1000*16*60*60
+sdRE.18<-sd(subset(epOutSubFilt, year==2018)$rand_err_ch4_flux, na.rm=TRUE)/1000*16*60*60
+
+meanFch4.17<-mean(subset(epOutSubFilt, year==2017)$ch4_flux, na.rm=TRUE)/1000*16*60*60
+sdFch4.17<-sd(subset(epOutSubFilt, year==2017)$ch4_flux, na.rm=TRUE)/1000*16*60*60
+meanFch4.18<-mean(subset(epOutSubFilt, year==2018)$ch4_flux, na.rm=TRUE)/1000*16*60*60
+sdFch4.18<-sd(subset(epOutSubFilt, year==2018)$ch4_flux, na.rm=TRUE)/1000*16*60*60
+
+epOutSubFilt$frac_err_ch4<-epOutSubFilt$rand_err_ch4_flux/epOutSubFilt$ch4_flux
+
+ggplot(epOutSubFilt, aes(monthday, frac_err_ch4))+
+  geom_line()+
+  facet_grid(year~.)+
+  ylim(-20, 20)
+
+mean(subset(epOutSubFilt, monthday>"2019-05-01"& 
+            monthday<"2019-09-30")$frac_err_ch4, na.rm=TRUE)
+
+mean(subset(epOutSubFilt, monthday<"2019-05-01"| 
+              monthday>"2019-09-30")$frac_err_ch4, na.rm=TRUE)
+
+meanRE.17<-median(subset(epOutSubFilt, year==2017)$frac_err_ch4, na.rm=TRUE)*100
+sdRE.17<-sd(subset(epOutSubFilt, year==2017)$frac_err_ch4, na.rm=TRUE)*100
+meanRE.18<-median(subset(epOutSubFilt, year==2018)$frac_err_ch4, na.rm=TRUE)*100
+sdRE.18<-sd(subset(epOutSubFilt, year==2018)$frac_err_ch4, na.rm=TRUE)*100
+
+#error propogation
 
 
 ggplot(epOutSubFilt, aes(monthday, co2_flux/10^6*44*60*60))+ #g CO2 m-2 hr-1

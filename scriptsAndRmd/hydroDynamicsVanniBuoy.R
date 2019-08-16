@@ -38,7 +38,7 @@ bvf$year<-year(bvf$datetime)
 bvf$monthday<- format(bvf$datetime, format="%m-%d %H:%M")%>%
   as.POSIXct(monthday, format="%m-%d %H:%M", tz="UTC")
 
-ggplot(filter(bvf, monthday>"2019-07-01", monthday<"2019-07-10"), aes(monthday, N2_1.125))+
+ggplot(filter(bvf, monthday>"2019-07-01", monthday<"2019-07-10"), aes(monthday, N2_0.625))+
   geom_line(alpha=1)+
   facet_grid(year~.)+
   geom_vline(xintercept=as.POSIXct("2019-05-30 00:00:00", 
@@ -72,13 +72,25 @@ ggplot(dailyBVF, aes(RDateTime, maxBV*1000))+
 
 DailyEcFluxes<-left_join(DailyEcFluxes, dailyBVF, by="RDateTime")
 
-ggplot(DailyEcFluxes, aes(maxBV, meanCH4Flux))+
-  geom_point(alpha=0.5, aes(color=as.factor(year)))
+ggplot(filter(DailyEcFluxes, monthday>"2019-05-01", monthday<"2019-09-30", year<2019),
+       aes(maxBV, meanCH4Flux))+
+  geom_point(alpha=0.5, aes(color=as.factor(year)))+
+  geom_smooth()+
+  ylab(expression(Daily~F[CH4]~(mg~CH[4]~m^-2~hr^-1)))+
+  xlab(expression(BV~Freq~(s^-1)))+
+  labs(color="Year")
 
-ggplot(DailyEcFluxes, aes(monthday, meanCH4Flux))+
+ggplot(filter(DailyEcFluxes, monthday>"2019-04-01", monthday<"2019-10-30", year<2019),
+       aes(monthday, meanCH4Flux))+
+  geom_line()+
   geom_point(alpha=0.5)+
-  geom_line(data=DailyEcFluxes, aes(monthday, maxBV*1000), color="red")+
-  facet_grid(year~.)
+  geom_line(data=filter(DailyEcFluxes, monthday>"2019-04-01", monthday<"2019-10-30", year<2019),
+             aes(monthday, maxBV*1000), color="red", alpha=0.3)+
+  geom_point(data=filter(DailyEcFluxes, monthday>"2019-04-01", monthday<"2019-10-30", year<2019),
+             aes(monthday, maxBV*1000), color="red", alpha=0.3)+
+  facet_grid(year~.)+
+  ylab(expression(Daily~F[CH4]~(mg~CH[4]~m^-2~hr^-1)~and~BV~Freq~(ms^-1)))+
+  xlab("")
 
 bvf$RDateTime<-bvf$datetime
 epOutSubFilt<-left_join(epOutSubFilt, bvf, by="RDateTime")

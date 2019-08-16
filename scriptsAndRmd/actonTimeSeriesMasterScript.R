@@ -47,7 +47,7 @@ source("scriptsAndRmd/readHobo.R")
 #######-----
 
 
-source("scriptsAndRmd/loadPrelimOutputs.R")
+#source("scriptsAndRmd/loadPrelimOutputs.R")
         #loads data into dataframes: 
             #DISSOLVED GAS: actonDgJoin, actonTrapJoin, actonTrapAgg
             #LGR CHAMBER: gga
@@ -77,27 +77,46 @@ source("scriptsAndRmd/qcEddyPro.R")
 source("scriptsAndRmd/calculateEbEmissions.R")
         #calculates time series of ebullition emissions
         #from the active trap data
-file.edit('scriptsAndRmd/edi.256.1.r') #vanni stream gauge data, figure 2 d
-file.edit('scriptsAndRmd/metPlotsFig2.R')#figure 2 a-c, d-e
-file.edit('scriptsAndRmd/hydroDynamicsVanniBuoy.R') #Figure 2 e&f
-file.edit('scriptsAndRmd/rEddyProc.R')
-file.edit('scriptsAndRmd/fluxTmprPlots.R')
-file.edit('scriptsAndRmd/ecFluxAnalysisPlots.R')
-file.edit('scriptsAndRmd/cumulativeTS.R')
-    #time series plot (Figure 4)
-file.edit('scriptsAndRmd/diurnalAnalysis.R') #makes diurnal pdfs
-
-#run fluxTmprPlots to make plots used in AGU poster
-# cumulativeTS.R is the script used to transform time series flux data into 
-##### cumulative emission estimates
-
 #remove non longer needed data frames and lists:
-rm(vanniMet, vanniMetSub, txtFilesSize, OUT, rbrT, ggaGRTS1, 
+rm(vanniMet, txtFilesSize, OUT, rbrT, ggaGRTS1, 
    gga.model,gga.i,ep.i, data.i.co2, data.i.ch4, data.i, 
    buoyT, adjDataDf)
 rm(ch4.ex.pred, chmVol.L.i, co2.ex.pred, gga, 
    ggaList, dupes)
 rm(metaDataTrap, metaDataDG)
+
+file.edit('scriptsAndRmd/rEddyProc.R') #mean diurnal course gap-filling for LE, H, ustar 
+                                       #preps input into ANN
+file.edit('scriptsAndRmd/ANN/evaluateANN2019.R') 
+## get the gap-filled data
+## make Figure 8 (VIF)
+
+## Figures:
+file.edit('scriptsAndRmd/edi.256.1.r') #vanni stream gauge data, figure 2 d
+file.edit('scriptsAndRmd/metPlotsFig2.R')#figure 2 a-c, d-e
+file.edit('scriptsAndRmd/hydroDynamicsVanniBuoy.R') #Figure 2 e&f
+file.edit('scriptsAndRmd/cumulativeTS.R')
+## Multi-panel time series figure showing:
+##  - 30 min measured, 30 min gap-filled, and daily avg EC results
+##  - 2 hr measured AFT, daily avg AFT + interpolated chamber for U-14
+##  - 2 hr measured AFT, daily avg AFT + interpolated chamber for U-12
+##  - GRTS results
+##  - AKA Figure 3
+## Two-panel figure showing 2017 and 2018 cumulative FCH4 (Fig 7)
+file.edit('scriptsAndRmd/fluxTmprPlots.R')
+    ## Multi-panel plots showing Q10 and 
+file.edit('scriptsAndRmd/ecFluxAnalysisPlots.R')
+
+file.edit('scriptsAndRmd/diurnalAnalysis.R') #makes diurnal pdfs
+file.edit('scriptsAndRmd/GRTS/exploratoryPlotsActonGRTS.R') 
+    ## Makes linear regression of ebullition as f(depth) and
+    ## ratio of ebullitive FCH4:total FCH4 (Figures 5 and 6)
+
+#run fluxTmprPlots to make plots used in AGU poster
+# cumulativeTS.R is the script used to transform time series flux data into 
+##### cumulative emission estimates
+
+
 
 #gapfilling scripts:
 

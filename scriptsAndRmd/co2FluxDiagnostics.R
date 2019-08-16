@@ -88,7 +88,7 @@ epOut$RDateTime <- as.POSIXct(paste(epOut$date, epOut$time,sep=""),
 epOut<-select(epOut, RDateTime, co2_flux, qc_co2_flux, co2_mixing_ratio, 
               un_co2_flux, co2_scf, co2_spikes)
 
-tenHzFiles<-list.files(paste(myWD, "/L0data/data/CO2troubleshooting2", sep=""))
+tenHzFiles<-list.files(paste(myWD, "/L0data/data2017/CO2troubleshooting2", sep=""))
 tenHzColNames<-c("datah", "secs", "nsecs", "skip1", "skip2", "DateW", "TimeW", 
                  "CO2_abs", "H2O_abs", "CO2_mmolm3", "skip6", "H2O_mmolm3", "skip3",
                  "Tmpr_C", "Press_kpa", "U", "V", "W", "Ts", "CO2ppm", "H2Oppm",
@@ -102,7 +102,7 @@ pdf("C:/R_Projects/actonFluxProject/output/co2Troubleshooting.pdf",
 
 for(i in 1:length(tenHzFiles)){
   
-  test_file.i<-read.table(paste(myWD, "/L0data/data/CO2troubleshooting2/", tenHzFiles[i],
+  test_file.i<-read.table(paste(myWD, "/L0data/data2017/CO2troubleshooting2/", tenHzFiles[i],
                             sep=""),
                       skip=8, #first 8 lines are header info, including col names
                       colClasses=c("character", rep("numeric", 4), rep("character", 2),
@@ -113,12 +113,14 @@ for(i in 1:length(tenHzFiles)){
                       na.strings="9999.99",
                       fill=TRUE)
   options("digits.secs"=3)
-  test_file.i$rDateTime<-as.POSIXct(paste(test_file.i$DateW, test_file.i$TimeW, sep=""),
+  test_file.i$rDateTime<-as.POSIXct(paste(test_file.i$DateW, 
+                                          test_file.i$TimeW, sep=""),
                                  format="%Y-%m-%d%H:%M:%S",
                                  tz="UTC")
 
   #head(test_file$rDateTime)
-  test_file.i<-select(test_file.i, rDateTime, CO2ppm, CH4ppm, CO2_ss)
+  #test_file.i<-select(test_file.i, rDateTime, CO2ppm, CH4ppm, CO2_ss)
+  test_file.i<-select(test_file.i, rDateTime, H2Oppm, CO2_ss)
   tenHzList[[i]]<-test_file.i
   # plot.i<-plot(test_file.i$rDateTime, test_file.i$CO2ppm, 
   #              type="l",
@@ -132,7 +134,7 @@ for(i in 1:length(tenHzFiles)){
   co2_spikes.i<-data.i$co2_spikes
   qc.i<-data.i$qc_co2_flux
 
-  plot.i<- ggplot(test_file.i, aes(rDateTime, CO2ppm))+
+  plot.i<- ggplot(test_file.i, aes(rDateTime, H2Oppm))+
     #geom_point(alpha=0.2)+
     geom_line()+
     ggtitle(paste(test_file.i$rDateTime[1], "CO2 Flux = ", co2flux.i))

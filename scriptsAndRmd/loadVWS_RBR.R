@@ -445,8 +445,11 @@ ggplot(NRTest, aes(RDateTime, netRad_mean))+
   geom_line()
 
 #filter periods when rain gauge was not measuring, but was being logged:
+#filter NRLite when it has readings out of the plausible range
 campMet<-campMet%>%
-  mutate(Rain_mm_tot = replace(Rain_mm_tot, RDateTime>"2018-04-15 00:00:00" & RDateTime<"2018-06-15 00:00:00", NA))
+  mutate(Rain_mm_tot = replace(Rain_mm_tot, RDateTime>"2018-04-15 00:00:00" & RDateTime<"2018-06-15 00:00:00", NA),
+         NR_Wm2_avg = replace(NR_Wm2_avg, NR_Wm2_avg<(-1000), NA),
+         NR_Wm2_avg = replace(NR_Wm2_avg, RDateTime<"2017-10-18", NA))
 
 write.table(campMet,
             file="C:/R_Projects/actonFluxProject/output/prelimData/campMet.csv",

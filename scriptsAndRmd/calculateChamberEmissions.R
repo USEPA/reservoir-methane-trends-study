@@ -332,7 +332,7 @@ chamDataSub<-select(chamData, chmDeplyDtTm, siteID, co2.drate.mg.h.best, ch4.dra
                     filter(!is.na(co2.drate.mg.h.best))
 
 write.table(chamDataSub,
-            file="C:/R_Projects/actonFluxProject/output/chamberFluxes2017_2018.csv",
+            file="C:/R_Projects/actonFluxProject/output/chamberFluxes2017_2019.csv",
             sep=",",
             row.names=FALSE,
             na="NA")

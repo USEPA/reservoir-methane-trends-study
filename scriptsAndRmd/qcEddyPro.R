@@ -144,7 +144,10 @@ write.table(epOutSubFilt,
             sep=",",
             row.names=FALSE)
 
-
+write.table(select(epOutSubFilt, -qc_ch4_factor, -year, -monthday),
+            file=("C:/R_Projects/actonFluxProject/output/acton30minFluxes_uwe.csv"),
+            sep=",",
+            row.names=FALSE)
 
 ##Daily Averages, convert from umol m-2 s-1 to mg m-2 HOUR-1:
 DailyEcFluxes<-epOutSubFilt %>%
@@ -179,7 +182,7 @@ ggplot(filter(epOutSubFilt, monthday>"2019-01-01", monthday<"2019-12-01"),
   geom_point(alpha=0.1, size=1)+
   scale_x_datetime(date_breaks = "1 month",
                    labels=date_format("%b"))+
-  ylim(-0.25, 1.7)+
+  ylim(-0.25, 3.5)+
   #ylim(-10, 10)+
   facet_grid(year~.)+
   ylab(expression(CH[4]~Flux~(umol~m^-2~s^-1)))+
@@ -198,7 +201,7 @@ ggplot(DailyEcFluxes,
        aes(monthday, meanCH4Flux))+
   geom_point(alpha=0.5)+
   #ylim(-500, 1000)+
-  ylab("CO2 Flux (mg CO2 m-2 hr-1)")+
+  ylab(expression(CH[4]~Flux~(mg~CH[4]~m^-2~hr^-1)))+
   #stat_smooth(se =FALSE)+
   scale_x_date(labels = date_format("%b"))+
   facet_grid(year~.)      

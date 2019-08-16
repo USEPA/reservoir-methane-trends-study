@@ -36,8 +36,11 @@ epHeader1<- c("filename",	"date",	"time",	"DOY",	"daytime",	"file_records",	"use
 "motor_failure_LI7700",	"bad_aux_tc1_LI7700",	"bad_aux_tc2_LI7700",	"bad_aux_tc3_LI7700",
 'box_connected_LI7700',	"mean_value_RSSI_LI7500",	"u_var",	"v_var",	"w_var",	"ts_var",
 "co2_var",	"h2o_var",	"ch4_var",	"wts_cov",	"wco2_cov",	"wh2o_cov",	"wch4_cov",
-"air_t_mean",	"air_p_mean",	"co2_mean",	"h2o_mean",	"dew_point_mean",	"co2_signal_strength_7500_mean",
-"ch4_mean",	"rssi_77_mean",	"ch4_tc_1_mean",	"ch4_tc_2_mean",	"ch4_tc_3_mean")
+# "air_t_mean",	"air_p_mean",	"co2_mean",	"h2o_mean",	"dew_point_mean",	"co2_signal_strength_7500_mean",
+# "ch4_mean",	"rssi_77_mean",	"ch4_tc_1_mean",	"ch4_tc_2_mean",	"ch4_tc_3_mean")
+"co2_mean",	"h2o_mean","dew_point_mean","co2_signal_strength_7500_mean","ch4_mean",
+"air_t_mean","air_p_mean",	"rssi_77_mean",	"ch4_tc_1_mean",	"ch4_tc_2_mean",	"ch4_tc_3_mean")
+
   
 
 epHeader2<- c("filename",	"date",	"time",	"DOY",	"daytime",	"file_records",	"used_records",
@@ -69,8 +72,11 @@ epHeader2<- c("filename",	"date",	"time",	"DOY",	"daytime",	"file_records",	"use
               "motor_failure_LI7700",	"bad_aux_tc1_LI7700",	"bad_aux_tc2_LI7700",	"bad_aux_tc3_LI7700",
               'box_connected_LI7700',	"mean_value_RSSI_LI7200","mean_value_RSSI_LI7500",	"u_var",	"v_var",	"w_var",	"ts_var",
               "co2_var",	"h2o_var",	"ch4_var",	"none_var","wts_cov",	"wco2_cov",	"wh2o_cov",	"wch4_cov", "wnone_cov",
-              "air_t_mean",	"air_p_mean",	"co2_mean",	"h2o_mean",	"dew_point_mean",	"co2_signal_strength_7500_mean",
-              "ch4_mean",	"rssi_77_mean",	"ch4_tc_1_mean",	"ch4_tc_2_mean",	"ch4_tc_3_mean")
+              #"air_t_mean",	"air_p_mean",	"co2_mean",	"h2o_mean",	"dew_point_mean",	"co2_signal_strength_7500_mean",
+              #"ch4_mean",	"rssi_77_mean",	"ch4_tc_1_mean",	"ch4_tc_2_mean",	"ch4_tc_3_mean")
+              "co2_mean",	"h2o_mean","dew_point_mean","co2_signal_strength_7500_mean","ch4_mean",
+              "air_t_mean","air_p_mean",	"rssi_77_mean",	"ch4_tc_1_mean",	"ch4_tc_2_mean",	"ch4_tc_3_mean")
+
 
 
 #back to reality

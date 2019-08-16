@@ -1,4 +1,8 @@
 
+
+
+
+
 USact<-mutate(epOutOrder,
               RDateTime_START = RDateTime,
               RDateTime_END = (RDateTime+30*60),
@@ -14,7 +18,11 @@ USact<-mutate(epOutOrder,
               FC = co2_flux, #umolCO2 m-2 s-1
               FCH4 = ch4_flux*1000, #nmolCH4 m-2 s-1
               H2O = h2o_mixing_ratio, #mmol mol-1
-              H2O_SIGMA = sqrt(h2o_var),
+              H2O_SIGMA = sqrt(h2o_var/1000), #h2o_var doesn't have units, and an 
+                                              # investigation (see co2FluxDiagnostics) reveals that
+                                              # it is generally ~1000x the variance calculated from the raw 
+                                              # dataset, so probably in umol/mol, while h2o mixing ratio is
+                                              # in mmol/mol. Likely not precisely a factor of 1000 due to processing steps.  
               SC = co2_strg,
               SCH4 = ch4_strg*1000, #nmol/m2/s
               H = H,
@@ -23,7 +31,7 @@ USact<-mutate(epOutOrder,
               LE_SSITC_TEST = qc_LE,
               SH = H_strg,
               SLE = LE_strg,
-              PA = air_p_mean/1000, #kPa
+              PA = air_pressure/1000, #kPa -- air_p_mean was being loaded in incorrectly
               RH = RH,
               T_SONIC = sonic_temperature-273.15, #C
               TA = air_temperature-273.15, #C
@@ -31,7 +39,7 @@ USact<-mutate(epOutOrder,
               P=-9999, #precipitation
               P_RAIN = -9999, #rainfall, from VWS
               NETRAD = -9999, #net radiation, W/m2, from our net radiometer
-              PPFD_BC_IN = -9999, #PPFD, below canopy, incoming
+              PPFD_IN = -9999, #PPFD, incoming
               TS = -9999, #soil temperature, sed t?, from RBRs, ~1.6m
               TW_1 = -9999, #water T, from RBRs -0.1
               TW_2 = -9999, #water T, from RBRs -0.25
@@ -54,7 +62,7 @@ USact<-mutate(epOutOrder,
   select(RDateTime_START, RDateTime_END, FC_SSITC_TEST, FCH4_SSITC_TEST, FETCH_70, FETCH_90,
          FETCH_FILTER, FETCH_MAX, CH4, CO2, CO2_SIGMA, FC, FCH4, H2O, H2O_SIGMA, SC, SCH4,
          H, H_SSITC_TEST, LE, LE_SSITC_TEST, SH, SLE, PA, RH, T_SONIC, TA, VPD, P, P_RAIN, 
-         NETRAD, PPFD_BC_IN, TS, TW_1, TW_2, TW_3, TW_4, TW_5, TW_6, WTD, MO_LENGTH, TAU, 
+         NETRAD, PPFD_IN, TS, TW_1, TW_2, TW_3, TW_4, TW_5, TW_6, WTD, MO_LENGTH, TAU, 
          TAU_SSITC_TEST, U_SIGMA, USTAR, V_SIGMA, W_SIGMA, WD, WS, WS_MAX, ZL)
 
 #designate fetch filter and "PI" qa'ed fluxes
@@ -130,7 +138,9 @@ amerifluxCampVWS<-left_join(amerifluxVWS, campMet, by="RDateTime")%>%
 #   ylim(0, 5)
 
 
-
+ggplot(filter(amerifluxCampVWS, RDateTime<"2018-01-01", RDateTime>"2017-10-09"),
+       aes(RDateTime, NR_Wm2_avg))+
+  geom_line()
 
 #give USact VWS values for PAR, precip, and water level (WTD) where avail, -9999s where not avail
 #also fill in fetch filter values here
@@ -139,7 +149,7 @@ for(i in 1:length(USact$TS)){
     if(!is.na(amerifluxCampVWS$Rain_mm_tot[i])) amerifluxCampVWS$Rain_mm_tot[i] else
       -9999
   USact$P_RAIN[i] = USact$P[i]
-  USact$PPFD_BC_IN[i] = ifelse(!is.na(amerifluxCampVWS$par.vws[i]), 
+  USact$PPFD_IN[i] = ifelse(!is.na(amerifluxCampVWS$par.vws[i]), 
                                amerifluxCampVWS$par.vws[i], -9999)
   USact$WTD[i] = ifelse(!is.na(amerifluxCampVWS$levelAdj.vws[i]), #level adjust has the offset for the step change, plus 1 m to account for the depth difference between the flux footprint and the msmt site
                         amerifluxCampVWS$waterLevel.vws[i], -9999)

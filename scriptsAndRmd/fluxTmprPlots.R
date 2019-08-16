@@ -258,7 +258,7 @@ mean(epBurst$ch4_flux/1000*16*60*60, na.rm=TRUE)
 #try with gap-filled data:
 DailyANNFluxes$RDateTime<-as.Date(DailyANNFluxes$date)
 dailyECfluxSedT<-left_join(DailyANNFluxes, select(waterTcompare, -siteT, -date, -year, -monthday), by="RDateTime")
-
+dailyECfluxSedT$meanCH4Flux<-dailyECfluxSedT$ch4.trate
 
 dailyMassFlux14<-left_join(dailyMassFlux14, select(waterTcompare, sedT, date), by="date") 
 dailyMassFlux12$siteT<-"(e) Deep"
@@ -292,12 +292,12 @@ peaEC17<-filter(dailyECfluxSedT, !is.na(meanCH4Flux), !is.na(sedT), date<"2018-0
             sep=" ",
             row.names=FALSE)
   #output from big2dks: 
-  #D = 0.195937 the dks value (the test statistic)
+  #D = 0.226 the dks value (the test statistic)
   #p = 0.000200 the p value (how many of the rerandomizations generated a bigger test stat than your data did)
   #the x and y coordinate where the "greatest" 
   #difference in the bivariate distribution occurs (if one exists)
-  xEC17 = 19.171816 # gap-filled: 15.13
-  yEC17 = 2.666880  # gap-filled: 1.78
+  xEC17 = 14.103731 #non-gap filled: 19.171816 # orig gap-filled: 15.13
+  yEC17 = 1.082012 #non gap filled: 2.666880  # orig gap-filled: 1.78
   ggplot(peaEC17, aes(sedT, meanCH4Flux))+
     geom_point(alpha=0.3)+
     geom_vline(xintercept = xEC17)+
@@ -310,12 +310,16 @@ peaEC18<-filter(dailyECfluxSedT, !is.na(meanCH4Flux), !is.na(sedT), date>"2018-0
               sep=" ",
               row.names=FALSE)
   #output from big2dks: 
+  #D=  0.233847
+  #P=  0.000200
+  #x=  17.438162
+  #y=  4.458330
   #D = 0.220929 the dks value (the test statistic)
   #p = 0.000200 the p value (how many of the rerandomizations generated a bigger test stat than your data did)
   #the x and y coordinate where the "greatest" 
   #difference in the bivariate distribution occurs (if one exists)
-  xEC18 = 19.454376 #gapfilled: 17.8
-  yEC18 = 4.355505 #gapfilled: 5.67
+  xEC18 = 17.438162 # 19.454376 #gapfilled: 17.8
+  yEC18 = 4.458330 #4.355505 #gapfilled: 5.67
   ggplot(peaEC18, aes(sedT, meanCH4Flux))+
     geom_point(alpha=0.3)+
     geom_vline(xintercept = xEC18)+
@@ -389,48 +393,48 @@ ggplot(peaDeep18, aes(sedT, dailyEbCh4mgM2h))+
   xlim(11, 20)
 
 
-
-myTmprList <- list()
-myTmprList[[1]]<-select(waterTcompare, sedT, date, monthday, year, siteT)
-myTmprList[[2]]<-select(dailyMassFlux12, sedT, date, monthday, year, siteT)
-tmprShalDeep<-do.call("rbind", myTmprList)
-
-tmprP.agu<-ggplot(tmprShalDeep, aes(monthday, sedT))+
-  geom_point(aes(color=as.factor(year)),
-             shape=16, size=1, alpha=0.5)+
-  # geom_smooth(aes(monthday, meanAirT, color=as.factor(year)), 
-  #             alpha=0.3, span=0.3, se=FALSE)+
-  ylab(expression(Daily~Mean~Temperature~(deg~C)))+
-  xlab("")+
-  #scale_color_manual(values=wes_palette(name="Royal1", 2))+
-  facet_grid(siteT~.)+
-  scale_x_date(labels=date_format("%b %d", tz="UTC"), 
-               breaks=date_breaks("1 month"))+
-  theme_bw()+
-  theme(axis.text.x=element_text(angle=45, hjust=1))
-
-tmprP.agu
-
-tmprP.agu+geom_vline(xintercept=as.numeric(tmprShalDeep$monthday[208]), linetype=4)+
-  geom_vline(xintercept=as.numeric(tmprShalDeep$monthday[235]), linetype = 5)
-
-ggsave("tmprTS.tiff", path="//AA.AD.EPA.GOV/ORD/CIN/USERS/MAIN/Q-Z/swaldo/Net MyDocuments/conference_materials/agu2018/figures",
-       width=5.5, height=3)
-#filter for high emission part of year
-tmprP.aguES<-ggplot(filter(tmprShalDeep, monthday>"2018-04-01", monthday<"2018-12-01"),
-                    aes(monthday, sedT))+
-  geom_point(aes(color=as.factor(year)),
-             shape=16, size=1, alpha=0.5)+
-  # geom_smooth(aes(monthday, meanAirT, color=as.factor(year)), 
-  #             alpha=0.3, span=0.3, se=FALSE)+
-  ylab(expression(Daily~Mean~Temperature~(deg~C)))+
-  xlab("")+
-  scale_color_manual(values=wes_palette(name="Darjeeling1", 3))+
-  facet_grid(siteT~.)+
-  scale_x_date(labels=date_format("%b %d", tz="UTC"), 
-               breaks=date_breaks("1 month"))+
-  theme_bw()+
-  theme(axis.text.x=element_text(angle=45, hjust=1))
+#####Setting up for shallow vs deep T facet plot####################
+# myTmprList <- list()
+# myTmprList[[1]]<-select(waterTcompare, sedT, date, monthday, year, siteT)
+# myTmprList[[2]]<-select(dailyMassFlux12, sedT, date, monthday, year, siteT)
+# tmprShalDeep<-do.call("rbind", myTmprList)
+# 
+# tmprP.agu<-ggplot(tmprShalDeep, aes(monthday, sedT))+
+#   geom_point(aes(color=as.factor(year)),
+#              shape=16, size=1, alpha=0.5)+
+#   # geom_smooth(aes(monthday, meanAirT, color=as.factor(year)), 
+#   #             alpha=0.3, span=0.3, se=FALSE)+
+#   ylab(expression(Daily~Mean~Temperature~(deg~C)))+
+#   xlab("")+
+#   #scale_color_manual(values=wes_palette(name="Royal1", 2))+
+#   facet_grid(siteT~.)+
+#   scale_x_date(labels=date_format("%b %d", tz="UTC"), 
+#                breaks=date_breaks("1 month"))+
+#   theme_bw()+
+#   theme(axis.text.x=element_text(angle=45, hjust=1))
+# 
+# tmprP.agu
+# 
+# tmprP.agu+geom_vline(xintercept=as.numeric(tmprShalDeep$monthday[208]), linetype=4)+
+#   geom_vline(xintercept=as.numeric(tmprShalDeep$monthday[235]), linetype = 5)
+# 
+# ggsave("tmprTS.tiff", path="//AA.AD.EPA.GOV/ORD/CIN/USERS/MAIN/Q-Z/swaldo/Net MyDocuments/conference_materials/agu2018/figures",
+#        width=5.5, height=3)
+# #filter for high emission part of year
+# tmprP.aguES<-ggplot(filter(tmprShalDeep, monthday>"2018-04-01", monthday<"2018-12-01"),
+#                     aes(monthday, sedT))+
+#   geom_point(aes(color=as.factor(year)),
+#              shape=16, size=1, alpha=0.5)+
+#   # geom_smooth(aes(monthday, meanAirT, color=as.factor(year)), 
+#   #             alpha=0.3, span=0.3, se=FALSE)+
+#   ylab(expression(Daily~Mean~Temperature~(deg~C)))+
+#   xlab("")+
+#   scale_color_manual(values=wes_palette(name="Darjeeling1", 3))+
+#   facet_grid(siteT~.)+
+#   scale_x_date(labels=date_format("%b %d", tz="UTC"), 
+#                breaks=date_breaks("1 month"))+
+#   theme_bw()+
+#   theme(axis.text.x=element_text(angle=45, hjust=1))
 
 ####----
 
@@ -438,7 +442,7 @@ tmprP.aguES<-ggplot(filter(tmprShalDeep, monthday>"2018-04-01", monthday<"2018-1
 dailyECfluxSedT<-dailyECfluxSedT%>%
   mutate(date = RDateTime,
          dailyEbCh4mgM2h = meanCH4Flux,
-         sdEbCh4mgM2h = sdCH4Flux,
+         sdEbCh4mgM2h = NA, #sdCH4Flux,
          site ="(a) Eddy Covariance",
          siteT = NA
   )
@@ -644,7 +648,7 @@ dailyMassFlux12_fig14<-gather(data=dailyMassFlux12, value=value, key=key, dailyE
 
 ggplot(filter(dailyMassFlux12_fig14, monthday>"2019-04-15", monthday<"2019-11-01"),
        aes(monthday, value))+
-  annotate("rect", xmin=as.POSIXct(as.Date("2019-09-10")),
+    annotate("rect", xmin=as.POSIXct(as.Date("2019-09-10")),
            xmax=as.POSIXct(as.Date("2019-09-24")),
            ymin=-Inf, ymax=Inf, alpha=0.4)+
   geom_line(alpha=1, aes(color=as.factor(key)), size=0.5)+
@@ -656,6 +660,37 @@ ggplot(filter(dailyMassFlux12_fig14, monthday>"2019-04-15", monthday<"2019-11-01
   xlab("")+
   theme_bw()+
   theme(legend.position="none")
+
+spatioTemporalList<-list()
+spatioTemporalList[[1]]<-select(dailyMassFlux12_fig14, -sedTbuoy, -sondeTmpr, -TmprAdj, -sedTsonde)
+spatioTemporalList[[2]]<-dailyMassFlux14_fig14
+
+spatioTemporal<-do.call("rbind", spatioTemporalList)
+
+spatioTemporal<-mutate(spatioTemporal,
+       site=replace(site, site=="(c) Deep Trap", "(b)  Deep Site"),
+       site=replace(site, site=="(b) Shallow Trap", "(a) Shallow Site"),
+       key = replace(key, key=="dailyEbCh4mgM2h", "Ebullition"))
+
+ggplot(filter(spatioTemporal, date>"2017-04-05", date<"2017-11-01"),
+       aes(date, value))+
+  annotate("rect", xmin=(as.Date("2017-08-02")),
+           xmax=(as.Date("2017-08-16")),
+           ymin=-Inf, ymax=Inf, alpha=0.2)+
+       annotate("rect", xmin=(as.Date("2017-09-10")),
+                xmax=(as.Date("2017-09-24")),
+                ymin=-Inf, ymax=Inf, alpha=0.6)+
+  geom_line(alpha=1, aes(color=as.factor(key)), size=0.5)+
+  scale_color_manual(values=c("#333333", "#CC0033"))+
+  geom_smooth(span=0.3, se=FALSE)+
+  facet_grid(key~site, scales="free_y")+
+  #scale_x_date(labels=date_format("%b", tz="UTC"), 
+   #                breaks=date_breaks("1 month"))+
+  xlab("")+
+  ylab(expression(sedT~(deg~C)~~~~~Ebullition~(mg~CH[4]~m^-2~hr^-1)))+
+  theme_bw()+
+  theme(legend.position="none")
+         
 
 # normFunc<-function(x, y){
 #   return(x/y)
@@ -721,13 +756,14 @@ lmEC.Q10_2017<-lm(log10eb ~ sedT,
 lmEC.Q10_2018<-lm(log10eb ~ sedT, 
                   data=filter(dailyMassEb, site=="(a) Eddy Covariance", year == "2018"))
 
-ggplot(dailyMassEb, aes(sedT, log10eb))+
-  geom_point(aes(color=as.factor(year)), alpha=0.5)+
+ggplot(filter(dailyMassEb, year>2016), aes(sedT, log10eb))+
+  geom_point(alpha=0.5)+
   facet_grid(site~year)+
   stat_smooth(method="lm")+
   xlim(10, 30)+
-  labs(x="Sediment Temperature (deg C)", y=expression(log10(CH[4]~emission)))+
-  scale_color_manual(values=wes_palette(name="Darjeeling1", 2))+
+  ylim(-1.5, 3.5)+
+  labs(x="Sediment Temperature (deg C)", y=expression(log10(F[CH4])))+
+  #scale_color_manual(values=wes_palette(name="Darjeeling1", 2))+
   # labs(title=paste("Deep 2017 R2 = ",signif(summary(lmDeepQ10_2017)$adj.r.squared, 2),
   #                  "Deep 2017 Slope =",signif(lmDeepQ10_2017$coef[[2]],2 ),
   #                  "Shal 2017 R2 = ",signif(summary(lmShalQ10_2017)$adj.r.squared, 2),
@@ -741,7 +777,7 @@ dailyMassEb$year<-as.factor(dailyMassEb$year)
 
 ########################################################
 ###facet plot with 2DKS thresholds#####
-ggplot(dailyMassEb, aes(sedT, dailyEbCh4mgM2h))+
+ggplot(filter(dailyMassEb, year>2016), aes(sedT, dailyEbCh4mgM2h))+
   geom_point(alpha=0.3)+#, aes(color=as.factor(year)), show.legend=FALSE)+
   facet_grid(as.factor(site)~year)+#, scales = "free")+
   #stat_smooth(method="lm")+

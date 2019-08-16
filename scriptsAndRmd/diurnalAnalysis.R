@@ -545,11 +545,11 @@ epOutSubFilt<-epOutSubFilt%>%
          yesDhighInd = replace(yesDhighInd, RDateTime>"2018-06-04" & RDateTime<"2018-06-06", 1),
          BurstInd = replace(BurstInd, RDateTime>"2018-06-04" & RDateTime<"2018-06-06", "b. Post-Burst"))
 
-squishStart<-as.numeric(epOutSubFilt$RDateTime[7000])
-squishEnd<-as.numeric(epOutSubFilt$RDateTime[7400])
-squishFactor<-60*60*24*3
-epOutSubFilt$timeNumeric<-as.numeric(epOutSubFilt$RDateTime)
-sum(is.na(epOutSubFilt$timeNumeric))
+# squishStart<-as.numeric(epOutSubFilt$RDateTime[7000])
+# squishEnd<-as.numeric(epOutSubFilt$RDateTime[7400])
+# squishFactor<-60*60*24*3
+# epOutSubFilt$timeNumeric<-as.numeric(epOutSubFilt$RDateTime)
+# sum(is.na(epOutSubFilt$timeNumeric))
 
 diurnalLE<-filter(epOutSubFilt, yesDhighInd==1, ch4_flux<1.25)
 
@@ -567,28 +567,29 @@ ggplot(filter(epOutSubFilt, yesDhighInd==1, ch4_flux<1.25),
 
 
 
-ggplot(filter(epOutSubFilt, yesDhighInd==1, ch4_flux<1.25),
-       aes(timeNumeric, ch4_flux))+
-  # annotate("rect", xmin=as.POSIXct(as.Date("2019-05-24")),
-  #          xmax=as.POSIXct(as.Date("2019-06-04")),
-  #          ymin=-Inf, ymax=Inf, alpha=0.5)+
-  geom_line(alpha=0.5, color="red")+
-  geom_line(alpha=0.5, color="red")+
-  geom_point(alpha=0.1, color="red")+
-  facet_grid(.~BurstInd)+
-  scale_x_continuous(trans = squish_trans(squishStart, squishEnd, squishFactor))
-                     #breaks = seq(-6, 6, by = 2)
-  # scale_x_datetime(date_breaks = "4 days",
-  #                  labels=date_format("%b %d"))+
-  #ylim(-0.1, 1.5)
+# ggplot(filter(epOutSubFilt, yesDhighInd==1, ch4_flux<1.25),
+#        aes(timeNumeric, ch4_flux))+
+#   # annotate("rect", xmin=as.POSIXct(as.Date("2019-05-24")),
+#   #          xmax=as.POSIXct(as.Date("2019-06-04")),
+#   #          ymin=-Inf, ymax=Inf, alpha=0.5)+
+#   geom_line(alpha=0.5, color="red")+
+#   geom_line(alpha=0.5, color="red")+
+#   geom_point(alpha=0.1, color="red")+
+#   facet_grid(.~BurstInd)+
+#   scale_x_continuous(trans = squish_trans(squishStart, squishEnd, squishFactor))
+#                      #breaks = seq(-6, 6, by = 2)
+#   # scale_x_datetime(date_breaks = "4 days",
+#   #                  labels=date_format("%b %d"))+
+#   #ylim(-0.1, 1.5)
 
 ggplot(filter(epOutSubFilt, yesDhighInd==1, ch4_flux<1.25, BurstInd=="a. Pre-Burst"),
        aes(RDateTime, ch4_flux/1000*60*60*16))+
+  geom_smooth(span=0.2, se=FALSE)+
   # annotate("rect", xmin=as.POSIXct(as.Date("2019-05-24")),
   #          xmax=as.POSIXct(as.Date("2019-06-04")),
   #          ymin=-Inf, ymax=Inf, alpha=0.5)+
-  geom_line(alpha=0.3, color="red")+
-  geom_point(alpha=0.3, color="red", size=1.5)+
+  geom_line(alpha=0.6)+
+  geom_point(alpha=0.8, size=1.5)+
   ylab(expression(F[CH4]~(mg~m^-2~hr^-1)))+
   xlab("")+
   ylim(0, 70)+
@@ -596,15 +597,18 @@ ggplot(filter(epOutSubFilt, yesDhighInd==1, ch4_flux<1.25, BurstInd=="a. Pre-Bur
 
 ggplot(filter(epOutSubFilt, yesDhighInd==1, ch4_flux<1.25, BurstInd=="b. Post-Burst"),
        aes(RDateTime, ch4_flux/1000*60*60*16))+
+  geom_smooth(span=0.3, se=FALSE)+
   # annotate("rect", xmin=as.POSIXct(as.Date("2019-05-24")),
   #          xmax=as.POSIXct(as.Date("2019-06-04")),
   #          ymin=-Inf, ymax=Inf, alpha=0.5)+
-  geom_line(alpha=0.3, color="red")+
-  geom_point(alpha=0.3, color="red", size=1.5)+
+  geom_line(alpha=0.6)+
+  geom_point(alpha=0.8, size=1.5)+
   ylab(expression(F[CH4]~(mg~m^-2~hr^-1)))+
   xlab("")+
   ylim(0, 70)+
   theme_bw()
+
+library(RColorBrewer)
 
 yesDhigh<-filter(epOutSubFilt, yesDhighInd==1, ch4_flux<1.25) 
 yesDhigh$date<-yesDhigh$RDateTime
@@ -612,8 +616,9 @@ yesDhigh.p<-timeVariation(yesDhigh, pollutant=c("ch4_flux", "LE"),
                          statistic="median", 
                          # xlab=c("hour", "hour of day, 2018",
                          #        "month", "weekday"),
-                         normalise=TRUE)
-plot(yesDhigh.p, subset="hour")
+                         normalise=TRUE,
+                         cols=c("blue","dark grey"))
+plot(yesDhigh.p, subset="hour", theme.legend=NULL)
 
 #Example of diurnal pattern, out of phase with LE:
 #before and after spring burst
@@ -626,11 +631,12 @@ epOutSubFilt<-epOutSubFilt%>%
 #inverse period
 ggplot(filter(epOutSubFilt, RDateTime>"2018-08-26 13:00", RDateTime<"2018-08-31"), 
        aes(RDateTime, ch4_flux/1000*60*60*16))+
+  geom_smooth(span=0.2, se=FALSE)+
   # annotate("rect", xmin=as.POSIXct(as.Date("2019-05-24")),
   #          xmax=as.POSIXct(as.Date("2019-06-04")),
   #          ymin=-Inf, ymax=Inf, alpha=0.5)+
-  geom_line(alpha=0.3, color="red")+
-  geom_point(alpha=0.3, color="red", size=1.5)+
+  geom_line(alpha=0.6)+
+  geom_point(alpha=0.8, size=1.5)+
   ylab(expression(F[CH4]~(mg~m^-2~hr^-1)))+
   xlab("")+
   ylim(0, 70)+
@@ -652,7 +658,8 @@ yesDlow.p<-timeVariation(yesDlow, pollutant=c("ch4_flux_off", "air_pressure_kPa_
                           statistic="median", 
                           # xlab=c("hour", "hour of day, 2018",
                           #        "month", "weekday"),
-                          normalise=FALSE)
+                          normalise=FALSE,
+                         cols=c("blue", "green"))
 plot(yesDlow.p, subset="hour")
 
 ggplot(yesDlow, aes(air_pressure_kPa, ch4_flux))+
