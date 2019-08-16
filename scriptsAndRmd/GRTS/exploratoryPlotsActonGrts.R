@@ -67,8 +67,8 @@ orderLake <- function(x, choice1) {
 # Volumetric rates
 str(meanVariance.c$Lake_Name)
 
-meanVariance.c$Lake_Name2<-c("Acton 2017_07", "Acton 2017_08", "Acton 2017_10",
-                             "Acton 2018_07", "Acton 2018_08", "Acton 2018_09")
+meanVariance.c$Lake_Name2<-c("Acton 2017_08", "Acton 2017_07", "Acton 2017_10",
+                             "Acton 2018_08", "Acton 2018_07", "Acton 2018_09")
 meanVariance.c$year<-as.factor(c(rep("2017", 3), rep("2018",3)))
 str(meanVariance.c$ebMlHrM2_Estimate)
 
@@ -101,12 +101,58 @@ ggplot(meanVariance.c,
   #xlim("Acton Lake 07", "Acton Lake 08")+
   labs(x="", y=expression(CH[4]~Ebullition~(mg~CH[4]~m^{-2}~hr^{-1})))
 
+actGRTS.2017eb.mean<-mean(subset(meanVariance.c, year=="2017")$ch4.erate.mg.h_Estimate)
+actGRTS.2017eb.stdErr<-sqrt(sum(subset(meanVariance.c, year=="2017")$ch4.erate.mg.h_StdError^2))
+actGRTS.2017eb.95PctCI<-actGRTS.2017eb.stdErr*1.96
+
+actGRTS.2018eb.mean<-mean(subset(meanVariance.c, year=="2018")$ch4.erate.mg.h_Estimate)
+actGRTS.2018eb.stdErr<-sqrt(sum(subset(meanVariance.c, year=="2018")$ch4.erate.mg.h_StdError^2))
+actGRTS.2018eb.95PctCI<-actGRTS.2018eb.stdErr*1.96
+
+
+
 ggsave('C:/R_Projects/actonFluxProject/figures/ch4EbDotChart.tiff',  # export as .tif
        units="in",  # specify units for dimensions
        width=3,   # 1 column
        height=3, # Whatever works
        dpi=600,   # ES&T. 300-600 at PLOS One,
        compression = "lzw")
+
+ggplot(meanVariance.c,
+       aes(Lake_Name2, ch4.trate.mg.h_Estimate))+
+  geom_point()+
+  geom_errorbar(aes(ymax = ch4.trate.mg.h_UCB95Pct,
+                    ymin = ch4.trate.mg.h_LCB95Pct))
+
+
+actGRTS.2017t.mean<-mean(subset(meanVariance.c, year=="2017")$ch4.trate.mg.h_Estimate)
+actGRTS.2017t.stdErr<-sqrt(sum(subset(meanVariance.c, year=="2017")$ch4.trate.mg.h_StdError^2))
+actGRTS.2017t.95PctCI<-actGRTS.2017t.stdErr*1.96
+
+actGRTS.2018t.mean<-mean(subset(meanVariance.c, year=="2018")$ch4.trate.mg.h_Estimate)
+actGRTS.2018t.stdErr<-sqrt(sum(subset(meanVariance.c, year=="2018")$ch4.trate.mg.h_StdError^2))
+actGRTS.2018t.95PctCI<-actGRTS.2018t.stdErr*1.96
+
+actGRTS.2017d.mean<-mean(subset(meanVariance.c, year=="2017")$ch4.drate.mg.m2.h_Estimate)
+actGRTS.2017d.stdErr<-sqrt(sum(subset(meanVariance.c, year=="2017")$ch4.drate.mg.m2.h_StdError^2))
+actGRTS.2017d.95PctCI<-actGRTS.2017d.stdErr*1.96
+
+actGRTS.2018d.mean<-mean(subset(meanVariance.c, year=="2018")$ch4.drate.mg.m2.h_Estimate)
+actGRTS.2018d.stdErr<-sqrt(sum(subset(meanVariance.c, year=="2018")$ch4.drate.mg.m2.h_StdError^2))
+actGRTS.2018d.95PctCI<-actGRTS.2018d.stdErr*1.96
+
+#weighted averages:
+#> subset(meanVariance.c, year=="2018")$ch4.trate.mg.h_StdError
+#[1] 2.7812863 1.5932579 0.9764451
+#> subset(meanVariance.c, year=="2018")$deplyDt
+#[1] "08/13/2018" "07/10/2018" "9/19/2018" 
+nDays1<-as.numeric(as.Date("2018-08-13")-as.Date("2018-07-10"))/2 + as.numeric(as.Date("2018-07-10")-as.Date("2018-05-01"))
+nDays2<-as.numeric(as.Date("2018-08-13")-as.Date("2018-07-10"))/2 + as.numeric(as.Date("2018-09-19")-as.Date("2018-08-13"))/2
+nDays3<-as.numeric(as.Date("2018-09-19")-as.Date("2018-08-13"))/2 + as.numeric(as.Date("2018-10-01")-as.Date("2018-09-19"))
+
+sum(nDays1, nDays2, nDays3) #153
+
+actGRTS.2018t.stdErr<-sqrt(((1.593*nDays1/153)^2+(2.78129*nDays2/153)^2+(0.97645*nDays3/153)^2))
 
 meanVarEFW<-select(meanVariance.c, Lake_Name2, ch4.trate.mg.h_Estimate, ch4.trate.mg.h_UCB95Pct,
                    ch4.trate.mg.h_LCB95Pct)%>%

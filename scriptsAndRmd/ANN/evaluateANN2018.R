@@ -70,7 +70,8 @@ load(paste("output/annSimulationList", runVer, ".RData", sep=""))
 
 ## Look at the simList object and pick out the 'best' models
 ## Look at the R^2 values first
-r2Sims <- sapply(simList, function(x){ x$r2 })
+r2Sims <- sapply(errorList, function(x){x$r2})
+#r2Sims <- sapply(simList, function(x){ x$r2 })
 summary(r2Sims) #median of 5.0 = 0.49!; max = 0.579
  sum(r2Sims>= 0.5)/length(r2Sims) # ver 5.0: 30% are higher than 0.5 (!!!) I think this did get overwritten :(
                                  # ver 5.1: 8.75% > 0.5
@@ -80,8 +81,10 @@ summary(r2Sims) #median of 5.0 = 0.49!; max = 0.579
 # Find the highest 100 R2 values
 minR2 <- sort(r2Sims, decreasing = TRUE)[100]
 # Subset the simList object to only include the highest 100 R2 values.
-simKeep <- sapply(simList, function(x){ x$r2 >= minR2 } )
-bestANNs <- simList[simKeep]
+simKeep <- sapply(errorList, function(x){ x$r2 >= minR2 } )
+#simKeep <- sapply(simList, function(x){ x$r2 >= minR2 } )
+bestANNs <- errorList[simKeep]
+#bestANNs <- simList[simKeep]
 save(bestANNs, file = paste("output/BestANNs", runVer, ".RData", sep=""))
 #load("output/BestANNs5.2.RData")
 #fluxDatFilled<-read.csv("output/annDatasetMDC_filled.csv")

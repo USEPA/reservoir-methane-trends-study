@@ -622,8 +622,9 @@ annIN<-annIN%>%
 #                   sep=",",
 #                   row.names=FALSE)
 
-annIN2<-select(annIN, -fuzzyRAD)
+annIN<-select(annIN, -fuzzyRAD)
 annDat<-subset(annIN2, complete.cases(annIN2[,4:ncol(annIN2)]))
+annIN2<-subset(annIN, complete.cases(annIN[,4:ncol(annIN)]))
 
 annDat<-select(annDat, -index, -co2_flux, -datetime)
 

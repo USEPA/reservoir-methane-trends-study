@@ -36,8 +36,8 @@ txtFiles <- txtFiles[!grepl(pattern = "_s|_l|_b", x = txtFiles)] # exclude files
 # Find the size of the files
 txtFiles<-as.data.frame(txtFiles)
 txtFiles2017<-txtFiles[1:40, 1]
-txtFiles2018<-txtFiles[41:105, 1]
-txtFiles2019<-txtFiles[106:137, 1]
+txtFiles2018<-txtFiles[41:108, 1]
+txtFiles2019<-txtFiles[109:151, 1]
 txtFilesSize <- c(file.info(paste("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/ebullition2017/data/GGA/acton/", 
                                 txtFiles2017, sep = "")),
                   file.info(paste("L:/Priv/Cin/NRMRL/ReservoirEbullitionStudy/ebullition2018/GGA/", 

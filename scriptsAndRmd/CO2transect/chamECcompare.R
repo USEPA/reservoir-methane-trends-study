@@ -2,7 +2,8 @@
 
 #Uwe's approach: plot MDV of 5 days of EC results surrounding chamber msmt
 
-chamCompare<-filter(chamDataSub, siteID!="deep")
+#chamCompare<-filter(chamDataSub, siteID!="deep")
+chamCompare<-chamDataSub
 head(chamCompare)
 
 #first date: 2018-06-07
@@ -32,6 +33,7 @@ compOUT <- data.frame(twohrCO2 = temp, twohr5dayCO2 = temp, twohrCH4=temp,
                       twohr5dayCH4=temp, twohr5dayCO2sd=temp, chamberCO2=temp,
                       RDateTime=temp, year=temp)
                   
+datesCompareList<-list()
 
 pdf(paper = "a4r", width = 20, file = paste(myWD,"/figures/co2_comparison.pdf", sep="")) # landscape orientation
 for (i in 1:numChamObs) {  # number of post-2017 chamber observations at shallow site
@@ -39,7 +41,8 @@ for (i in 1:numChamObs) {  # number of post-2017 chamber observations at shallow
   enddate.i<-as.Date(chamCompare$chmDeplyDtTm[i])+2
   starttime.i<-chamCompare$chmDeplyDtTm[i]-(30*60)
   endtime.i<-chamCompare$chmDeplyDtTm[i]+(60*60)
-  data.i <- filter(epOutSubFilt, RDateTime>startdate.i, RDateTime<enddate.i)  # Pull out one week
+  data.i <- filter(epOutSubFilt, RDateTime>startdate.i, RDateTime<=enddate.i)  # Pull out one week
+  datesCompareList[[i]]<-unique(data.i$date)
   data2.i <- filter(epOutSubFilt, RDateTime>starttime.i, RDateTime<=endtime.i)
   compOUT[i, "chamberCO2"] = chamCompare$co2.drate.mg.h.best[i]
   compOUT[i, "RDateTime"] = as.Date(chamCompare$chmDeplyDtTm[i])
@@ -238,4 +241,14 @@ ggplot(ecTest, aes(time_of_day, mean_co2))+
   xlab("Hour of Day")+
   scale_x_continuous(trans="hms",breaks=c(0, 21600, 43200, 64800))
 
+
+#subset of eddy covaraiance flux data:
+epUweTimes <- unlist(datesCompareList, use.names=FALSE)
+
+epUweData<-filter(epOutSubFilt, date %in% epUweTimes)
+
+write.table(select(epUweData, -qc_ch4_factor, -year, -monthday),
+            file=("C:/R_Projects/actonFluxProject/output/acton30minFluxes_uwe2.csv"),
+            sep=",",
+            row.names=FALSE)
                      
